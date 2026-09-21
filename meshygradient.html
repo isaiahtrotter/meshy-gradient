@@ -383,6 +383,35 @@
     layout(); refreshAll();
   }
 
+  // ---------- Persistence (localStorage) ----------
+  const STORAGE_KEY = 'meshGradientState.v1';
+  let saveTimer = null;
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        w: state.w, h: state.h, nodes: state.nodes,
+        soft: state.soft, grain: state.grain, grainSize: state.grainSize,
+        adj: state.adj, linear: state.linear, seed: state.seed,
+      }));
+    } catch {}
+  }
+  function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveState, 300); }
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      const s = JSON.parse(raw);
+      if (!s || !Array.isArray(s.nodes) || !s.nodes.length) return false;
+      state.w = s.w || state.w; state.h = s.h || state.h;
+      state.nodes = s.nodes;
+      state.soft = s.soft ?? state.soft; state.grain = s.grain ?? state.grain; state.grainSize = s.grainSize ?? state.grainSize;
+      state.adj = s.adj ? Object.assign({}, state.adj, s.adj) : state.adj;
+      state.linear = !!s.linear; state.seed = s.seed ?? state.seed;
+      nextId = Math.max(0, ...state.nodes.map(n => n.id)) + 1;
+      return true;
+    } catch { return false; }
+  }
+
   function rgbaCss(hex, a) { const [r, g, b] = hexToRgb(hex); return `rgba(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)},${a})`; }
   // per-side spreads, with fallback for older node shapes
   function spreads(n) { const rx = n.rx ?? n.r ?? 0.5, ry = n.ry ?? n.r ?? 0.5; return { l: n.sl ?? rx, r: n.sr ?? rx, t: n.st ?? ry, b: n.sb ?? ry }; }
@@ -483,6 +512,7 @@
 
   let raf = 0;
   function draw() {
+    scheduleSave();
     if (raf) return;
     raf = requestAnimationFrame(() => {
       raf = 0; if (!preview) return;
@@ -1069,6 +1099,7 @@
   $('adjBri').addEventListener('input', e => { state.adj.bri = +e.target.value; refreshAdjUI(); draw(); });
 
   function mappedValue(el) { const min = +el.dataset.min, max = +el.dataset.max; return min + (+el.value) * (max - min); }
+  function reverseMapped(el, val) { const min = +el.dataset.min, max = +el.dataset.max; return (val - min) / (max - min); }
   $('soft').addEventListener('input', e => { state.soft = mappedValue(e.target); sliderFill(e.target); $('softVal').textContent = (+e.target.value).toFixed(2); draw(); });
   $('grain').addEventListener('input', e => { state.grain = mappedValue(e.target); sliderFill(e.target); $('grainVal').textContent = (+e.target.value).toFixed(2); draw(); });
   $('grainSize').addEventListener('input', e => { state.grainSize = +e.target.value; sliderFill(e.target); $('grainSizeVal').textContent = state.grainSize; draw(); });
@@ -1147,9 +1178,17 @@
   });
 
   for (const inp of document.querySelectorAll('input[type=number], input[type=text]')) inp.addEventListener('focus', () => inp.select());
-  refreshAdjUI();
+
   // ---------- Init ----------
-  seedNodes(PALETTES[0]);
+  const restored = loadState();
+  if (!restored) seedNodes(PALETTES[0]);
+  $('cw').value = state.w; $('ch').value = state.h;
+  $('soft').value = reverseMapped($('soft'), state.soft); $('softVal').textContent = (+$('soft').value).toFixed(2);
+  $('grain').value = reverseMapped($('grain'), state.grain); $('grainVal').textContent = (+$('grain').value).toFixed(2);
+  $('grainSize').value = state.grainSize; $('grainSizeVal').textContent = state.grainSize;
+  $('linear').checked = state.linear;
+  document.querySelectorAll('input[type=range]').forEach(sliderFill);
+  refreshAdjUI();
   layout(); refreshAll();
 })();
 </script>
