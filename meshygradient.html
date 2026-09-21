@@ -275,6 +275,7 @@
       <h2>Blend</h2>
       <div class="slider"><span class="slider-label">Softness</span><span class="slider-value" id="softVal">0.33</span><input type="range" id="soft" min="0" max="1" step="0.001" value="0.33333" data-min="0.05" data-max="0.2"></div>
       <div class="slider" style="margin-top:10px"><span class="slider-label">Grain</span><span class="slider-value" id="grainVal">0.13</span><input type="range" id="grain" min="0" max="1" step="0.001" value="0.13333" data-min="0" data-max="0.15"></div>
+      <div class="slider" style="margin-top:10px"><span class="slider-label">Grain size</span><span class="slider-value" id="grainSizeVal">1</span><input type="range" id="grainSize" min="1" max="8" step="1" value="1"></div>
       <div class="row" style="margin-top:12px; justify-content:space-between">
         <label class="row" style="gap:8px"><input type="checkbox" id="linear"> Blend in linear light</label>
       </div>
@@ -334,7 +335,7 @@
     w: 1600, h: 1000,
     nodes: [],            // {id, x, y (0..1), r, color:'#rrggbb'}
     selected: new Set(),
-    soft: 0.1, grain: 0.02, adj: { hue: 0, sat: 1, bri: 1 }, linear: false, seed: Math.random() * 1000,
+    soft: 0.1, grain: 0.02, grainSize: 1, adj: { hue: 0, sat: 1, bri: 1 }, linear: false, seed: Math.random() * 1000,
   };
   const undoStack = [];
   const redoStack = [];
@@ -404,7 +405,7 @@
   const VS = `attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }`;
   const FS = `
     precision highp float;
-    uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uSeed, uLinear;
+    uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uLinear;
     uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec3 uAdj;
     float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
     vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
@@ -436,7 +437,7 @@
       col = col * ca + cross(kk, col) * sa + kk * dot(kk, col) * (1.0 - ca);
       float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
       col = mix(vec3(lum), col, uAdj.y) * uAdj.z;
-      col += (hash(gl_FragCoord.xy + uSeed) - 0.5) * uGrain;
+      col += (hash(floor(gl_FragCoord.xy / uGrainSize) + uSeed) - 0.5) * uGrain;
       gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
     }`;
 
@@ -450,7 +451,7 @@
     const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const U = {}; for (const n of ['uRes', 'uCount', 'uSoft', 'uGrain', 'uSeed', 'uLinear', 'uNode', 'uNode2', 'uTh2', 'uColor', 'uAdj']) U[n] = gl.getUniformLocation(prog, n);
+    const U = {}; for (const n of ['uRes', 'uCount', 'uSoft', 'uGrain', 'uGrainSize', 'uSeed', 'uLinear', 'uNode', 'uNode2', 'uTh2', 'uColor', 'uAdj']) U[n] = gl.getUniformLocation(prog, n);
     const nodeArr = new Float32Array(MAXN * 4), node2Arr = new Float32Array(MAXN * 4), colArr = new Float32Array(MAXN * 4), th2Arr = new Float32Array(MAXN);
     return {
       gl,
@@ -468,7 +469,7 @@
         }
         gl.uniform2f(U.uRes, gl.drawingBufferWidth, gl.drawingBufferHeight);
         gl.uniform1i(U.uCount, N);
-        gl.uniform1f(U.uSoft, state.soft / 0.2); gl.uniform1f(U.uGrain, state.grain);
+        gl.uniform1f(U.uSoft, state.soft / 0.2); gl.uniform1f(U.uGrain, state.grain); gl.uniform1f(U.uGrainSize, state.grainSize);
         gl.uniform1f(U.uSeed, state.seed); gl.uniform1f(U.uLinear, state.linear ? 1 : 0);
         gl.uniform4fv(U.uNode, nodeArr); gl.uniform4fv(U.uNode2, node2Arr); gl.uniform1fv(U.uTh2, th2Arr); gl.uniform4fv(U.uColor, colArr); gl.uniform3f(U.uAdj, state.adj.hue * Math.PI / 180, state.adj.sat, state.adj.bri);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -1070,6 +1071,7 @@
   function mappedValue(el) { const min = +el.dataset.min, max = +el.dataset.max; return min + (+el.value) * (max - min); }
   $('soft').addEventListener('input', e => { state.soft = mappedValue(e.target); sliderFill(e.target); $('softVal').textContent = (+e.target.value).toFixed(2); draw(); });
   $('grain').addEventListener('input', e => { state.grain = mappedValue(e.target); sliderFill(e.target); $('grainVal').textContent = (+e.target.value).toFixed(2); draw(); });
+  $('grainSize').addEventListener('input', e => { state.grainSize = +e.target.value; sliderFill(e.target); $('grainSizeVal').textContent = state.grainSize; draw(); });
   document.querySelectorAll('input[type=range]').forEach(sliderFill);
   $('linear').addEventListener('change', e => { state.linear = e.target.checked; draw(); });
 
