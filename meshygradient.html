@@ -90,6 +90,8 @@
   .loupe canvas { display: block; width: 100%; height: 100%; }
   .loupe-hex { position: fixed; z-index: 51; transform: translate(-50%, 0); margin-top: 72px; padding: 2px 8px; border-radius: 4px; background: rgba(20,20,24,.85); color: #fff; font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none; display: none; white-space: nowrap; }
   .stage.dropping { outline: 2px dashed var(--accent); outline-offset: -8px; }
+  .stage.space-pan, .stage.space-pan * { cursor: grab !important; }
+  .stage.panning, .stage.panning * { cursor: grabbing !important; }
   .frame { position: relative; box-shadow: 0 30px 60px -20px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.08); }
   .frame canvas { display: block; width: 100%; height: 100%; }
   .overlay { position: absolute; inset: 0; cursor: crosshair; }
@@ -661,13 +663,13 @@
     const pad = 28 * 2;
     const availW = stage.clientWidth - pad, availH = stage.clientHeight - pad - 40;
     const ac = state.w / state.h;
-    let h;
+    let h, ar;
     if (ref.img) {
-      const ar = ref.img.naturalWidth / ref.img.naturalHeight;
+      ar = ref.img.naturalWidth / ref.img.naturalHeight;
       h = Math.min(availH, (availW - 24) / (ar + ac));
-      $('ref').style.width = (h * ar) + 'px'; $('ref').style.height = h + 'px';
     } else h = Math.min(availH, availW / ac);
-    h = Math.max(40, h) * view.zoom;
+    h = Math.max(40, h) * view.zoom; // zoom scales the fit size before it's applied to either panel, so the reference stays locked to the canvas
+    if (ref.img) { $('ref').style.width = (h * ar) + 'px'; $('ref').style.height = h + 'px'; }
     frame.style.width = (h * ac) + 'px';
     frame.style.height = h + 'px';
     applyPan();
@@ -709,7 +711,7 @@
   stage.addEventListener('wheel', e => {
     e.preventDefault();
     if (e.ctrlKey || e.metaKey) { // pinch on a trackpad arrives as ctrl+wheel
-      const factor = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025));
+      const factor = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025) * 1.5); // 1.5x sensitivity: more zoom per inch of trackpad travel
       setZoom(view.zoom * factor, e.clientX, e.clientY);
     } else {
       const k = e.deltaMode === 1 ? 16 : 1;
@@ -923,6 +925,11 @@
   }
   stage.addEventListener('pointermove', e => {
     if (!drag) return;
+    if (drag.type === 'pan') {
+      view.panX = drag.startPanX + (e.clientX - drag.startX);
+      view.panY = drag.startPanY + (e.clientY - drag.startY);
+      applyPan(); refreshHandles(); draw(); return;
+    }
     const p = normPos(e);
     if (drag.type === 'spread') {
       drag.moved = true;
@@ -991,6 +998,7 @@
   });
   function endDrag(e) {
     if (!drag) return;
+    if (drag.type === 'pan') { stage.classList.remove('panning'); drag = null; return; }
     if (drag.type === 'spread' || drag.type === 'hard') { if (drag.moved) pushUndo(drag.snap); overlay.querySelectorAll('.hard-ring.active').forEach(el => el.classList.remove('active')); stage.classList.remove('hard-dragging'); }
     if (drag.type === 'move') {
       if (drag.moved) pushUndo(drag.snap);
@@ -1021,6 +1029,15 @@
       refreshHandles(); refreshSelectionPanel();
       stage.setPointerCapture(e.pointerId);
     }
+  }, true);
+  // Middle-click drag (the mouse wheel button held down) or Space held + left-click drag both pan the canvas,
+  // regardless of what's under the pointer — like the hand tool in Photoshop/Figma.
+  stage.addEventListener('pointerdown', e => {
+    if (e.button !== 1 && !(spaceHeld && e.button === 0)) return;
+    e.preventDefault();
+    drag = { type: 'pan', startX: e.clientX, startY: e.clientY, startPanX: view.panX, startPanY: view.panY };
+    stage.classList.add('panning');
+    stage.setPointerCapture(e.pointerId);
   }, true);
 
   // Preview mode
@@ -1118,8 +1135,9 @@
 
   // ---------- Keyboard ----------
   let spaceHeld = false;
-  document.addEventListener('keyup', e => { if ((e.key === ' ' || e.code === 'Space') && spaceHeld) { spaceHeld = false; setPreview(false); } });
-  window.addEventListener('blur', () => { if (spaceHeld) { spaceHeld = false; setPreview(false); } });
+  const setSpaceHeld = on => { spaceHeld = on; stage.classList.toggle('space-pan', on); };
+  document.addEventListener('keyup', e => { if ((e.key === ' ' || e.code === 'Space') && spaceHeld) { setSpaceHeld(false); setPreview(false); } });
+  window.addEventListener('blur', () => { if (spaceHeld) { setSpaceHeld(false); setPreview(false); } });
   document.addEventListener('keydown', e => {
     const tag = (e.target.tagName || '').toLowerCase();
     const typing = tag === 'input' || tag === 'select' || tag === 'textarea';
@@ -1130,7 +1148,7 @@
     if (mod && (e.key === '=' || e.key === '+')) { e.preventDefault(); setZoom(view.zoom * 1.25); return; }
     if (mod && e.key === '-') { e.preventDefault(); setZoom(view.zoom / 1.25); return; }
     if (mod && e.key === '0') { e.preventDefault(); resetZoom(); return; }
-    if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat && !previewing) { spaceHeld = true; setPreview(true); } }
+    if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat && !previewing) { setSpaceHeld(true); setPreview(true); } }
     else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
     else if (mod && e.key.toLowerCase() === 'a') { e.preventDefault(); state.selected = new Set(state.nodes.map(n => n.id)); refreshAll(); }
     else if (e.key === 'Escape') { if (addingArc) setAddingArc(false); else if (sampling) setSampling(false); else if (previewing) setPreview(false); else { state.selected.clear(); refreshAll(); } }
