@@ -72,6 +72,8 @@
   .ref:hover .ref-x { opacity: 1; }
   .preview-wrap { position: absolute; top: 12px; right: 14px; z-index: 2; display: flex; align-items: center; gap: 6px; }
   .preview-wrap kbd { opacity: .7; }
+  .zoom-chip { font-variant-numeric: tabular-nums; min-width: 48px; }
+  .work { will-change: transform; }
   .stage.previewing .preview-wrap kbd { display: none; }
   .align-row { display: flex; gap: 6px; }
   .align-row .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 2px; }
@@ -242,6 +244,7 @@
     <div class="canvas-size-tag" id="sizeTag"></div>
     <div class="preview-wrap">
       <button class="chip" id="addArcBtn" aria-pressed="false" title="Drag two points on the canvas to place an arc">+ Arc</button>
+      <button class="chip zoom-chip" id="zoomChip" title="Zoom (⌘/Ctrl + scroll, ⌘ +/−). Click to fit">100%</button>
       <button class="chip preview-btn" id="previewBtn" aria-pressed="false" title="Toggle preview (hold Space)">Preview</button>
       <kbd>Space</kbd>
     </div>
@@ -634,7 +637,8 @@
       raf = 0; if (!preview) return;
       const rect = frame.getBoundingClientRect();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      preview.render(Math.max(1, Math.round(rect.width * dpr)), Math.max(1, Math.round(rect.height * dpr)));
+      const cap = 4096; // deep zoom on a large canvas would otherwise ask for an enormous framebuffer
+      preview.render(Math.min(cap, Math.max(1, Math.round(rect.width * dpr))), Math.min(cap, Math.max(1, Math.round(rect.height * dpr))));
     });
   }
 
@@ -663,14 +667,55 @@
       h = Math.min(availH, (availW - 24) / (ar + ac));
       $('ref').style.width = (h * ar) + 'px'; $('ref').style.height = h + 'px';
     } else h = Math.min(availH, availW / ac);
-    h = Math.max(40, h);
+    h = Math.max(40, h) * view.zoom;
     frame.style.width = (h * ac) + 'px';
     frame.style.height = h + 'px';
+    applyPan();
     $('sizeTag').textContent = `${state.w} × ${state.h} px`;
+    $('zoomChip').textContent = Math.round(view.zoom * 100) + '%';
     updateExportHeight();
     refreshHandles(); draw();
   }
   new ResizeObserver(() => layout()).observe(stage);
+
+  // ---------- Zoom + pan ----------
+  // `zoom` multiplies the fit-to-stage size; `pan` translates the work group in stage pixels. Handles keep their
+  // screen size because they're laid out from the frame's on-screen rect, so zooming just gives more room to work.
+  const ZOOM_MIN = 0.25, ZOOM_MAX = 8;
+  const view = { zoom: 1, panX: 0, panY: 0 };
+  const work = $('work');
+  function applyPan() {
+    // keep at least 60px of the work group inside the stage on each axis so it can't be lost off-screen
+    const S = { w: stage.clientWidth, h: stage.clientHeight }, W = { w: work.offsetWidth, h: work.offsetHeight };
+    const lim = (s, w) => Math.max(0, (s + w) / 2 - 60);
+    view.panX = Math.min(lim(S.w, W.w), Math.max(-lim(S.w, W.w), view.panX));
+    view.panY = Math.min(lim(S.h, W.h), Math.max(-lim(S.h, W.h), view.panY));
+    work.style.transform = `translate(${view.panX}px, ${view.panY}px)`;
+  }
+  // Zoom so the canvas point under (cx, cy) stays put; defaults to the stage center.
+  function setZoom(z, cx, cy) {
+    z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+    const sr = stage.getBoundingClientRect();
+    if (cx == null) { cx = sr.left + sr.width / 2; cy = sr.top + sr.height / 2; }
+    const r = frame.getBoundingClientRect();
+    const ux = (cx - r.left) / r.width, uy = (cy - r.top) / r.height;
+    view.zoom = z; layout();
+    const r2 = frame.getBoundingClientRect();
+    view.panX += cx - (r2.left + ux * r2.width); view.panY += cy - (r2.top + uy * r2.height);
+    applyPan(); refreshHandles(); draw();
+  }
+  function resetZoom() { view.zoom = 1; view.panX = view.panY = 0; layout(); }
+  $('zoomChip').addEventListener('click', resetZoom);
+  stage.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (e.ctrlKey || e.metaKey) { // pinch on a trackpad arrives as ctrl+wheel
+      const factor = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025));
+      setZoom(view.zoom * factor, e.clientX, e.clientY);
+    } else {
+      const k = e.deltaMode === 1 ? 16 : 1;
+      view.panX -= e.deltaX * k; view.panY -= e.deltaY * k; applyPan(); refreshHandles(); draw();
+    }
+  }, { passive: false });
 
   // ---------- Handles + node list ----------
   const PX_PER_SPREAD = 100, ARM_MIN = 12; // a spread of 0.5 (the default) draws a 50px arm
@@ -1082,6 +1127,9 @@
     if (mod && e.key.toLowerCase() === 'z' && e.shiftKey) { e.preventDefault(); redo(); return; }
     if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
     if (typing && e.target.type !== 'range' && e.target.type !== 'checkbox') return;
+    if (mod && (e.key === '=' || e.key === '+')) { e.preventDefault(); setZoom(view.zoom * 1.25); return; }
+    if (mod && e.key === '-') { e.preventDefault(); setZoom(view.zoom / 1.25); return; }
+    if (mod && e.key === '0') { e.preventDefault(); resetZoom(); return; }
     if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat && !previewing) { spaceHeld = true; setPreview(true); } }
     else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
     else if (mod && e.key.toLowerCase() === 'a') { e.preventDefault(); state.selected = new Set(state.nodes.map(n => n.id)); refreshAll(); }
