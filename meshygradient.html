@@ -89,6 +89,12 @@
     border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 10px 30px -6px rgba(0,0,0,.5); }
   .loupe canvas { display: block; width: 100%; height: 100%; }
   .loupe-hex { position: fixed; z-index: 51; transform: translate(-50%, 0); margin-top: 72px; padding: 2px 8px; border-radius: 4px; background: rgba(20,20,24,.85); color: #fff; font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none; display: none; white-space: nowrap; }
+  .node-menu { position: fixed; z-index: 60; min-width: 168px; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 28px -8px rgba(0,0,0,.4); }
+  .node-menu[hidden] { display: none; }
+  .node-menu .label { padding: 4px 10px 2px; font-size: 11px; color: var(--ink-3); }
+  .node-menu button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 30px; padding: 0 10px; border: none; background: none; color: var(--ink); text-align: left; border-radius: 5px; font: inherit; font-weight: 400; cursor: pointer; }
+  .node-menu button:hover { background: var(--field); }
+  .node-menu button .check { opacity: .6; font-size: 12px; }
   .stage.dropping { outline: 2px dashed var(--accent); outline-offset: -8px; }
   .stage.space-pan, .stage.space-pan * { cursor: grab !important; }
   .stage.panning, .stage.panning * { cursor: grabbing !important; }
@@ -264,6 +270,7 @@
     </div>
     <div class="loupe" id="loupe"><canvas id="loupeCanvas" width="132" height="132"></canvas></div>
     <div class="loupe-hex" id="loupeHex"></div>
+    <div class="node-menu" id="nodeMenu" hidden></div>
     <div class="stage-hint" id="hint" hidden>Click to add a node. Drag the arm handles for spread, the dotted ring for hardness.</div>
   </div>
 
@@ -486,25 +493,26 @@
   }
   const arcAngles = n => ({ thr: (n.th || 0) + n.phi, thl: (n.th || 0) + Math.PI - n.phi });
   const wrapAngle = a => Math.atan2(Math.sin(a), Math.cos(a));
-  // Circle through C, P1, P2 and the angular range of the arc P1 -> C -> P2. Unit-agnostic, so the shader
-  // packing (scaled render space) and the handle UI (frame pixels) share it.
-  function arcGeom(C, P1, P2) {
-    const dx = P2.x - P1.x, dy = P2.y - P1.y;
-    const chordLen = Math.hypot(dx, dy) || 1e-6, half = chordLen / 2;
-    const nx = dy / chordLen, ny = -dx / chordLen;
-    const mx = (P1.x + P2.x) / 2, my = (P1.y + P2.y) / 2;
-    // Nearly collinear points would put the center at infinity; nudge C off the chord so the radius stays finite.
-    let h = (C.x - mx) * nx + (C.y - my) * ny;
-    const hmin = half / 60;
-    if (Math.abs(h) < hmin) { const s = h < 0 ? -1 : 1; C = { x: C.x + (s * hmin - h) * nx, y: C.y + (s * hmin - h) * ny }; h = s * hmin; }
-    const t = (h * h - half * half) / (2 * h);
-    const cx = mx + nx * t, cy = my + ny * t;
-    const R = Math.sqrt(t * t + half * half);
+  // The circle (or, in the limit, the exact straight line) through node center C, tangent to angle n.th there,
+  // bent by n.phi — plus the angular range of the arc P1 -> C -> P2. Built directly from th/phi/len via signed
+  // curvature (2·sin(phi)/len) rather than fitting a circle through three points: that fit's radius blows up as
+  // the bend flattens toward a straight line, and snapping it back down past a threshold is what used to make the
+  // curve visibly jump and drift off the node's center right at the transition. This form has no such threshold —
+  // curvature crosses zero smoothly as phi does, so the arc straightens, continues bending the other way, and
+  // always passes exactly through C, at every phi.
+  function arcGeom(n, C, P1, P2, len) {
+    const th = n.th || 0;
+    // EPS caps how large R (and its center) can grow — the sagitta at the cap is len·EPS, well under 3% of the
+    // arm length and visually flat, while keeping cx/cy within a range the GPU's float32 math stays precise over
+    // (an uncapped R would grow toward float precision limits and reintroduce cancellation error near dist - R).
+    let s = Math.sin(n.phi || 0); const EPS = 0.03; if (Math.abs(s) < EPS) s = s < 0 ? -EPS : EPS;
+    const R = len / (2 * s); // signed; magnitude grows smoothly (never jumps) as phi approaches 0, then flips sign
+    const cx = C.x - R * Math.sin(th), cy = C.y + R * Math.cos(th);
     const aC = Math.atan2(C.y - cy, C.x - cx);
     const d1 = wrapAngle(Math.atan2(P1.y - cy, P1.x - cx) - aC);
     let d2 = wrapAngle(Math.atan2(P2.y - cy, P2.x - cx) - aC);
     if (d1 * d2 > 0) d2 -= (d2 < 0 ? -1 : 1) * 2 * Math.PI; // the arc that passes through C
-    return { cx, cy, R, angleMid: aC + (d1 + d2) / 2, halfSpan: Math.abs(d1 - d2) / 2 };
+    return { cx, cy, R: Math.abs(R), angleMid: aC + (d1 + d2) / 2, halfSpan: Math.abs(d1 - d2) / 2 };
   }
   const arcEnds = (n, cx, cy, scale) => {
     const { thl, thr } = arcAngles(n), len = n.sl * scale;
@@ -605,7 +613,7 @@
           const n = state.nodes[i], c = hexToRgb(n.color);
           if (n.type === 'arc') {
             const C = { x: n.x * scX, y: n.y * scY }, { P1, P2 } = arcEnds(n, C.x, C.y, 1);
-            const g = arcGeom(C, P1, P2), sw = n.sw ?? 0.3;
+            const g = arcGeom(n, C, P1, P2, n.sl), sw = n.sw ?? 0.3;
             nodeArr[i * 4] = g.cx; nodeArr[i * 4 + 1] = g.cy; nodeArr[i * 4 + 2] = sw; nodeArr[i * 4 + 3] = sw;
             node2Arr[i * 4] = g.R; node2Arr[i * 4 + 1] = g.angleMid; node2Arr[i * 4 + 2] = g.halfSpan; node2Arr[i * 4 + 3] = n.k || 2.2;
             th2Arr[i] = 0; typeArr[i] = 1;
@@ -792,7 +800,7 @@
         if (isArc) {
           const { P1, P2 } = arcEnds(n, cx, cy, dims.m);
           set(c.hs.l, { left: P1.x + 'px', top: P1.y + 'px' }); set(c.hs.r, { left: P2.x + 'px', top: P2.y + 'px' });
-          const g = arcGeom({ x: cx, y: cy }, P1, P2);
+          const g = arcGeom(n, { x: cx, y: cy }, P1, P2, n.sl * dims.m);
           set(c.arc, { width: dims.w + 'px', height: dims.h + 'px' }); c.arc.setAttribute('viewBox', `0 0 ${dims.w} ${dims.h}`);
           const pts = []; const N = 48;
           for (let i = 0; i <= N; i++) { const a = g.angleMid - g.halfSpan + (2 * g.halfSpan * i) / N; pts.push((g.cx + g.R * Math.cos(a)).toFixed(1) + ' ' + (g.cy + g.R * Math.sin(a)).toFixed(1)); }
@@ -848,6 +856,50 @@
     state.nodes = state.nodes.filter(n => !state.selected.has(n.id));
     state.selected.clear(); refreshAll();
   }
+
+  // ---------- Node type conversion (right-click menu) ----------
+  function convertNodeType(n, to) {
+    const wasArc = n.type === 'arc';
+    if (to === 'arc' && wasArc) return;
+    if (to === 'normal' && !wasArc) return;
+    pushUndo();
+    if (to === 'arc') {
+      const len = ((n.sl ?? 0.5) + (n.sr ?? 0.5)) / 2;
+      n.type = 'arc'; n.sl = n.sr = len; n.phi = n.phi ?? 0.35; n.sw = n.sw ?? 0.3;
+      delete n.st; delete n.sb; delete n.th2;
+    } else {
+      n.st = n.st ?? n.sl ?? 0.5; n.sb = n.sb ?? n.sl ?? 0.5;
+      delete n.type; delete n.phi; delete n.sw;
+    }
+    refreshAll();
+  }
+  const nodeMenu = $('nodeMenu'); let nodeMenuId = null;
+  function closeNodeMenu() { nodeMenu.hidden = true; nodeMenuId = null; }
+  function openNodeMenu(n, x, y) {
+    nodeMenuId = n.id;
+    const isArc = n.type === 'arc';
+    const item = (to, label) => `<button type="button" data-to="${to}">${label}${(to === 'arc') === isArc ? ' <span class="check">✓</span>' : ''}</button>`;
+    nodeMenu.innerHTML = `<div class="label">Convert node</div>${item('normal', 'Normal node')}${item('arc', 'Arc node')}`;
+    nodeMenu.hidden = false;
+    const r = nodeMenu.getBoundingClientRect();
+    nodeMenu.style.left = Math.min(x, window.innerWidth - r.width - 8) + 'px';
+    nodeMenu.style.top = Math.min(y, window.innerHeight - r.height - 8) + 'px';
+  }
+  nodeMenu.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const n = state.nodes.find(x => x.id === nodeMenuId); if (n) convertNodeType(n, b.dataset.to);
+    closeNodeMenu();
+  });
+  overlay.addEventListener('contextmenu', e => {
+    const h = e.target.closest('.handle'); if (!h) return;
+    e.preventDefault();
+    const n = state.nodes.find(x => x.id === +h.dataset.id); if (!n) return;
+    state.selected = new Set([n.id]); refreshHandles(); refreshList(); refreshSelectionPanel();
+    openNodeMenu(n, e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerdown', e => { if (!nodeMenu.hidden && !e.target.closest('#nodeMenu')) closeNodeMenu(); });
+  document.addEventListener('keydown', e => { if (!nodeMenu.hidden && e.key === 'Escape') closeNodeMenu(); }, true);
+  window.addEventListener('blur', closeNodeMenu);
 
   // ---------- Pointer interaction ----------
   let drag = null; // {type:'move'|'marquee', ...}
