@@ -5,6 +5,9 @@ import { expect } from '@playwright/test';
 
 export const PAGE = '/meshygradient.html';
 export const presets = JSON.parse(fs.readFileSync(new URL('../presets.json', import.meta.url), 'utf8'));
+// The preset that seeds a first-time visit — mirrors pickDefaultPreset() in src/presets.js — so tests stay
+// correct no matter which preset is currently flagged as the default.
+export const defaultPreset = presets.find(p => p.default) || presets[presets.length - 1];
 
 // Fresh page with no saved state and no console/page errors tolerated.
 export async function openApp(page) {

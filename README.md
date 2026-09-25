@@ -9,7 +9,7 @@ A WebGL mesh-gradient editor. Static ES modules, no build step, deployed on Verc
 |---|---|
 | `meshygradient.html` | Markup only. Loads `styles.css` and `src/app.js` (type=module) |
 | `styles.css` | All styling. Mobile breakpoint is 820px (mirrored in `src/constants.js`) |
-| `presets.json` | Array of gradient configs shown in the Presets grid. Paste a "Copy gradient" payload in to add one |
+| `presets.json` | Array of gradient configs shown in the Presets grid. Paste a "Copy gradient" payload in to add one. The entry with `"default": true` also seeds a first-time visit (no saved state); move the flag to change it, or none/an empty list falls back to seeding the first built-in palette |
 | `src/` | The app, one concern per module (below) |
 
 ## Module map
@@ -42,8 +42,8 @@ composes handles + panel + draw, so most mutations end with `refreshAll()` from 
 | `interaction.js` | the pointer drag state machine (spread / hard / move / marquee / pan) | most of the above |
 | `keyboard.js` | global shortcuts | actions, modes, sampling, view, undo |
 | `controls.js` | canvas size + scrubbers, sliders, palettes, align/shuffle/scatter, `syncControlsFromState`, `seedNodes` | state, undo, view, refresh, actions |
-| `presets.js` | fetches `presets.json`, applies presets, Copy gradient | state, undo, view, refresh, controls |
-| `app.js` | entry: wires undo hooks, restores state, first layout | everything |
+| `presets.js` | fetches `presets.json` (cached), applies presets, picks the default preset, Copy gradient | state, undo, view, refresh, controls |
+| `app.js` | entry: `boot()` fetches presets once, seeds a first-time visit from the default preset (or the first palette if none), wires undo hooks, first layout | everything |
 
 Listener registration order matters in one place: `sampling.js` must evaluate before `interaction.js` (its
 capture-phase pointerdown swallows clicks while sampling). `interaction.js` imports `sampling.js`, so this holds.

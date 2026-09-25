@@ -36,13 +36,23 @@ function renderPresets(presets) {
     wrap.appendChild(b);
   });
 }
-export async function loadPresets() {
-  try {
-    const res = await fetch('presets.json', { cache: 'no-cache' });
-    const list = await res.json();
-    renderPresets(Array.isArray(list) ? list : []);
-  } catch { renderPresets([]); }
+// Fetches presets.json once and caches the promise; safe to call from multiple places.
+let presetsPromise = null;
+export function fetchPresets() {
+  if (!presetsPromise) {
+    presetsPromise = fetch('presets.json', { cache: 'no-cache' })
+      .then(res => res.json())
+      .then(list => (Array.isArray(list) ? list : []))
+      .catch(() => []);
+  }
+  return presetsPromise;
 }
+// The preset that seeds a first-time visit (no saved state yet). Marked with "default": true in presets.json;
+// falls back to the last preset if none is marked, so there's always something reasonable to seed from.
+export const pickDefaultPreset = list => list.find(p => p.default) || list[list.length - 1] || null;
+
+export { renderPresets };
+export async function loadPresets() { renderPresets(await fetchPresets()); }
 
 $('copyGradient').addEventListener('click', async () => {
   const payload = JSON.stringify(serializeConfig({ stripIds: true }));

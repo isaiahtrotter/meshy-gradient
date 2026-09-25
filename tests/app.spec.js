@@ -1,15 +1,16 @@
 // End-to-end coverage of the editor: every interaction a user can perform, in the order they'd learn them.
 
 import { test, expect } from '@playwright/test';
-import { openApp, loadConfig, getState, selectedNode, frameBox, clickCanvas, dragFrom, visibleSpreadHandle, presets } from './helpers.js';
+import { openApp, loadConfig, getState, selectedNode, frameBox, clickCanvas, dragFrom, visibleSpreadHandle, presets, defaultPreset } from './helpers.js';
 
 test.describe('boot', () => {
-  test('seeds four circle nodes, renders palettes and presets, no errors', async ({ page }) => {
+  test('seeds the default preset, renders palettes and presets, no errors', async ({ page }) => {
     const errors = await openApp(page);
     const s = await getState(page);
-    expect(s.n).toBe(4);
-    expect(s.types.every(t => t === 'circle')).toBeTruthy();
-    await expect(page.locator('.handle')).toHaveCount(4);
+    expect(s.n).toBe(defaultPreset.nodes.length);
+    expect(s.types).toEqual(defaultPreset.nodes.map(n => n.type || 'circle'));
+    expect([s.w, s.h]).toEqual([defaultPreset.w, defaultPreset.h]);
+    await expect(page.locator('.handle')).toHaveCount(defaultPreset.nodes.length);
     await expect(page.locator('#palettes .pal')).toHaveCount(8);
     await expect(page.locator('#presets .preset')).toHaveCount(presets.length);
     await expect(page.locator('#status')).toHaveText('');
@@ -18,42 +19,43 @@ test.describe('boot', () => {
 });
 
 test.describe('nodes', () => {
-  test.beforeEach(async ({ page }) => { await openApp(page); });
+  let seeded;
+  test.beforeEach(async ({ page }) => { await openApp(page); seeded = defaultPreset.nodes.length; });
 
   test('click adds and selects a node; drag moves it; undo/redo restore it', async ({ page }) => {
-    await clickCanvas(page, 0.5, 0.5);
+    await clickCanvas(page, 0.15, 0.5);
     let s = await getState(page);
-    expect(s.n).toBe(5);
+    expect(s.n).toBe(seeded + 1);
     expect(s.selected).toHaveLength(1);
     await expect(page.locator('#selSection')).toBeVisible();
 
     const hb = await page.locator('.handle.selected').boundingBox();
     await dragFrom(page, hb.x + 10, hb.y + 10, 100, 50);
-    expect(Math.abs((await selectedNode(page)).x - 0.5)).toBeGreaterThan(0.05);
+    expect(Math.abs((await selectedNode(page)).x - 0.15)).toBeGreaterThan(0.05);
 
     await page.keyboard.press('Meta+z');
-    expect(Math.abs((await selectedNode(page)).x - 0.5)).toBeLessThan(0.01);
+    expect(Math.abs((await selectedNode(page)).x - 0.15)).toBeLessThan(0.01);
     await page.keyboard.press('Meta+Shift+z');
-    expect(Math.abs((await selectedNode(page)).x - 0.5)).toBeGreaterThan(0.05);
+    expect(Math.abs((await selectedNode(page)).x - 0.15)).toBeGreaterThan(0.05);
   });
 
   test('arc and line placement modes', async ({ page }) => {
     await page.click('#addArcBtn');
     await expect(page.locator('#addArcBtn')).toHaveAttribute('aria-pressed', 'true');
-    await clickCanvas(page, 0.3, 0.3);
+    await clickCanvas(page, 0.15, 0.3);
     expect((await selectedNode(page)).type).toBe('arc');
     await expect(page.locator('#addArcBtn')).toHaveAttribute('aria-pressed', 'false');
     expect(await page.locator('.arc-path').evaluateAll(els => els.some(e => e.style.display === 'block'))).toBeTruthy();
 
     await page.click('#addLineBtn');
-    await clickCanvas(page, 0.3, 0.7);
+    await clickCanvas(page, 0.15, 0.7);
     expect((await selectedNode(page)).type).toBe('line');
-    expect((await getState(page)).n).toBe(6);
+    expect((await getState(page)).n).toBe(seeded + 2);
   });
 
   test('spread handle drag changes arm length and angle', async ({ page }) => {
     await page.click('#addLineBtn');
-    await clickCanvas(page, 0.6, 0.6);
+    await clickCanvas(page, 0.15, 0.6);
     const before = await selectedNode(page);
     const h = await visibleSpreadHandle(page, 'l');
     const b = await h.boundingBox();
@@ -64,7 +66,7 @@ test.describe('nodes', () => {
   });
 
   test('context menu unlinks axes and converts type', async ({ page }) => {
-    await clickCanvas(page, 0.5, 0.5);
+    await clickCanvas(page, 0.15, 0.5);
     const handle = page.locator('.handle.selected');
     await handle.click({ button: 'right' });
     await expect(page.locator('#nodeMenu')).toBeVisible();
@@ -96,11 +98,11 @@ test.describe('nodes', () => {
     await page.keyboard.press('Delete');
     expect((await getState(page)).n).toBe(0);
     await page.keyboard.press('Meta+z');
-    expect((await getState(page)).n).toBe(4);
+    expect((await getState(page)).n).toBe(seeded);
   });
 
   test('alt-drag duplicates the selection', async ({ page }) => {
-    await clickCanvas(page, 0.5, 0.5);
+    await clickCanvas(page, 0.15, 0.5);
     const hb = await page.locator('.handle.selected').boundingBox();
     await page.mouse.move(hb.x + 10, hb.y + 10);
     await page.keyboard.down('Alt');
@@ -108,12 +110,12 @@ test.describe('nodes', () => {
     await page.mouse.move(hb.x + 120, hb.y + 60, { steps: 8 });
     await page.mouse.up();
     await page.keyboard.up('Alt');
-    expect((await getState(page)).n).toBe(6);
+    expect((await getState(page)).n).toBe(seeded + 2);
   });
 });
 
 test.describe('colour', () => {
-  test.beforeEach(async ({ page }) => { await openApp(page); await clickCanvas(page, 0.5, 0.5); });
+  test.beforeEach(async ({ page }) => { await openApp(page); await clickCanvas(page, 0.15, 0.5); });
 
   test('hex input applies, picker opens and edits, Escape closes', async ({ page }) => {
     await page.fill('#selHex', '#123456');
@@ -155,7 +157,7 @@ test.describe('document', () => {
     await page.locator('#cw').blur(); // shortcuts are ignored while typing in a field
     await page.waitForTimeout(60);
     expect((await getState(page)).w).toBe(1200);
-    await expect(page.locator('#sizeTag')).toHaveText('1200 × 1000 px');
+    await expect(page.locator('#sizeTag')).toHaveText(`1200 × ${defaultPreset.h} px`);
 
     await page.locator('#soft').evaluate(el => { el.value = 0.8; el.dispatchEvent(new Event('input', { bubbles: true })); });
     expect((await getState(page)).soft).toBeCloseTo(0.05 + 0.8 * 0.15, 9);
@@ -184,11 +186,11 @@ test.describe('document', () => {
   test('state survives a reload, including one made just before it', async ({ page }) => {
     await page.fill('#cw', '1200');
     await page.press('#cw', 'Enter');
-    await clickCanvas(page, 0.5, 0.5);
+    await clickCanvas(page, 0.15, 0.5);
     await page.reload({ waitUntil: 'networkidle' });
     await page.waitForFunction(() => window.__meshy);
     const s = await getState(page);
-    expect(s.n).toBe(5);
+    expect(s.n).toBe(defaultPreset.nodes.length + 1);
     expect(s.w).toBe(1200);
   });
 
