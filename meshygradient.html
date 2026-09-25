@@ -95,8 +95,8 @@
   .node-menu button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 30px; padding: 0 10px; border: none; background: none; color: var(--ink); text-align: left; border-radius: 5px; font: inherit; font-weight: 400; cursor: pointer; }
   .node-menu button:hover { background: var(--field); }
   .node-menu button .right { display: flex; align-items: center; gap: 6px; }
-  .node-menu button .check { opacity: .6; font-size: 12px; }
   .node-menu button kbd { font-size: 10px; padding: 0 3px; }
+  .unlink-badge { position: absolute; z-index: 4; width: 16px; height: 16px; margin: -8px 0 0 -8px; display: none; pointer-events: none; }
   .stage.dropping { outline: 2px dashed var(--accent); outline-offset: -8px; }
   .stage.space-pan, .stage.space-pan * { cursor: grab !important; }
   .stage.panning, .stage.panning * { cursor: grabbing !important; }
@@ -812,9 +812,15 @@
         grabEl.addEventListener('pointerenter', withCurrentNode);
         grabEl.addEventListener('pointermove', withCurrentNode);
         c.arc.setAttribute('class', 'arc-path'); c.arc.innerHTML = '<path/>';
-        overlay.appendChild(c.arc); overlay.appendChild(c.ring); overlay.appendChild(c.lbl);
+        c.unlink = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        c.unlink.setAttribute('class', 'unlink-badge'); c.unlink.setAttribute('viewBox', '0 0 16 16');
+        c.unlink.innerHTML = '<path d="M11.4307 1.6123C12.2472 0.795767 13.5711 0.795764 14.3877 1.6123C15.2042 2.42886 15.2042 3.75278 14.3877 4.56934L10.957 8L14.3877 11.4307C15.2042 12.2472 15.2042 13.5711 14.3877 14.3877C13.5711 15.2042 12.2472 15.2042 11.4307 14.3877L8 10.957L4.56934 14.3877C3.75278 15.2042 2.42886 15.2042 1.6123 14.3877C0.795764 13.5711 0.795767 12.2472 1.6123 11.4307L5.04297 8L1.6123 4.56934C0.79577 3.75278 0.795755 2.42885 1.6123 1.6123C2.42885 0.795756 3.75278 0.795769 4.56934 1.6123L8 5.04297L11.4307 1.6123Z" fill="black" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+        overlay.appendChild(c.arc); overlay.appendChild(c.ring); overlay.appendChild(c.lbl); overlay.appendChild(c.unlink);
         ctlEls.set(n.id, c);
       }
+      // a small badge up and to the right of the node marks it as unlinked, regardless of selection
+      c.unlink.style.display = n.linked === false ? 'block' : 'none';
+      c.unlink.style.left = (cx + 12) + 'px'; c.unlink.style.top = (cy - 12) + 'px';
       const on = state.selected.has(n.id);
       const sp = spreads(n), scale = armScale(n, dims);
       const A = (v, dir) => (drag && drag.type === 'spread' && drag.n === n && drag.side === dir) ? Math.max(0, v * scale) : Math.max(ARM_MIN, v * scale);
@@ -857,7 +863,7 @@
       }
     }
     for (const [id, el] of handleEls) if (!live.has(id)) { el.remove(); handleEls.delete(id); }
-    for (const [id, c] of ctlEls) if (!live.has(id)) { [...Object.values(c.arms), ...Object.values(c.hs), c.lbl, c.ring, c.arc].forEach(el => el.remove()); ctlEls.delete(id); }
+    for (const [id, c] of ctlEls) if (!live.has(id)) { [...Object.values(c.arms), ...Object.values(c.hs), c.lbl, c.ring, c.arc, c.unlink].forEach(el => el.remove()); ctlEls.delete(id); }
   }
   function refreshList() {}
   function refreshSelectionPanel() {
@@ -937,13 +943,12 @@
   function closeNodeMenu() { nodeMenu.hidden = true; nodeMenuId = null; }
   function openNodeMenu(n) {
     nodeMenuId = n.id;
-    const isArc = n.type === 'arc', unlinked = n.linked === false;
-    const item = (attrs, checked, label, key) => `<button type="button" ${attrs}><span>${label}</span><span class="right">${checked ? '<span class="check">✓</span>' : ''}${key ? `<kbd>${key}</kbd>` : ''}</span></button>`;
+    const item = (attrs, label, key) => `<button type="button" ${attrs}><span>${label}</span><span class="right">${key ? `<kbd>${key}</kbd>` : ''}</span></button>`;
     nodeMenu.innerHTML =
-      item('data-to="circle"', !isArc, 'Circle node', 'C') +
-      item('data-to="arc"', isArc, 'Arc node', 'A') +
+      item('data-to="circle"', 'Circle node', 'C') +
+      item('data-to="arc"', 'Arc node', 'A') +
       '<div class="sep"></div>' +
-      item('data-action="toggle-link"', unlinked, 'Unlink axes', '');
+      item('data-action="toggle-link"', 'Unlink axes', '');
     nodeMenu.hidden = false;
     // always 8px to the right of the node's edge, vertically centered on the node's own middle
     const fr = frame.getBoundingClientRect(), r = nodeMenu.getBoundingClientRect();
