@@ -94,9 +94,11 @@ Legacy shapes still accepted by the normalizer: single `r`, `rx`/`ry`, absent `t
 
 ## Testing
 
+Run `./dev.sh` (optionally `./dev.sh 8080`) to serve the app locally and open it in the browser. Opening
+`meshygradient.html` straight from Finder does not work: browsers refuse to load ES modules from `file://`.
+
 There is no test runner checked in yet. Pure modules (`geometry`, `nodes`, `state`, `undo`, `color`) import
-cleanly in Node, so unit tests can target them directly. Serve the directory with any static server
-(e.g. `python3 -m http.server`) and open `/meshygradient.html` to run the app locally.
+cleanly in Node, so unit tests can target them directly.
 
 ## Remaining backlog
 
