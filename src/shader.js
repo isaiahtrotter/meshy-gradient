@@ -11,7 +11,7 @@ export const VS = `attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }
 
 export const FS = `
   precision highp float;
-  uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uLinear, uRefW;
+  uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uLinear, uRefW, uGrainType, uDensity;
   uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec3 uAdj; uniform vec2 uNode3[${MAXN}];
   float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
   vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
@@ -103,6 +103,14 @@ export const FS = `
     // grain cell size is relative to the canvas's logical width (uRefW), not device pixels, so it looks the
     // same in the small preview and a large export
     float grainPx = uGrainSize * (uRes.x / uRefW);
-    col += (hash(floor(gl_FragCoord.xy / grainPx) + uSeed) - 0.5) * uGrain;
+    vec2 cell = floor(gl_FragCoord.xy / grainPx);
+    float nR = hash(cell + uSeed);
+    float nG = hash(cell + uSeed + 17.23);
+    float nB = hash(cell + uSeed + 41.71);
+    // density: fraction of cells that carry grain at all, so higher density reads as heavier speckle coverage
+    float coverage = clamp(uDensity, 0.0, 2.0) * 0.5;
+    float mask = step(1.0 - coverage, hash(cell + uSeed + 91.13));
+    vec3 g = uGrainType > 1.5 ? vec3(nR, nG, nB) : (uGrainType > 0.5 ? vec3(nR, nR, nG) : vec3(nR));
+    col += (g - 0.5) * uGrain * mask;
     gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
   }`;

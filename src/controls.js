@@ -83,6 +83,7 @@ const SLIDERS = [
   { id: 'soft', out: 'softVal', get: () => reverseMapped($('soft'), state.soft), set: el => { state.soft = mappedValue(el); }, fmt: v => v.toFixed(2) },
   { id: 'grain', out: 'grainVal', get: () => reverseMapped($('grain'), state.grain), set: el => { state.grain = mappedValue(el); }, fmt: v => v.toFixed(2) },
   { id: 'grainSize', out: 'grainSizeVal', get: () => state.grainSize, set: el => { state.grainSize = +el.value; }, fmt: v => v.toFixed(1) },
+  { id: 'density', out: 'densityVal', get: () => state.density, set: el => { state.density = +el.value; }, fmt: v => v.toFixed(1) },
   { id: 'adjHue', out: 'adjHueVal', get: () => state.adj.hue, set: el => { state.adj.hue = +el.value; }, fmt: v => String(Math.round(v)) },
   { id: 'adjSat', out: 'adjSatVal', get: () => state.adj.sat, set: el => { state.adj.sat = +el.value; }, fmt: v => v.toFixed(2) },
   { id: 'adjBri', out: 'adjBriVal', get: () => state.adj.bri, set: el => { state.adj.bri = +el.value; }, fmt: v => v.toFixed(2) },
@@ -90,7 +91,19 @@ const SLIDERS = [
 for (const s of SLIDERS) {
   $(s.id).addEventListener('input', e => { s.set(e.target); sliderFill(e.target); $(s.out).textContent = s.fmt(+e.target.value); draw(); });
 }
-$('linear').addEventListener('change', e => { state.linear = e.target.checked; draw(); });
+$('blendModeBtn').addEventListener('click', () => {
+  state.linear = !state.linear;
+  $('blendModeBtn').setAttribute('aria-pressed', String(state.linear));
+  $('blendModeVal').textContent = state.linear ? 'Linear' : 'Normal';
+  draw();
+});
+
+$('grainType').addEventListener('click', e => {
+  const b = e.target.closest('button[data-grain-type]'); if (!b) return;
+  state.grainType = b.dataset.grainType;
+  for (const btn of $('grainType').querySelectorAll('button[data-grain-type]')) btn.setAttribute('aria-pressed', String(btn === b));
+  draw();
+});
 
 // Animates a range input's handle (and readout) to a new value; used when a preset lands.
 const sliderAnims = new Map();
@@ -110,7 +123,11 @@ function animateSliderTo(el, target, { delay = 0, duration = 150, onFrame } = {}
 
 export function syncControlsFromState({ animate = false } = {}) {
   $('cw').value = state.w; $('ch').value = state.h;
-  $('linear').checked = state.linear;
+  $('blendModeBtn').setAttribute('aria-pressed', String(state.linear));
+  $('blendModeVal').textContent = state.linear ? 'Linear' : 'Normal';
+  for (const btn of $('grainType').querySelectorAll('button[data-grain-type]')) {
+    btn.setAttribute('aria-pressed', String(btn.dataset.grainType === state.grainType));
+  }
   SLIDERS.forEach((s, i) => {
     const el = $(s.id), target = s.get(), out = $(s.out);
     if (animate) animateSliderTo(el, target, { delay: i * 25, onFrame: v => { out.textContent = s.fmt(v); } });

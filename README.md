@@ -76,7 +76,10 @@ Legacy shapes still accepted by the normalizer: single `r`, `rx`/`ry`, absent `t
    of `shader.js`. An unlinked arc or line consumes two slots. `MAXN` = 40 slots.
 3. The fragment shader loops over slots, computes a weight `(1 / (1 + d²))^k` per slot from a normalized
    distance, and blends colours by weight. Then hue/sat/brightness, optional linear light, and seeded grain
-   sized relative to the logical canvas width.
+   sized relative to the logical canvas width. Grain type (`mono`/`duo`/`multi`) picks how many independent
+   noise channels feed R/G/B (mono: all three share one; duo: two share, one independent; multi: fully
+   independent per-channel colour grain). Density masks a fraction of grain cells off entirely via a second
+   hash, so it reads as speckle coverage rather than intensity (`grain` controls intensity).
 4. Arc circles are fit on the CPU (`arcCurves` → `geometry.js`) each frame and passed as centre/radius/span.
 5. Preview renders at the frame's on-screen size × DPR (max 2), capped at 4096 per side. Export builds a
    second renderer on an offscreen canvas.

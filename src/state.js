@@ -18,7 +18,7 @@ export const state = {
   w: 1600, h: 1000,
   nodes: [],
   selected: new Set(),
-  soft: 0.1, grain: 0.02, grainSize: 1,
+  soft: 0.1, grain: 0.02, grainSize: 1, grainType: 'mono', density: 1.4,
   adj: { hue: 0, sat: 1, bri: 1 },
   linear: false,
   seed: Math.random() * 1000,
@@ -78,15 +78,19 @@ export function serializeConfig({ stripIds } = {}) {
     w: state.w, h: state.h,
     nodes: stripIds ? state.nodes.map(({ id, ...rest }) => rest) : state.nodes,
     soft: state.soft, grain: state.grain, grainSize: state.grainSize,
+    grainType: state.grainType, density: state.density,
     adj: state.adj, linear: state.linear, seed: state.seed,
   };
 }
+const GRAIN_TYPES = ['mono', 'duo', 'multi'];
 export function applyConfig(s, { reassignIds } = {}) {
   if (isNum(s.w) && isNum(s.h)) setCanvasSize(s.w, s.h);
   setNodes(Array.isArray(s.nodes) ? s.nodes : [], reassignIds);
   if (isNum(s.soft)) state.soft = s.soft;
   if (isNum(s.grain)) state.grain = s.grain;
   if (isNum(s.grainSize)) state.grainSize = s.grainSize;
+  state.grainType = GRAIN_TYPES.includes(s.grainType) ? s.grainType : 'mono';
+  state.density = isNum(s.density) ? s.density : 1.4;
   if (s.adj && typeof s.adj === 'object') for (const k of ['hue', 'sat', 'bri']) if (isNum(s.adj[k])) state.adj[k] = s.adj[k];
   state.linear = !!s.linear;
   if (isNum(s.seed)) state.seed = s.seed;

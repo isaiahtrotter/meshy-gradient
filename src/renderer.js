@@ -1,5 +1,6 @@
 // WebGL renderer. makeRenderer(canvas) compiles the program once; render(w, h, scene) packs the scene's nodes
-// into uniform slots and draws. `scene` is the state object (nodes, soft, grain, grainSize, seed, linear, w, adj).
+// into uniform slots and draws. `scene` is the state object (nodes, soft, grain, grainSize, grainType, density,
+// seed, linear, w, adj).
 
 import { MAXN } from './constants.js';
 import { VS, FS } from './shader.js';
@@ -7,6 +8,7 @@ import { hexToRgb } from './color.js';
 import { armAngle, armEnds, arcCurves } from './nodes.js';
 
 const GPU_ARC_EPS = 0.03; // keeps arc circle centres within float32 precision near the phi = 0 snap
+const GRAIN_TYPE_INDEX = { mono: 0, duo: 1, multi: 2 };
 
 export function makeRenderer(canvas, opts) {
   const gl = canvas.getContext('webgl', Object.assign({ antialias: false, alpha: false, premultipliedAlpha: false }, opts || {}));
@@ -23,7 +25,7 @@ export function makeRenderer(canvas, opts) {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
   const U = {};
-  for (const n of ['uRes', 'uCount', 'uSoft', 'uGrain', 'uGrainSize', 'uSeed', 'uLinear', 'uRefW', 'uNode', 'uNode2', 'uTh2', 'uType', 'uColor', 'uAdj', 'uNode3']) U[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uRes', 'uCount', 'uSoft', 'uGrain', 'uGrainSize', 'uSeed', 'uLinear', 'uRefW', 'uGrainType', 'uDensity', 'uNode', 'uNode2', 'uTh2', 'uType', 'uColor', 'uAdj', 'uNode3']) U[n] = gl.getUniformLocation(prog, n);
 
   const nodeArr = new Float32Array(MAXN * 4), node2Arr = new Float32Array(MAXN * 4), colArr = new Float32Array(MAXN * 4);
   const th2Arr = new Float32Array(MAXN), typeArr = new Float32Array(MAXN), node3Arr = new Float32Array(MAXN * 2);
@@ -81,6 +83,7 @@ export function makeRenderer(canvas, opts) {
       gl.uniform1i(U.uCount, count);
       gl.uniform1f(U.uSoft, s.soft / 0.2); gl.uniform1f(U.uGrain, s.grain); gl.uniform1f(U.uGrainSize, s.grainSize);
       gl.uniform1f(U.uSeed, s.seed); gl.uniform1f(U.uLinear, s.linear ? 1 : 0); gl.uniform1f(U.uRefW, s.w);
+      gl.uniform1f(U.uGrainType, GRAIN_TYPE_INDEX[s.grainType] || 0); gl.uniform1f(U.uDensity, s.density);
       gl.uniform3f(U.uAdj, s.adj.hue * Math.PI / 180, s.adj.sat, s.adj.bri);
       gl.uniform4fv(U.uNode, nodeArr); gl.uniform4fv(U.uNode2, node2Arr); gl.uniform2fv(U.uNode3, node3Arr);
       gl.uniform1fv(U.uTh2, th2Arr); gl.uniform1fv(U.uType, typeArr); gl.uniform4fv(U.uColor, colArr);

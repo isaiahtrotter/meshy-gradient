@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Mesh Gradient Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist:wght@400;500&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -72,7 +72,7 @@
           <div class="picker-foot"><span>Opacity</span><output id="alphaOut">100%</output></div>
         </div>
       </div>
-      <div class="row desktop-hide" style="margin-top:8px">
+      <div class="row desktop-hide">
         <button id="selAll" class="grow chip">Select all</button>
         <button id="undoBtn" class="grow chip" disabled>Undo</button>
       </div>
@@ -81,11 +81,19 @@
     <section>
       <h2>Blend</h2>
       <div class="slider"><span class="slider-label">Softness</span><span class="slider-value" id="softVal">0.33</span><input type="range" id="soft" min="0" max="1" step="0.001" value="0.33333" data-min="0.05" data-max="0.2"></div>
-      <div class="slider" style="margin-top:10px"><span class="slider-label">Grain</span><span class="slider-value" id="grainVal">0.13</span><input type="range" id="grain" min="0" max="1" step="0.001" value="0.13333" data-min="0" data-max="0.15"></div>
-      <div class="slider" style="margin-top:10px"><span class="slider-label">Grain size</span><span class="slider-value" id="grainSizeVal">1.0</span><input type="range" id="grainSize" min="1" max="8" step="0.05" value="1"></div>
-      <div class="row" style="margin-top:12px; justify-content:space-between">
-        <label class="row" style="gap:8px"><input type="checkbox" id="linear"> Blend in linear light</label>
+      <button type="button" class="toggle-row" id="blendModeBtn" aria-pressed="false"><span class="slider-label">Blend mode</span><span class="slider-value" id="blendModeVal">Normal</span></button>
+    </section>
+
+    <section>
+      <h2>Grain</h2>
+      <div class="row" id="grainType">
+        <button type="button" class="chip grow" data-grain-type="mono" aria-pressed="true">Mono</button>
+        <button type="button" class="chip grow" data-grain-type="duo" aria-pressed="false">Duo</button>
+        <button type="button" class="chip grow" data-grain-type="multi" aria-pressed="false">Multi</button>
       </div>
+      <div class="slider"><span class="slider-label">Grain</span><span class="slider-value" id="grainVal">0.13</span><input type="range" id="grain" min="0" max="1" step="0.001" value="0.13333" data-min="0" data-max="0.15"></div>
+      <div class="slider"><span class="slider-label">Grain size</span><span class="slider-value" id="grainSizeVal">1.0</span><input type="range" id="grainSize" min="1" max="8" step="0.05" value="1"></div>
+      <div class="slider"><span class="slider-label">Density</span><span class="slider-value" id="densityVal">1.4</span><input type="range" id="density" min="0" max="2" step="0.05" value="1.4"></div>
     </section>
 
     <section>
@@ -94,20 +102,20 @@
         <button id="refBtn" class="grow">Add image</button>
         <input type="file" id="refFile" accept="image/*" hidden>
       </div>
-      <div class="help desktop-hide" style="margin-top:6px">Or paste / drop an image. It sits beside the canvas. Press <kbd>I</kbd> with a node selected to sample a color from it.</div>
+      <div class="help desktop-hide">Or paste / drop an image. It sits beside the canvas. Press <kbd>I</kbd> with a node selected to sample a color from it.</div>
     </section>
 
     <section>
-      <h2>Variations</h2>
-      <div class="slider"><span class="slider-label">Hue shift</span><span class="slider-value" id="adjHueVal">0</span><input type="range" id="adjHue" min="-180" max="180" step="1" value="0"></div>
-      <div class="slider" style="margin-top:10px"><span class="slider-label">Saturation</span><span class="slider-value" id="adjSatVal">1.00</span><input type="range" id="adjSat" min="0" max="2" step="0.01" value="1"></div>
-      <div class="slider" style="margin-top:10px"><span class="slider-label">Brightness</span><span class="slider-value" id="adjBriVal">1.00</span><input type="range" id="adjBri" min="0.2" max="1.8" step="0.01" value="1"></div>
+      <h2>Color</h2>
+      <div class="slider"><span class="slider-label">Hue</span><span class="slider-value" id="adjHueVal">0</span><input type="range" id="adjHue" min="-180" max="180" step="1" value="0"></div>
+      <div class="slider"><span class="slider-label">Saturation</span><span class="slider-value" id="adjSatVal">1.00</span><input type="range" id="adjSat" min="0" max="2" step="0.01" value="1"></div>
+      <div class="slider"><span class="slider-label">Brightness</span><span class="slider-value" id="adjBriVal">1.00</span><input type="range" id="adjBri" min="0.2" max="1.8" step="0.01" value="1"></div>
     </section>
 
     <section id="paletteSection">
       <h2>Palettes</h2>
       <div class="palettes" id="palettes"></div>
-      <div class="row" style="margin-top:8px">
+      <div class="row">
         <button id="shuffle" class="grow chip">Shuffle colors</button>
         <button id="scatter" class="grow chip">Scatter positions</button>
       </div>
@@ -117,7 +125,7 @@
       <h2>Presets</h2>
       <div class="presets" id="presets"></div>
       <div class="empty" id="presetsEmpty" hidden>No presets yet — copy a gradient below and send it to Claude to add one.</div>
-      <div class="row" style="margin-top:8px">
+      <div class="row">
         <button id="copyGradient" class="grow chip">Copy gradient</button>
       </div>
     </section>
@@ -128,13 +136,13 @@
         <div class="dim-field"><span class="dim-prefix scrub" id="ewScrub">W</span><input type="number" id="ew" min="16" max="16384" step="1" value="3200"></div>
         <div class="dim-field"><span class="dim-prefix">H</span><input type="number" id="eh" disabled></div>
       </div>
-      <div class="row wrap" id="scales" style="margin-top:8px">
+      <div class="row wrap" id="scales">
         <button class="chip" data-s="1">1×</button>
         <button class="chip" data-s="2">2×</button>
         <button class="chip" data-s="3">3×</button>
         <button class="chip" data-s="4">4×</button>
       </div>
-      <div class="row" style="margin-top:10px"><button id="exportBtn" class="primary grow">Export JPG</button></div>
+      <div class="row"><button id="exportBtn" class="primary grow">Export JPG</button></div>
       <div class="status" id="status"></div>
     </section>
 
