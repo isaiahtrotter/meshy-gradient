@@ -129,7 +129,7 @@
   .overlay.hide-handles .arm, .overlay.hide-handles .spread-handle, .overlay.hide-handles .spread-label, .overlay.hide-handles .hard-ring { display: none !important; }
   .arc-path { position: absolute; left: 0; top: 0; z-index: 1; display: none; overflow: visible; pointer-events: none; }
   .arc-path path { fill: none; stroke: #fff; stroke-width: 2px; }
-  .overlay.hide-handles .arc-path { display: none !important; }
+  .overlay.hide-handles .arc-path, .overlay.hide-handles .unlink-badge { display: none !important; }
   .marquee {
     position: absolute; border: 1px solid var(--accent); background: rgba(47,109,246,.12);
     pointer-events: none; display: none;
@@ -517,6 +517,21 @@
     if (d1 * d2 > 0) d2 -= (d2 < 0 ? -1 : 1) * 2 * Math.PI; // the arc that passes through C
     return { cx, cy, R: Math.abs(R), angleMid: aC + (d1 + d2) / 2, halfSpan: Math.abs(d1 - d2) / 2 };
   }
+  // One INDEPENDENT half of an unlinked arc: the circle through C tangent to angle `th` there, bent by `phi`,
+  // and the angular position of endpoint P on it. Unlike arcGeom's P1 -> C -> P2 span (one shared circle for
+  // both ends), this only spans C -> P, so each side gets its own circle and moving one end never reshapes the
+  // other — they only ever meet at C, tangent to the same line there.
+  function halfArcGeom(C, th, phi, P, len, eps) {
+    let s = Math.sin(phi || 0); const EPS = eps ?? 1e-6; if (Math.abs(s) < EPS) s = s < 0 ? -EPS : EPS;
+    const R = len / (2 * s);
+    const cx = C.x - R * Math.sin(th), cy = C.y + R * Math.cos(th);
+    const aC = Math.atan2(C.y - cy, C.x - cx);
+    const d = wrapAngle(Math.atan2(P.y - cy, P.x - cx) - aC);
+    return { cx, cy, R: Math.abs(R), angleMid: aC + d / 2, halfSpan: Math.abs(d) / 2 };
+  }
+  // Each unlinked half's implied bend relative to the node's shared tangent th — 0 when the endpoint sits right
+  // on that tangent line, growing as it swings away from it, exactly mirroring how phi worked when linked.
+  const arcHalfPhis = n => { const th = n.th || 0, { thl, thr } = arcAngles(n); return { phiR: wrapAngle(thr - th), phiL: wrapAngle(th + Math.PI - thl) }; };
   const arcEnds = (n, cx, cy, scale) => {
     // linked mode keeps sl === sr (the drag code enforces it), but unlinked needs each end at its own length —
     // using n.sl for both, as before, silently ignored the right end's own length once it could differ from sl
@@ -634,32 +649,48 @@
         gl.useProgram(prog);
         const N = state.nodes.length;
         const scX = w >= h ? 1 : w / h, scY = w >= h ? h / w : 1; // mirrors the shader's `sc`
-        for (let i = 0; i < N; i++) {
-          const n = state.nodes[i], c = hexToRgb(n.color);
+        // an unlinked arc renders as two independent half-arcs (its own circle each), so it costs two slots
+        const putArcSlot = (slot, g, sw, k, c, a) => {
+          nodeArr[slot * 4] = g.cx; nodeArr[slot * 4 + 1] = g.cy; nodeArr[slot * 4 + 2] = sw; nodeArr[slot * 4 + 3] = sw;
+          node2Arr[slot * 4] = g.R; node2Arr[slot * 4 + 1] = g.angleMid; node2Arr[slot * 4 + 2] = g.halfSpan; node2Arr[slot * 4 + 3] = k;
+          th2Arr[slot] = 0; typeArr[slot] = 1;
+          colArr[slot * 4] = c[0]; colArr[slot * 4 + 1] = c[1]; colArr[slot * 4 + 2] = c[2]; colArr[slot * 4 + 3] = a;
+        };
+        let slot = 0;
+        for (let i = 0; i < N && slot < MAXN; i++) {
+          const n = state.nodes[i], c = hexToRgb(n.color), a = n.a ?? 1, k = n.k || 2.2;
           if (n.type === 'arc') {
-            const C = { x: n.x * scX, y: n.y * scY }, { P1, P2 } = arcEnds(n, C.x, C.y, 1);
-            // capped eps: keeps cx/cy within a range the GPU's float32 math stays precise over near the snap,
-            // which the handle-UI call below doesn't need to worry about since it isn't rendering a soft blur
-            const g = arcGeom(n, C, P1, P2, ((n.sl ?? 0.5) + (n.sr ?? 0.5)) / 2, 0.03), sw = n.sw ?? 0.3;
-            nodeArr[i * 4] = g.cx; nodeArr[i * 4 + 1] = g.cy; nodeArr[i * 4 + 2] = sw; nodeArr[i * 4 + 3] = sw;
-            node2Arr[i * 4] = g.R; node2Arr[i * 4 + 1] = g.angleMid; node2Arr[i * 4 + 2] = g.halfSpan; node2Arr[i * 4 + 3] = n.k || 2.2;
-            th2Arr[i] = 0; typeArr[i] = 1;
+            const C = { x: n.x * scX, y: n.y * scY }, { P1, P2 } = arcEnds(n, C.x, C.y, 1), sw = n.sw ?? 0.3;
+            if (n.linked === false) {
+              // two independent circles, each tangent to the same th at C, so moving one arm never reshapes the other
+              const { phiR, phiL } = arcHalfPhis(n);
+              // capped eps: keeps cx/cy within a range the GPU's float32 math stays precise over near the snap
+              const gR = halfArcGeom(C, n.th || 0, phiR, P2, n.sr ?? 0.5, 0.03);
+              putArcSlot(slot++, gR, sw, k, c, a);
+              if (slot >= MAXN) break;
+              const gL = halfArcGeom(C, n.th || 0, phiL, P1, n.sl ?? 0.5, 0.03);
+              putArcSlot(slot++, gL, sw, k, c, a);
+              continue;
+            }
+            const g = arcGeom(n, C, P1, P2, ((n.sl ?? 0.5) + (n.sr ?? 0.5)) / 2, 0.03);
+            putArcSlot(slot, g, sw, k, c, a);
           } else {
             const sp = spreads(n);
-            nodeArr[i * 4] = n.x; nodeArr[i * 4 + 1] = n.y; nodeArr[i * 4 + 2] = sp.l; nodeArr[i * 4 + 3] = sp.r;
+            nodeArr[slot * 4] = n.x; nodeArr[slot * 4 + 1] = n.y; nodeArr[slot * 4 + 2] = sp.l; nodeArr[slot * 4 + 3] = sp.r;
             if (n.linked === false) {
-              node2Arr[i * 4] = sp.t; node2Arr[i * 4 + 1] = sp.b; node2Arr[i * 4 + 2] = n.k || 2.2; node2Arr[i * 4 + 3] = armAngle(n, 'r');
-              th2Arr[i] = armAngle(n, 'l'); node3Arr[i * 2] = armAngle(n, 't'); node3Arr[i * 2 + 1] = armAngle(n, 'b');
-              typeArr[i] = 2;
+              node2Arr[slot * 4] = sp.t; node2Arr[slot * 4 + 1] = sp.b; node2Arr[slot * 4 + 2] = k; node2Arr[slot * 4 + 3] = armAngle(n, 'r');
+              th2Arr[slot] = armAngle(n, 'l'); node3Arr[slot * 2] = armAngle(n, 't'); node3Arr[slot * 2 + 1] = armAngle(n, 'b');
+              typeArr[slot] = 2;
             } else {
-              node2Arr[i * 4] = sp.t; node2Arr[i * 4 + 1] = sp.b; node2Arr[i * 4 + 2] = n.k || 2.2; node2Arr[i * 4 + 3] = n.th || 0; th2Arr[i] = axis2(n);
-              typeArr[i] = 0;
+              node2Arr[slot * 4] = sp.t; node2Arr[slot * 4 + 1] = sp.b; node2Arr[slot * 4 + 2] = k; node2Arr[slot * 4 + 3] = n.th || 0; th2Arr[slot] = axis2(n);
+              typeArr[slot] = 0;
             }
+            colArr[slot * 4] = c[0]; colArr[slot * 4 + 1] = c[1]; colArr[slot * 4 + 2] = c[2]; colArr[slot * 4 + 3] = a;
           }
-          colArr[i * 4] = c[0]; colArr[i * 4 + 1] = c[1]; colArr[i * 4 + 2] = c[2]; colArr[i * 4 + 3] = n.a ?? 1;
+          slot++;
         }
         gl.uniform2f(U.uRes, gl.drawingBufferWidth, gl.drawingBufferHeight);
-        gl.uniform1i(U.uCount, N);
+        gl.uniform1i(U.uCount, slot);
         gl.uniform1f(U.uSoft, state.soft / 0.2); gl.uniform1f(U.uGrain, state.grain); gl.uniform1f(U.uGrainSize, state.grainSize);
         gl.uniform1f(U.uSeed, state.seed); gl.uniform1f(U.uLinear, state.linear ? 1 : 0); gl.uniform1f(U.uRefW, state.w);
         gl.uniform4fv(U.uNode, nodeArr); gl.uniform4fv(U.uNode2, node2Arr); gl.uniform1fv(U.uTh2, th2Arr); gl.uniform1fv(U.uType, typeArr); gl.uniform4fv(U.uColor, colArr); gl.uniform3f(U.uAdj, state.adj.hue * Math.PI / 180, state.adj.sat, state.adj.bri); gl.uniform2fv(U.uNode3, node3Arr);
@@ -853,11 +884,19 @@
         if (isArc) {
           const { P1, P2 } = arcEnds(n, cx, cy, dims.m);
           set(c.hs.l, { left: P1.x + 'px', top: P1.y + 'px' }); set(c.hs.r, { left: P2.x + 'px', top: P2.y + 'px' });
-          const g = arcGeom(n, { x: cx, y: cy }, P1, P2, ((n.sl ?? 0.5) + (n.sr ?? 0.5)) / 2 * dims.m);
           set(c.arc, { width: dims.w + 'px', height: dims.h + 'px' }); c.arc.setAttribute('viewBox', `0 0 ${dims.w} ${dims.h}`);
-          const pts = []; const N = 48;
-          for (let i = 0; i <= N; i++) { const a = g.angleMid - g.halfSpan + (2 * g.halfSpan * i) / N; pts.push((g.cx + g.R * Math.cos(a)).toFixed(1) + ' ' + (g.cy + g.R * Math.sin(a)).toFixed(1)); }
-          c.arc.querySelector('path').setAttribute('d', 'M ' + pts.join(' L '));
+          const N = 48;
+          const sample = g => { const pts = []; for (let i = 0; i <= N; i++) { const a = g.angleMid - g.halfSpan + (2 * g.halfSpan * i) / N; pts.push((g.cx + g.R * Math.cos(a)).toFixed(1) + ' ' + (g.cy + g.R * Math.sin(a)).toFixed(1)); } return 'M ' + pts.join(' L '); };
+          if (n.linked === false) {
+            // two independent circles, sampled as two separate subpaths that just happen to both start at the node
+            const { phiR, phiL } = arcHalfPhis(n), C0 = { x: cx, y: cy };
+            const gR = halfArcGeom(C0, n.th || 0, phiR, P2, (n.sr ?? 0.5) * dims.m);
+            const gL = halfArcGeom(C0, n.th || 0, phiL, P1, (n.sl ?? 0.5) * dims.m);
+            c.arc.querySelector('path').setAttribute('d', sample(gR) + ' ' + sample(gL));
+          } else {
+            const g = arcGeom(n, { x: cx, y: cy }, P1, P2, ((n.sl ?? 0.5) + (n.sr ?? 0.5)) / 2 * dims.m);
+            c.arc.querySelector('path').setAttribute('d', sample(g));
+          }
         } else {
           const place = (dir, len, phi) => {
             const cs = Math.cos(phi), sn = Math.sin(phi), deg = phi * 180 / Math.PI;
