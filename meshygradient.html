@@ -253,7 +253,8 @@
   <div class="stage" id="stage">
     <div class="canvas-size-tag" id="sizeTag"></div>
     <div class="preview-wrap">
-      <button class="chip" id="addArcBtn" aria-pressed="false" title="Drag two points on the canvas to place an arc">+ Arc</button>
+      <button class="chip" id="addArcBtn" aria-pressed="false" title="Click on the canvas to place an arc">+ Arc</button>
+      <button class="chip" id="addLineBtn" aria-pressed="false" title="Click on the canvas to place a line">+ Line</button>
       <button class="chip zoom-chip" id="zoomChip" title="Zoom (⌘/Ctrl + scroll, ⌘ +/−). Click to fit">100%</button>
       <button class="chip preview-btn" id="previewBtn" aria-pressed="false" title="Toggle preview (hold Space)">Preview</button>
       <kbd>Space</kbd>
@@ -493,6 +494,14 @@
     const n = { id: nextId++, type: 'arc', x, y, a: 1, sl: 0.32, sr: 0.32, th: 0, phi: 0.35, sw: 0.3, k: 2.2, color: color || randomColor() };
     state.nodes.push(n); return n;
   }
+  // A line node is a straight band through the center, in the same "true length as a fraction of the canvas's
+  // long side" units as an arc, but with no bend at all — the degenerate, always-straight case. Reuses the exact
+  // same th/ar/al fields and armAngle() fallbacks as a circle's l/r axis, so linking/unlinking need no new code.
+  function addLineNode(x, y, color) {
+    if (state.nodes.length >= MAXN) { setStatus(`Limit of ${MAXN} nodes reached.`, true); return null; }
+    const n = { id: nextId++, type: 'line', x, y, a: 1, sl: 0.4, sr: 0.4, th: 0, sw: 0.3, k: 2.2, color: color || randomColor() };
+    state.nodes.push(n); return n;
+  }
   const arcAngles = n => n.linked === false
     ? { thr: n.thr ?? ((n.th || 0) + n.phi), thl: n.thl ?? ((n.th || 0) + Math.PI - n.phi) }
     : { thr: (n.th || 0) + n.phi, thl: (n.th || 0) + Math.PI - n.phi };
@@ -556,7 +565,19 @@
       for (int i = 0; i < ${MAXN}; i++) {
         if (i >= uCount) break;
         float w;
-        if (uType[i] > 1.5) {
+        if (uType[i] > 2.5) {
+          // line node: a straight capsule between two explicit endpoints (already in scaled render space) —
+          // no circle-fit at all, just the distance from p to the nearest point on segment A -> B.
+          vec2 A = uNode[i].xy, B = uNode[i].zw;
+          float sw = uNode2[i].x, kLine = uNode2[i].y;
+          vec2 AB = B - A; float len2 = dot(AB, AB);
+          float t = len2 > 1e-8 ? clamp(dot(p - A, AB) / len2, 0.0, 1.0) : 0.0;
+          float dist = length(p - (A + t * AB));
+          float rr = max(sw * uSoft, 1e-4);
+          float dnorm = dist / rr;
+          float d2 = dnorm * dnorm;
+          w = pow(1.0 / (1.0 + d2), kLine) + 1e-7 / (1.0 + d2);
+        } else if (uType[i] > 1.5) {
           // unlinked circle: 4 independently angled/lengthed arms. The "radius" at a pixel's angle is an
           // inverse-angular-distance blend of the 4 arm lengths — it matches an arm's own length exactly at
           // that arm's own angle, and blends smoothly between neighboring arms everywhere else.
@@ -656,6 +677,14 @@
           th2Arr[slot] = 0; typeArr[slot] = 1;
           colArr[slot * 4] = c[0]; colArr[slot * 4 + 1] = c[1]; colArr[slot * 4 + 2] = c[2]; colArr[slot * 4 + 3] = a;
         };
+        // a line is a straight capsule between two explicit endpoints — no circle-fit needed at all. Unlinked
+        // costs two slots (one ray each from the center), same pattern as an unlinked arc's two half-circles.
+        const putLineSlot = (slot, A, B, sw, k, c, a) => {
+          nodeArr[slot * 4] = A.x; nodeArr[slot * 4 + 1] = A.y; nodeArr[slot * 4 + 2] = B.x; nodeArr[slot * 4 + 3] = B.y;
+          node2Arr[slot * 4] = sw; node2Arr[slot * 4 + 1] = k; node2Arr[slot * 4 + 2] = 0; node2Arr[slot * 4 + 3] = 0;
+          th2Arr[slot] = 0; typeArr[slot] = 3;
+          colArr[slot * 4] = c[0]; colArr[slot * 4 + 1] = c[1]; colArr[slot * 4 + 2] = c[2]; colArr[slot * 4 + 3] = a;
+        };
         let slot = 0;
         for (let i = 0; i < N && slot < MAXN; i++) {
           const n = state.nodes[i], c = hexToRgb(n.color), a = n.a ?? 1, k = n.k || 2.2;
@@ -674,6 +703,18 @@
             }
             const g = arcGeom(n, C, P1, P2, ((n.sl ?? 0.5) + (n.sr ?? 0.5)) / 2, 0.03);
             putArcSlot(slot, g, sw, k, c, a);
+          } else if (n.type === 'line') {
+            const C = { x: n.x * scX, y: n.y * scY }, sw = n.sw ?? 0.3;
+            const thr = armAngle(n, 'r'), thl = armAngle(n, 'l');
+            const Pr = { x: C.x + (n.sr ?? 0.5) * Math.cos(thr), y: C.y + (n.sr ?? 0.5) * Math.sin(thr) };
+            const Pl = { x: C.x + (n.sl ?? 0.5) * Math.cos(thl), y: C.y + (n.sl ?? 0.5) * Math.sin(thl) };
+            if (n.linked === false) {
+              putLineSlot(slot++, C, Pr, sw, k, c, a);
+              if (slot >= MAXN) break;
+              putLineSlot(slot++, C, Pl, sw, k, c, a);
+              continue;
+            }
+            putLineSlot(slot, Pl, Pr, sw, k, c, a);
           } else {
             const sp = spreads(n);
             nodeArr[slot * 4] = n.x; nodeArr[slot * 4 + 1] = n.y; nodeArr[slot * 4 + 2] = sp.l; nodeArr[slot * 4 + 3] = sp.r;
@@ -812,7 +853,7 @@
   const handleEls = new Map(), ctlEls = new Map();
   function maxDim() { const r = frame.getBoundingClientRect(); return { w: r.width, h: r.height, m: Math.max(r.width, r.height) }; }
   // Arc arms are drawn at true length (a fraction of the frame's long side); regular arms use PX_PER_SPREAD.
-  const armScale = (n, d) => n.type === 'arc' ? d.m : PX_PER_SPREAD;
+  const armScale = (n, d) => n.type === 'arc' || n.type === 'line' ? d.m : PX_PER_SPREAD;
   function updateHardIndicator(n, p, angleOverride) {
     const c = ctlEls.get(n.id); if (!c || !c.ind) return;
     const d = maxDim();
@@ -826,7 +867,7 @@
     const live = new Set(); const dims = maxDim();
     for (const n of state.nodes) {
       live.add(n.id);
-      const isArc = n.type === 'arc';
+      const isArc = n.type === 'arc', isLine = n.type === 'line';
       let el = handleEls.get(n.id);
       if (!el) {
         el = document.createElement('div'); el.className = 'handle'; el.dataset.id = n.id; el.tabIndex = 0;
@@ -873,8 +914,13 @@
       const A = (v, dir) => (drag && drag.type === 'spread' && drag.n === n && drag.side === dir) ? Math.max(0, v * scale) : Math.max(ARM_MIN, v * scale);
       const aL = A(sp.l, 'l'), aR = A(sp.r, 'r'), aT = A(sp.t, 't'), aB = A(sp.b, 'b');
       const R = hardToRadius(n.k || 2.2);
-      // an arc node has no straight arms and no top/bottom axis: its two arm ends sit on the drawn curve
-      for (const dir in c.arms) { c.arms[dir].style.display = on && !isArc ? 'block' : 'none'; c.hs[dir].style.display = on && (!isArc || dir === 'l' || dir === 'r') ? 'block' : 'none'; }
+      // an arc node has no straight arms at all (its ends sit on the drawn curve instead); a line node has
+      // straight l/r arms like a circle's but no top/bottom axis
+      for (const dir in c.arms) {
+        const isLR = dir === 'l' || dir === 'r';
+        c.arms[dir].style.display = on && !isArc && (isLR || !isLine) ? 'block' : 'none';
+        c.hs[dir].style.display = on && (isLR || (!isArc && !isLine)) ? 'block' : 'none';
+      }
       c.ring.style.display = on ? 'block' : 'none';
       c.arc.style.display = on && isArc ? 'block' : 'none';
       c.lbl.style.display = 'none';
@@ -903,7 +949,8 @@
             set(c.arms[dir], { left: (cx + gap * cs) + 'px', top: (cy + gap * sn) + 'px', width: Math.max(0, len - gap - 6) + 'px', transform: `rotate(${deg}deg)` });
             set(c.hs[dir], { left: (cx + len * cs) + 'px', top: (cy + len * sn) + 'px' });
           };
-          place('r', aR, armAngle(n, 'r')); place('l', aL, armAngle(n, 'l')); place('b', aB, armAngle(n, 'b')); place('t', aT, armAngle(n, 't'));
+          place('r', aR, armAngle(n, 'r')); place('l', aL, armAngle(n, 'l'));
+          if (!isLine) { place('b', aB, armAngle(n, 'b')); place('t', aT, armAngle(n, 't')); }
         }
         const Ri = R + 7, S = Ri * 2 + 20, mid = S / 2; // 1px (half main stroke) + 4px gap + 2px (half indicator stroke)
         set(c.ring, { left: (cx - S / 2) + 'px', top: (cy - S / 2) + 'px', width: S + 'px', height: S + 'px' });
@@ -950,19 +997,14 @@
 
   // ---------- Node type conversion + axis linking (right-click menu) ----------
   function convertNodeType(n, to) {
-    const wasArc = n.type === 'arc';
-    if (to === 'arc' && wasArc) return;
-    if (to === 'circle' && !wasArc) return;
+    const curType = n.type === 'arc' ? 'arc' : n.type === 'line' ? 'line' : 'circle';
+    if (to === curType) return;
     pushUndo();
-    if (to === 'arc') {
-      const len = ((n.sl ?? 0.5) + (n.sr ?? 0.5)) / 2;
-      n.type = 'arc'; n.sl = n.sr = len; n.phi = n.phi ?? 0.35; n.sw = n.sw ?? 0.3;
-      delete n.st; delete n.sb; delete n.th2;
-    } else {
-      n.st = n.st ?? n.sl ?? 0.5; n.sb = n.sb ?? n.sl ?? 0.5;
-      delete n.type; delete n.phi; delete n.sw;
-    }
-    // the two node kinds keep independent-axis state in different fields; a fresh conversion starts linked again
+    const len = ((n.sl ?? 0.5) + (n.sr ?? 0.5)) / 2;
+    if (to === 'arc') { n.type = 'arc'; n.sl = n.sr = len; n.phi = 0.35; n.sw = 0.3; }
+    else if (to === 'line') { n.type = 'line'; n.sl = n.sr = len; n.sw = 0.3; delete n.phi; }
+    else { delete n.type; delete n.phi; delete n.sw; n.sl = len; n.sr = len; n.st = len; n.sb = len; }
+    // the three node kinds keep independent-axis state in different fields; a fresh conversion starts linked again
     delete n.linked; delete n.thr; delete n.thl; delete n.ar; delete n.al; delete n.at; delete n.ab;
     refreshAll();
   }
@@ -984,12 +1026,12 @@
       if (n.type === 'arc') {
         const thr = armAngle(n, 'r'), thl = armAngle(n, 'l');
         n.th = wrapAngle((thr + thl - Math.PI) / 2); n.phi = wrapAngle(thr - n.th);
-      } else { n.th = armAngle(n, 'r'); n.th2 = armAngle(n, 't'); }
+      } else { n.th = armAngle(n, 'r'); if (n.type !== 'line') n.th2 = armAngle(n, 't'); }
       n.linked = true; delete n.thr; delete n.thl; delete n.ar; delete n.al; delete n.at; delete n.ab;
     } else {
       // unlink: capture each arm's current angle explicitly so nothing jumps at the moment of unlinking
       if (n.type === 'arc') { const a = arcAngles(n); n.thr = a.thr; n.thl = a.thl; }
-      else { n.ar = armAngle(n, 'r'); n.al = armAngle(n, 'l'); n.at = armAngle(n, 't'); n.ab = armAngle(n, 'b'); }
+      else { n.ar = armAngle(n, 'r'); n.al = armAngle(n, 'l'); if (n.type !== 'line') { n.at = armAngle(n, 't'); n.ab = armAngle(n, 'b'); } }
       n.linked = false;
     }
     refreshAll();
@@ -1002,6 +1044,7 @@
     nodeMenu.innerHTML =
       item('data-to="circle"', 'Circle node', 'C') +
       item('data-to="arc"', 'Arc node', 'A') +
+      item('data-to="line"', 'Line node', 'L') +
       '<div class="sep"></div>' +
       item('data-action="toggle-link"', 'Unlink axes', '');
     nodeMenu.hidden = false;
@@ -1027,9 +1070,9 @@
   document.addEventListener('keydown', e => {
     if (nodeMenu.hidden) return;
     if (e.key === 'Escape') { closeNodeMenu(); return; }
-    const k = e.key.toLowerCase(); if (k !== 'c' && k !== 'a') return;
+    const k = e.key.toLowerCase(); if (k !== 'c' && k !== 'a' && k !== 'l') return;
     const n = state.nodes.find(x => x.id === nodeMenuId);
-    if (n) { e.preventDefault(); convertNodeType(n, k === 'c' ? 'circle' : 'arc'); closeNodeMenu(); }
+    if (n) { e.preventDefault(); convertNodeType(n, k === 'c' ? 'circle' : k === 'a' ? 'arc' : 'line'); closeNodeMenu(); }
   }, true);
   window.addEventListener('blur', closeNodeMenu);
 
@@ -1117,8 +1160,8 @@
     if (drag.type === 'spread') {
       drag.moved = true;
       const d = maxDim(), dx = p.px - drag.n.x * d.w, dy = p.py - drag.n.y * d.h, scale = armScale(drag.n, d);
-      const isArc = drag.n.type === 'arc', unlinked = drag.n.linked === false;
-      if (!isArc) { const sp = spreads(drag.n); drag.n.sl = sp.l; drag.n.sr = sp.r; drag.n.st = sp.t; drag.n.sb = sp.b; }
+      const isArc = drag.n.type === 'arc', isLine = drag.n.type === 'line', unlinked = drag.n.linked === false;
+      if (!isArc && !isLine) { const sp = spreads(drag.n); drag.n.sl = sp.l; drag.n.sr = sp.r; drag.n.st = sp.t; drag.n.sb = sp.b; }
       // linked: an arc's arms mirror each other (dragging one end sets the dip angle for both, so the node stays
       // the apex) and a circle's l/r or t/b share one axis angle. Unlinked: each arm keeps its own angle instead.
       const setAngle = ang => {
@@ -1196,9 +1239,9 @@
     if (drag.type === 'marquee' && !drag.moved && !drag.additive && e.type === 'pointerup' && !drag.fromStage) {
       pushUndo();
       const color = state.nodes.length ? colorAtCanvasPoint(drag.start.x, drag.start.y) : null;
-      const n = addingArc ? addArcNode(drag.start.x, drag.start.y, color) : addNode(drag.start.x, drag.start.y, color);
+      const n = addingArc ? addArcNode(drag.start.x, drag.start.y, color) : addingLine ? addLineNode(drag.start.x, drag.start.y, color) : addNode(drag.start.x, drag.start.y, color);
       if (n) { state.selected.clear(); state.selected.add(n.id); }
-      if (addingArc) setAddingArc(false);
+      if (addingArc) setAddingArc(false); else if (addingLine) setAddingLine(false);
     }
     marquee.style.display = 'none';
     drag = null; refreshAll();
@@ -1237,14 +1280,20 @@
   }
   $('previewBtn').addEventListener('click', () => setPreview(!previewing));
 
-  // Arc-node placement mode
-  let addingArc = false;
+  // Arc/line-node placement mode (mutually exclusive: turning one on turns the other off)
+  let addingArc = false, addingLine = false;
   function setAddingArc(on) {
-    addingArc = on;
+    addingArc = on; if (on) setAddingLine(false, true);
     $('addArcBtn').setAttribute('aria-pressed', String(on));
-    $('hint').textContent = on ? 'Click on the canvas to place an arc.' : DEFAULT_HINT;
+    if (on) $('hint').textContent = 'Click on the canvas to place an arc.'; else if (!addingLine) $('hint').textContent = DEFAULT_HINT;
+  }
+  function setAddingLine(on, skipArcClear) {
+    addingLine = on; if (on && !skipArcClear) setAddingArc(false);
+    $('addLineBtn').setAttribute('aria-pressed', String(on));
+    if (on) $('hint').textContent = 'Click on the canvas to place a line.'; else if (!addingArc) $('hint').textContent = DEFAULT_HINT;
   }
   $('addArcBtn').addEventListener('click', () => setAddingArc(!addingArc));
+  $('addLineBtn').addEventListener('click', () => setAddingLine(!addingLine));
 
   // Color sampling (eyedropper)
   let sampling = false; const DEFAULT_HINT = 'Click to add a node. Drag to select. Arm handles set spread, the dotted ring sets hardness.';
@@ -1339,7 +1388,7 @@
     if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat && !previewing) { setSpaceHeld(true); setPreview(true); } }
     else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
     else if (mod && e.key.toLowerCase() === 'a') { e.preventDefault(); state.selected = new Set(state.nodes.map(n => n.id)); refreshAll(); }
-    else if (e.key === 'Escape') { if (addingArc) setAddingArc(false); else if (sampling) setSampling(false); else if (previewing) setPreview(false); else { state.selected.clear(); refreshAll(); } }
+    else if (e.key === 'Escape') { if (addingArc) setAddingArc(false); else if (addingLine) setAddingLine(false); else if (sampling) setSampling(false); else if (previewing) setPreview(false); else { state.selected.clear(); refreshAll(); } }
     else if ((e.key.toLowerCase() === 'p' || e.key.toLowerCase() === 'h') && !mod) { setPreview(!previewing); }
     else if (e.key.toLowerCase() === 'i' && !mod) { e.preventDefault(); setSampling(!sampling); }
     else if (e.key.startsWith('Arrow') && state.selected.size) {
