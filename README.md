@@ -75,8 +75,10 @@ Legacy shapes still accepted by the normalizer: single `r`, `rx`/`ry`, absent `t
    (`uNode`, `uNode2`, `uNode3`, `uTh2`, `uType`, `uColor`). The layout per `uType` is documented at the top
    of `shader.js`. An unlinked arc or line consumes two slots. `MAXN` = 40 slots.
 3. The fragment shader loops over slots, computes a weight `(1 / (1 + d²))^k` per slot from a normalized
-   distance, and blends colours by weight. Then hue/sat/brightness, optional linear light, and seeded grain
-   sized relative to the logical canvas width. Grain type (`mono`/`duo`/`multi`) picks how many independent
+   distance, and blends colours by weight (`blendMode`: `normal`/`linear`/`multiply`/`screen`/`overlay` — the
+   last four are order-independent generalizations of the usual two-layer blend modes, computed via weighted
+   arithmetic/geometric means since any number of nodes can overlap at a pixel). Then hue/sat/brightness, and
+   seeded grain sized relative to the logical canvas width. Grain type (`mono`/`duo`/`multi`) picks how many independent
    noise channels feed R/G/B (mono: all three share one; duo: two share, one independent; multi: fully
    independent per-channel colour grain). Density masks a fraction of grain cells off entirely via a second
    hash, so it reads as speckle coverage rather than intensity (`grain` controls intensity).

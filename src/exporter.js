@@ -13,6 +13,7 @@ $('ew').addEventListener('input', updateExportHeight);
 $('scales').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   $('ew').value = state.w * +b.dataset.s; updateExportHeight();
+  for (const btn of $('scales').querySelectorAll('button')) btn.setAttribute('aria-pressed', String(btn === b));
 });
 
 $('exportBtn').addEventListener('click', async () => {

@@ -20,7 +20,7 @@ export const state = {
   selected: new Set(),
   soft: 0.1, grain: 0.02, grainSize: 1, grainType: 'mono', density: 1.4,
   adj: { hue: 0, sat: 1, bri: 1 },
-  linear: false,
+  blendMode: 'normal',
   seed: Math.random() * 1000,
 };
 
@@ -79,10 +79,11 @@ export function serializeConfig({ stripIds } = {}) {
     nodes: stripIds ? state.nodes.map(({ id, ...rest }) => rest) : state.nodes,
     soft: state.soft, grain: state.grain, grainSize: state.grainSize,
     grainType: state.grainType, density: state.density,
-    adj: state.adj, linear: state.linear, seed: state.seed,
+    adj: state.adj, blendMode: state.blendMode, seed: state.seed,
   };
 }
 const GRAIN_TYPES = ['mono', 'duo', 'multi'];
+const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay'];
 export function applyConfig(s, { reassignIds } = {}) {
   if (isNum(s.w) && isNum(s.h)) setCanvasSize(s.w, s.h);
   setNodes(Array.isArray(s.nodes) ? s.nodes : [], reassignIds);
@@ -92,6 +93,7 @@ export function applyConfig(s, { reassignIds } = {}) {
   state.grainType = GRAIN_TYPES.includes(s.grainType) ? s.grainType : 'mono';
   state.density = isNum(s.density) ? s.density : 1.4;
   if (s.adj && typeof s.adj === 'object') for (const k of ['hue', 'sat', 'bri']) if (isNum(s.adj[k])) state.adj[k] = s.adj[k];
-  state.linear = !!s.linear;
+  // `linear` is the old boolean flag this replaced; still accepted from older saved state/presets.
+  state.blendMode = BLEND_MODES.includes(s.blendMode) ? s.blendMode : (s.linear ? 'linear' : 'normal');
   if (isNum(s.seed)) state.seed = s.seed;
 }

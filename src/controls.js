@@ -3,6 +3,7 @@
 
 import { MOBILE_BREAKPOINT, CANVAS_MIN, CANVAS_MAX, clamp } from './constants.js';
 import { state, targetNodes, addNode, setCanvasSize as setCanvasSizeState } from './state.js';
+import { hexToRgb, rgbToHex } from './color.js';
 import { snapshot, pushUndo, undo } from './undo.js';
 import { $ } from './dom.js';
 import { layout, draw } from './view.js';
@@ -91,10 +92,32 @@ const SLIDERS = [
 for (const s of SLIDERS) {
   $(s.id).addEventListener('input', e => { s.set(e.target); sliderFill(e.target); $(s.out).textContent = s.fmt(+e.target.value); draw(); });
 }
+
+// Hue/Saturation/Brightness preview their effect on hover/drag, tinted by the gradient's average colour.
+function updatePreviewColor() {
+  const nodes = state.nodes;
+  if (!nodes.length) return;
+  let r = 0, g = 0, b = 0;
+  for (const n of nodes) { const [nr, ng, nb] = hexToRgb(n.color); r += nr; g += ng; b += nb; }
+  document.documentElement.style.setProperty('--preview-color',
+    rgbToHex(...[r, g, b].map(v => Math.round((v / nodes.length) * 255))));
+}
+for (const id of ['adjSat', 'adjBri']) $(id).addEventListener('pointerenter', updatePreviewColor);
+const BLEND_MODES = [
+  { id: 'normal', label: 'Normal' },
+  { id: 'linear', label: 'Linear' },
+  { id: 'multiply', label: 'Multiply' },
+  { id: 'screen', label: 'Screen' },
+  { id: 'overlay', label: 'Overlay' },
+];
+function setBlendMode(mode) {
+  state.blendMode = mode;
+  $('blendModeBtn').setAttribute('aria-pressed', String(mode !== 'normal'));
+  $('blendModeVal').textContent = BLEND_MODES.find(m => m.id === mode).label;
+}
 $('blendModeBtn').addEventListener('click', () => {
-  state.linear = !state.linear;
-  $('blendModeBtn').setAttribute('aria-pressed', String(state.linear));
-  $('blendModeVal').textContent = state.linear ? 'Linear' : 'Normal';
+  const i = BLEND_MODES.findIndex(m => m.id === state.blendMode);
+  setBlendMode(BLEND_MODES[(i + 1) % BLEND_MODES.length].id);
   draw();
 });
 
@@ -123,8 +146,7 @@ function animateSliderTo(el, target, { delay = 0, duration = 150, onFrame } = {}
 
 export function syncControlsFromState({ animate = false } = {}) {
   $('cw').value = state.w; $('ch').value = state.h;
-  $('blendModeBtn').setAttribute('aria-pressed', String(state.linear));
-  $('blendModeVal').textContent = state.linear ? 'Linear' : 'Normal';
+  setBlendMode(state.blendMode);
   for (const btn of $('grainType').querySelectorAll('button[data-grain-type]')) {
     btn.setAttribute('aria-pressed', String(btn.dataset.grainType === state.grainType));
   }

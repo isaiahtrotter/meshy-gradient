@@ -11,7 +11,7 @@ export const VS = `attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }
 
 export const FS = `
   precision highp float;
-  uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uLinear, uRefW, uGrainType, uDensity;
+  uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uBlendMode, uRefW, uGrainType, uDensity;
   uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec3 uAdj; uniform vec2 uNode3[${MAXN}];
   float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
   vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
@@ -20,7 +20,7 @@ export const FS = `
     vec2 uv = gl_FragCoord.xy / uRes; uv.y = 1.0 - uv.y;
     vec2 sc = uRes / max(uRes.x, uRes.y);
     vec2 p = uv * sc;
-    vec3 acc = vec3(0.0); float wsum = 0.0;
+    vec3 acc = vec3(0.0); vec3 accLin = vec3(0.0); vec3 accLogM = vec3(0.0); vec3 accLogS = vec3(0.0); float wsum = 0.0;
     for (int i = 0; i < ${MAXN}; i++) {
       if (i >= uCount) break;
       float w;
@@ -89,11 +89,29 @@ export const FS = `
         w = pow(1.0 / (1.0 + d2), uNode2[i].z) + 1e-7 / (1.0 + d2);
       }
       w *= uColor[i].a;
-      vec3 c = uColor[i].rgb; c = mix(c, toLin(c), uLinear);
-      acc += c * w; wsum += w;
+      vec3 c = uColor[i].rgb;
+      acc += c * w; accLin += toLin(c) * w;
+      accLogM += log(max(c, 1e-4)) * w; accLogS += log(max(1.0 - c, 1e-4)) * w;
+      wsum += w;
     }
-    vec3 col = wsum > 0.0 ? acc / wsum : vec3(0.5);
-    col = mix(col, toSrgb(col), uLinear);
+    vec3 normalCol = wsum > 0.0 ? acc / wsum : vec3(0.5);
+    vec3 col;
+    if (uBlendMode < 0.5) {
+      col = normalCol;
+    } else if (uBlendMode < 1.5) {
+      // linear: average in linear light, not sRGB, so overlaps don't darken as much
+      col = wsum > 0.0 ? toSrgb(accLin / wsum) : vec3(0.5);
+    } else if (uBlendMode < 2.5) {
+      // multiply: weighted geometric mean, order-independent generalization of Photoshop multiply
+      col = wsum > 0.0 ? exp(accLogM / wsum) : vec3(0.5);
+    } else if (uBlendMode < 3.5) {
+      // screen: multiply on the inverted colours, then invert back — lightens overlaps
+      col = wsum > 0.0 ? 1.0 - exp(accLogS / wsum) : vec3(0.5);
+    } else {
+      // overlay: a per-channel contrast curve applied to the normal blend
+      vec3 b = normalCol;
+      col = mix(2.0 * b * b, 1.0 - 2.0 * (1.0 - b) * (1.0 - b), step(0.5, b));
+    }
     // global variation: hue rotate, saturation, brightness
     const vec3 kk = vec3(0.57735);
     float ca = cos(uAdj.x), sa = sin(uAdj.x);
