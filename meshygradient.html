@@ -688,18 +688,32 @@
   // ---------- Layout ----------
   const stage = $('stage'), frame = $('frame'), overlay = $('overlay'), marquee = $('marquee');
   const ref = { img: null, data: null }; // loaded reference image + its pixel canvas
-  function setReference(file) {
-    if (!file || !file.type.startsWith('image/')) return;
-    const url = URL.createObjectURL(file), img = new Image();
+  const REF_STORAGE_KEY = 'meshGradientRefImage.v1';
+  function applyReferenceImage(url, persist) {
+    const img = new Image();
     img.onload = () => {
       ref.img = img; $('refImg').src = url; $('ref').hidden = false;
       const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
       c.getContext('2d').drawImage(img, 0, 0); ref.data = c;
       $('refBtn').textContent = 'Replace image'; layout();
+      if (persist) {
+        try { localStorage.setItem(REF_STORAGE_KEY, c.toDataURL()); }
+        catch { try { localStorage.removeItem(REF_STORAGE_KEY); } catch {} } // e.g. quota exceeded — it just won't survive a refresh
+      }
     };
     img.src = url;
   }
-  function clearReference() { ref.img = null; ref.data = null; $('ref').hidden = true; $('refImg').removeAttribute('src'); $('refBtn').textContent = 'Add image'; layout(); }
+  function setReference(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    applyReferenceImage(URL.createObjectURL(file), true);
+  }
+  function restoreReference() {
+    try { const url = localStorage.getItem(REF_STORAGE_KEY); if (url) applyReferenceImage(url, false); } catch {}
+  }
+  function clearReference() {
+    ref.img = null; ref.data = null; $('ref').hidden = true; $('refImg').removeAttribute('src'); $('refBtn').textContent = 'Add image'; layout();
+    try { localStorage.removeItem(REF_STORAGE_KEY); } catch {}
+  }
   function layout() {
     const pad = 28 * 2;
     const availW = stage.clientWidth - pad, availH = stage.clientHeight - pad - 40;
@@ -1674,6 +1688,7 @@
   // ---------- Init ----------
   const restored = loadState();
   if (!restored) seedNodes(PALETTES[0]);
+  restoreReference();
   $('cw').value = state.w; $('ch').value = state.h;
   $('soft').value = reverseMapped($('soft'), state.soft); $('softVal').textContent = (+$('soft').value).toFixed(2);
   $('grain').value = reverseMapped($('grain'), state.grain); $('grainVal').textContent = (+$('grain').value).toFixed(2);
