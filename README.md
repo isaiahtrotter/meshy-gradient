@@ -94,11 +94,22 @@ Legacy shapes still accepted by the normalizer: single `r`, `rx`/`ry`, absent `t
 
 ## Testing
 
-Run `./dev.sh` (optionally `./dev.sh 8080`) to serve the app locally and open it in the browser. Opening
-`meshygradient.html` straight from Finder does not work: browsers refuse to load ES modules from `file://`.
+```
+npm install && npm run test:setup   # once: installs Playwright and a headless Chromium
+npm test                            # runs everything, ~40s
+```
 
-There is no test runner checked in yet. Pure modules (`geometry`, `nodes`, `state`, `undo`, `color`) import
-cleanly in Node, so unit tests can target them directly.
+Run `npm test` before every push to prod. It starts its own static server, so nothing needs to be running.
+
+- `tests/app.spec.js` drives the real page: add, drag, undo/redo, arc/line placement, spread handles, the
+  context menu, colour picker, palettes, presets, canvas size, sliders, zoom, preview, copy, reload
+  persistence, legacy saved shapes, export.
+- `tests/render.spec.js` renders every preset and compares it pixel-for-pixel with the baselines in
+  `tests/render.spec.js-snapshots/`. When a rendering change is intended, regenerate them with
+  `npm run test:update` and commit the new PNGs. Baselines are per platform; they're generated on macOS.
+- `tests/helpers.js` holds the shared page helpers. The app exposes `window.__meshy.state` for the tests.
+
+Pure modules (`geometry`, `nodes`, `state`, `undo`, `color`) import cleanly in Node if unit tests are added later.
 
 ## Remaining backlog
 

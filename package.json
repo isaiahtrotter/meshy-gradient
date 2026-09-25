@@ -1,0 +1,15 @@
+{
+  "name": "meshy-gradient",
+  "private": true,
+  "type": "module",
+  "description": "WebGL mesh gradient editor. Static ES modules, no build step.",
+  "scripts": {
+    "dev": "./dev.sh",
+    "test": "playwright test",
+    "test:update": "playwright test --update-snapshots",
+    "test:setup": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0"
+  }
+}
