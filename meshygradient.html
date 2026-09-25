@@ -493,20 +493,19 @@
   }
   const arcAngles = n => ({ thr: (n.th || 0) + n.phi, thl: (n.th || 0) + Math.PI - n.phi });
   const wrapAngle = a => Math.atan2(Math.sin(a), Math.cos(a));
-  // The circle (or, in the limit, the exact straight line) through node center C, tangent to angle n.th there,
-  // bent by n.phi — plus the angular range of the arc P1 -> C -> P2. Built directly from th/phi/len via signed
-  // curvature (2·sin(phi)/len) rather than fitting a circle through three points: that fit's radius blows up as
-  // the bend flattens toward a straight line, and snapping it back down past a threshold is what used to make the
-  // curve visibly jump and drift off the node's center right at the transition. This form has no such threshold —
-  // curvature crosses zero smoothly as phi does, so the arc straightens, continues bending the other way, and
-  // always passes exactly through C, at every phi.
-  function arcGeom(n, C, P1, P2, len) {
+  // The circle through node center C, tangent to angle n.th there, bent by n.phi — plus the angular range of the
+  // arc P1 -> C -> P2. Built directly from th/phi/len via signed curvature (2·sin(phi)/len) rather than fitting a
+  // circle through three points, so its radius is always the exact one C, P1 and P2 actually sit on — no separate
+  // nudge or floor on the center that would leave the arm-end handles off the drawn curve. As the bend flattens
+  // toward a straight line the radius correctly grows very large and flips sign at phi = 0: the curve snaps to the
+  // flipped arc rather than easing through it, but the handles stay locked to its ends at every step, including
+  // through that snap. `eps` is a floor on |sin(phi)| purely to dodge an exact divide-by-zero; the caller passing a
+  // real cap (the GPU shader path) trades a little exactness very close to phi = 0 for numbers its float32 math
+  // stays precise over — the caller needing exactness (the on-screen handles) passes a negligible one instead.
+  function arcGeom(n, C, P1, P2, len, eps) {
     const th = n.th || 0;
-    // EPS caps how large R (and its center) can grow — the sagitta at the cap is len·EPS, well under 3% of the
-    // arm length and visually flat, while keeping cx/cy within a range the GPU's float32 math stays precise over
-    // (an uncapped R would grow toward float precision limits and reintroduce cancellation error near dist - R).
-    let s = Math.sin(n.phi || 0); const EPS = 0.03; if (Math.abs(s) < EPS) s = s < 0 ? -EPS : EPS;
-    const R = len / (2 * s); // signed; magnitude grows smoothly (never jumps) as phi approaches 0, then flips sign
+    let s = Math.sin(n.phi || 0); const EPS = eps ?? 1e-6; if (Math.abs(s) < EPS) s = s < 0 ? -EPS : EPS;
+    const R = len / (2 * s); // signed; magnitude grows (unclamped by default) as phi approaches 0, then flips sign
     const cx = C.x - R * Math.sin(th), cy = C.y + R * Math.cos(th);
     const aC = Math.atan2(C.y - cy, C.x - cx);
     const d1 = wrapAngle(Math.atan2(P1.y - cy, P1.x - cx) - aC);
@@ -613,7 +612,9 @@
           const n = state.nodes[i], c = hexToRgb(n.color);
           if (n.type === 'arc') {
             const C = { x: n.x * scX, y: n.y * scY }, { P1, P2 } = arcEnds(n, C.x, C.y, 1);
-            const g = arcGeom(n, C, P1, P2, n.sl), sw = n.sw ?? 0.3;
+            // capped eps: keeps cx/cy within a range the GPU's float32 math stays precise over near the snap,
+            // which the handle-UI call below doesn't need to worry about since it isn't rendering a soft blur
+            const g = arcGeom(n, C, P1, P2, n.sl, 0.03), sw = n.sw ?? 0.3;
             nodeArr[i * 4] = g.cx; nodeArr[i * 4 + 1] = g.cy; nodeArr[i * 4 + 2] = sw; nodeArr[i * 4 + 3] = sw;
             node2Arr[i * 4] = g.R; node2Arr[i * 4 + 1] = g.angleMid; node2Arr[i * 4 + 2] = g.halfSpan; node2Arr[i * 4 + 3] = n.k || 2.2;
             th2Arr[i] = 0; typeArr[i] = 1;
