@@ -820,7 +820,7 @@
       }
       // a small badge up and to the right of the node marks it as unlinked, regardless of selection
       c.unlink.style.display = n.linked === false ? 'block' : 'none';
-      c.unlink.style.left = (cx + 12) + 'px'; c.unlink.style.top = (cy - 12) + 'px';
+      c.unlink.style.left = (cx + 18) + 'px'; c.unlink.style.top = (cy - 18) + 'px';
       const on = state.selected.has(n.id);
       const sp = spreads(n), scale = armScale(n, dims);
       const A = (v, dir) => (drag && drag.type === 'spread' && drag.n === n && drag.side === dir) ? Math.max(0, v * scale) : Math.max(ARM_MIN, v * scale);
