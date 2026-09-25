@@ -91,10 +91,12 @@
   .loupe-hex { position: fixed; z-index: 51; transform: translate(-50%, 0); margin-top: 72px; padding: 2px 8px; border-radius: 4px; background: rgba(20,20,24,.85); color: #fff; font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none; display: none; white-space: nowrap; }
   .node-menu { position: fixed; z-index: 60; min-width: 168px; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 28px -8px rgba(0,0,0,.4); }
   .node-menu[hidden] { display: none; }
-  .node-menu .label { padding: 4px 10px 2px; font-size: 11px; color: var(--ink-3); }
+  .node-menu .sep { height: 1px; margin: 4px 2px; background: var(--line); }
   .node-menu button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 30px; padding: 0 10px; border: none; background: none; color: var(--ink); text-align: left; border-radius: 5px; font: inherit; font-weight: 400; cursor: pointer; }
   .node-menu button:hover { background: var(--field); }
+  .node-menu button .right { display: flex; align-items: center; gap: 6px; }
   .node-menu button .check { opacity: .6; font-size: 12px; }
+  .node-menu button kbd { font-size: 10px; padding: 0 3px; }
   .stage.dropping { outline: 2px dashed var(--accent); outline-offset: -8px; }
   .stage.space-pan, .stage.space-pan * { cursor: grab !important; }
   .stage.panning, .stage.panning * { cursor: grabbing !important; }
@@ -491,7 +493,9 @@
     const n = { id: nextId++, type: 'arc', x, y, a: 1, sl: 0.32, sr: 0.32, th: 0, phi: 0.35, sw: 0.3, k: 2.2, color: color || randomColor() };
     state.nodes.push(n); return n;
   }
-  const arcAngles = n => ({ thr: (n.th || 0) + n.phi, thl: (n.th || 0) + Math.PI - n.phi });
+  const arcAngles = n => n.linked === false
+    ? { thr: n.thr ?? ((n.th || 0) + n.phi), thl: n.thl ?? ((n.th || 0) + Math.PI - n.phi) }
+    : { thr: (n.th || 0) + n.phi, thl: (n.th || 0) + Math.PI - n.phi };
   const wrapAngle = a => Math.atan2(Math.sin(a), Math.cos(a));
   // The circle through node center C, tangent to angle n.th there, bent by n.phi — plus the angular range of the
   // arc P1 -> C -> P2. Built directly from th/phi/len via signed curvature (2·sin(phi)/len) rather than fitting a
@@ -523,7 +527,7 @@
   const FS = `
     precision highp float;
     uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uLinear, uRefW;
-    uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec3 uAdj;
+    uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec3 uAdj; uniform vec2 uNode3[${MAXN}];
     float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
     vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
     vec3 toSrgb(vec3 c){ return pow(max(c, 0.0), vec3(1.0/2.2)); }
@@ -535,7 +539,27 @@
       for (int i = 0; i < ${MAXN}; i++) {
         if (i >= uCount) break;
         float w;
-        if (uType[i] > 0.5) {
+        if (uType[i] > 1.5) {
+          // unlinked circle: 4 independently angled/lengthed arms. The "radius" at a pixel's angle is an
+          // inverse-angular-distance blend of the 4 arm lengths — it matches an arm's own length exactly at
+          // that arm's own angle, and blends smoothly between neighboring arms everywhere else.
+          vec2 ctr = uNode[i].xy * sc;
+          float lenL = uNode[i].z, lenR = uNode[i].w, lenT = uNode2[i].x, lenB = uNode2[i].y, kUn = uNode2[i].z;
+          float angR = uNode2[i].w, angL = uTh2[i], angT = uNode3[i].x, angB = uNode3[i].y;
+          vec2 dv = p - ctr;
+          float dist = length(dv);
+          float ap = atan(dv.y, dv.x);
+          float dR = ap - angR; dR = atan(sin(dR), cos(dR)); float wR = 1.0 / (dR * dR + 0.015);
+          float dT = ap - angT; dT = atan(sin(dT), cos(dT)); float wT = 1.0 / (dT * dT + 0.015);
+          float dL = ap - angL; dL = atan(sin(dL), cos(dL)); float wL = 1.0 / (dL * dL + 0.015);
+          float dB = ap - angB; dB = atan(sin(dB), cos(dB)); float wB = 1.0 / (dB * dB + 0.015);
+          float Rr = (wR * lenR + wT * lenT + wL * lenL + wB * lenB) / (wR + wT + wL + wB);
+          float excess = dist - Rr;
+          float rr = max(Rr * uSoft, 1e-4);
+          float dnorm = excess / rr;
+          float d2 = dnorm * dnorm;
+          w = pow(1.0 / (1.0 + d2), kUn) + 1e-7 / (1.0 + d2);
+        } else if (uType[i] > 0.5) {
           // arc node: uNode = (centerX, centerY, spreadOuter, spreadInner), already in scaled render space;
           // uNode2 = (radius, angleMid, halfSpan, hardness) — the circle is fit on the CPU each frame.
           vec2 ctr = uNode[i].xy;
@@ -598,8 +622,8 @@
     const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    const U = {}; for (const n of ['uRes', 'uCount', 'uSoft', 'uGrain', 'uGrainSize', 'uSeed', 'uLinear', 'uRefW', 'uNode', 'uNode2', 'uTh2', 'uType', 'uColor', 'uAdj']) U[n] = gl.getUniformLocation(prog, n);
-    const nodeArr = new Float32Array(MAXN * 4), node2Arr = new Float32Array(MAXN * 4), colArr = new Float32Array(MAXN * 4), th2Arr = new Float32Array(MAXN), typeArr = new Float32Array(MAXN);
+    const U = {}; for (const n of ['uRes', 'uCount', 'uSoft', 'uGrain', 'uGrainSize', 'uSeed', 'uLinear', 'uRefW', 'uNode', 'uNode2', 'uTh2', 'uType', 'uColor', 'uAdj', 'uNode3']) U[n] = gl.getUniformLocation(prog, n);
+    const nodeArr = new Float32Array(MAXN * 4), node2Arr = new Float32Array(MAXN * 4), colArr = new Float32Array(MAXN * 4), th2Arr = new Float32Array(MAXN), typeArr = new Float32Array(MAXN), node3Arr = new Float32Array(MAXN * 2);
     return {
       gl,
       render(w, h) {
@@ -621,8 +645,14 @@
           } else {
             const sp = spreads(n);
             nodeArr[i * 4] = n.x; nodeArr[i * 4 + 1] = n.y; nodeArr[i * 4 + 2] = sp.l; nodeArr[i * 4 + 3] = sp.r;
-            node2Arr[i * 4] = sp.t; node2Arr[i * 4 + 1] = sp.b; node2Arr[i * 4 + 2] = n.k || 2.2; node2Arr[i * 4 + 3] = n.th || 0; th2Arr[i] = axis2(n);
-            typeArr[i] = 0;
+            if (n.linked === false) {
+              node2Arr[i * 4] = sp.t; node2Arr[i * 4 + 1] = sp.b; node2Arr[i * 4 + 2] = n.k || 2.2; node2Arr[i * 4 + 3] = armAngle(n, 'r');
+              th2Arr[i] = armAngle(n, 'l'); node3Arr[i * 2] = armAngle(n, 't'); node3Arr[i * 2 + 1] = armAngle(n, 'b');
+              typeArr[i] = 2;
+            } else {
+              node2Arr[i * 4] = sp.t; node2Arr[i * 4 + 1] = sp.b; node2Arr[i * 4 + 2] = n.k || 2.2; node2Arr[i * 4 + 3] = n.th || 0; th2Arr[i] = axis2(n);
+              typeArr[i] = 0;
+            }
           }
           colArr[i * 4] = c[0]; colArr[i * 4 + 1] = c[1]; colArr[i * 4 + 2] = c[2]; colArr[i * 4 + 3] = n.a ?? 1;
         }
@@ -630,7 +660,7 @@
         gl.uniform1i(U.uCount, N);
         gl.uniform1f(U.uSoft, state.soft / 0.2); gl.uniform1f(U.uGrain, state.grain); gl.uniform1f(U.uGrainSize, state.grainSize);
         gl.uniform1f(U.uSeed, state.seed); gl.uniform1f(U.uLinear, state.linear ? 1 : 0); gl.uniform1f(U.uRefW, state.w);
-        gl.uniform4fv(U.uNode, nodeArr); gl.uniform4fv(U.uNode2, node2Arr); gl.uniform1fv(U.uTh2, th2Arr); gl.uniform1fv(U.uType, typeArr); gl.uniform4fv(U.uColor, colArr); gl.uniform3f(U.uAdj, state.adj.hue * Math.PI / 180, state.adj.sat, state.adj.bri);
+        gl.uniform4fv(U.uNode, nodeArr); gl.uniform4fv(U.uNode2, node2Arr); gl.uniform1fv(U.uTh2, th2Arr); gl.uniform1fv(U.uType, typeArr); gl.uniform4fv(U.uColor, colArr); gl.uniform3f(U.uAdj, state.adj.hue * Math.PI / 180, state.adj.sat, state.adj.bri); gl.uniform2fv(U.uNode3, node3Arr);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       }
     };
@@ -807,13 +837,12 @@
           for (let i = 0; i <= N; i++) { const a = g.angleMid - g.halfSpan + (2 * g.halfSpan * i) / N; pts.push((g.cx + g.R * Math.cos(a)).toFixed(1) + ' ' + (g.cy + g.R * Math.sin(a)).toFixed(1)); }
           c.arc.querySelector('path').setAttribute('d', 'M ' + pts.join(' L '));
         } else {
-          const th = n.th || 0, th2 = axis2(n);
           const place = (dir, len, phi) => {
             const cs = Math.cos(phi), sn = Math.sin(phi), deg = phi * 180 / Math.PI;
             set(c.arms[dir], { left: (cx + gap * cs) + 'px', top: (cy + gap * sn) + 'px', width: Math.max(0, len - gap - 6) + 'px', transform: `rotate(${deg}deg)` });
             set(c.hs[dir], { left: (cx + len * cs) + 'px', top: (cy + len * sn) + 'px' });
           };
-          place('r', aR, th); place('l', aL, th + Math.PI); place('b', aB, th2); place('t', aT, th2 + Math.PI);
+          place('r', aR, armAngle(n, 'r')); place('l', aL, armAngle(n, 'l')); place('b', aB, armAngle(n, 'b')); place('t', aT, armAngle(n, 't'));
         }
         const Ri = R + 7, S = Ri * 2 + 20, mid = S / 2; // 1px (half main stroke) + 4px gap + 2px (half indicator stroke)
         set(c.ring, { left: (cx - S / 2) + 'px', top: (cy - S / 2) + 'px', width: S + 'px', height: S + 'px' });
@@ -858,11 +887,11 @@
     state.selected.clear(); refreshAll();
   }
 
-  // ---------- Node type conversion (right-click menu) ----------
+  // ---------- Node type conversion + axis linking (right-click menu) ----------
   function convertNodeType(n, to) {
     const wasArc = n.type === 'arc';
     if (to === 'arc' && wasArc) return;
-    if (to === 'normal' && !wasArc) return;
+    if (to === 'circle' && !wasArc) return;
     pushUndo();
     if (to === 'arc') {
       const len = ((n.sl ?? 0.5) + (n.sr ?? 0.5)) / 2;
@@ -872,23 +901,59 @@
       n.st = n.st ?? n.sl ?? 0.5; n.sb = n.sb ?? n.sl ?? 0.5;
       delete n.type; delete n.phi; delete n.sw;
     }
+    // the two node kinds keep independent-axis state in different fields; a fresh conversion starts linked again
+    delete n.linked; delete n.thr; delete n.thl; delete n.ar; delete n.al; delete n.at; delete n.ab;
+    refreshAll();
+  }
+  // A single arm's current angle, whether the node is linked (derived from th/phi or th/th2) or unlinked (its own
+  // stored angle). The one place both the drag code and the handle/arc renderers read an arm's angle from.
+  function armAngle(n, side) {
+    if (n.type === 'arc') { const a = arcAngles(n); return side === 'r' ? a.thr : a.thl; }
+    if (n.linked === false) {
+      const v = n[{ r: 'ar', l: 'al', t: 'at', b: 'ab' }[side]];
+      if (v != null) return v;
+    }
+    return side === 'r' ? (n.th || 0) : side === 'l' ? (n.th || 0) + Math.PI : side === 'b' ? axis2(n) : axis2(n) + Math.PI;
+  }
+  function toggleLinked(n) {
+    pushUndo();
+    if (n.linked === false) {
+      // relink: fold the two now-independent angles per axis back into one shared angle (+ half the split, for
+      // an arc) — the other end snaps to the now-enforced opposite angle, which is the point of relinking
+      if (n.type === 'arc') {
+        const thr = armAngle(n, 'r'), thl = armAngle(n, 'l');
+        n.th = wrapAngle((thr + thl - Math.PI) / 2); n.phi = wrapAngle(thr - n.th);
+      } else { n.th = armAngle(n, 'r'); n.th2 = armAngle(n, 't'); }
+      n.linked = true; delete n.thr; delete n.thl; delete n.ar; delete n.al; delete n.at; delete n.ab;
+    } else {
+      // unlink: capture each arm's current angle explicitly so nothing jumps at the moment of unlinking
+      if (n.type === 'arc') { const a = arcAngles(n); n.thr = a.thr; n.thl = a.thl; }
+      else { n.ar = armAngle(n, 'r'); n.al = armAngle(n, 'l'); n.at = armAngle(n, 't'); n.ab = armAngle(n, 'b'); }
+      n.linked = false;
+    }
     refreshAll();
   }
   const nodeMenu = $('nodeMenu'); let nodeMenuId = null;
   function closeNodeMenu() { nodeMenu.hidden = true; nodeMenuId = null; }
-  function openNodeMenu(n, x, y) {
+  function openNodeMenu(n) {
     nodeMenuId = n.id;
-    const isArc = n.type === 'arc';
-    const item = (to, label) => `<button type="button" data-to="${to}">${label}${(to === 'arc') === isArc ? ' <span class="check">✓</span>' : ''}</button>`;
-    nodeMenu.innerHTML = `<div class="label">Convert node</div>${item('normal', 'Normal node')}${item('arc', 'Arc node')}`;
+    const isArc = n.type === 'arc', unlinked = n.linked === false;
+    const item = (attrs, checked, label, key) => `<button type="button" ${attrs}><span>${label}</span><span class="right">${checked ? '<span class="check">✓</span>' : ''}${key ? `<kbd>${key}</kbd>` : ''}</span></button>`;
+    nodeMenu.innerHTML =
+      item('data-to="circle"', !isArc, 'Circle node', 'C') +
+      item('data-to="arc"', isArc, 'Arc node', 'A') +
+      '<div class="sep"></div>' +
+      item('data-action="toggle-link"', unlinked, 'Unlink axes', '');
     nodeMenu.hidden = false;
-    const r = nodeMenu.getBoundingClientRect();
-    nodeMenu.style.left = Math.min(x, window.innerWidth - r.width - 8) + 'px';
-    nodeMenu.style.top = Math.min(y, window.innerHeight - r.height - 8) + 'px';
+    // always 8px to the right of the node's edge, vertically centered on the node's own middle
+    const fr = frame.getBoundingClientRect(), r = nodeMenu.getBoundingClientRect();
+    nodeMenu.style.left = (fr.left + n.x * fr.width + 10 + 8) + 'px';
+    nodeMenu.style.top = (fr.top + n.y * fr.height - r.height / 2) + 'px';
   }
   nodeMenu.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
-    const n = state.nodes.find(x => x.id === nodeMenuId); if (n) convertNodeType(n, b.dataset.to);
+    const n = state.nodes.find(x => x.id === nodeMenuId);
+    if (n) { if (b.dataset.to) convertNodeType(n, b.dataset.to); else if (b.dataset.action === 'toggle-link') toggleLinked(n); }
     closeNodeMenu();
   });
   overlay.addEventListener('contextmenu', e => {
@@ -896,10 +961,16 @@
     e.preventDefault();
     const n = state.nodes.find(x => x.id === +h.dataset.id); if (!n) return;
     state.selected = new Set([n.id]); refreshHandles(); refreshList(); refreshSelectionPanel();
-    openNodeMenu(n, e.clientX, e.clientY);
+    openNodeMenu(n);
   });
   document.addEventListener('pointerdown', e => { if (!nodeMenu.hidden && !e.target.closest('#nodeMenu')) closeNodeMenu(); });
-  document.addEventListener('keydown', e => { if (!nodeMenu.hidden && e.key === 'Escape') closeNodeMenu(); }, true);
+  document.addEventListener('keydown', e => {
+    if (nodeMenu.hidden) return;
+    if (e.key === 'Escape') { closeNodeMenu(); return; }
+    const k = e.key.toLowerCase(); if (k !== 'c' && k !== 'a') return;
+    const n = state.nodes.find(x => x.id === nodeMenuId);
+    if (n) { e.preventDefault(); convertNodeType(n, k === 'c' ? 'circle' : 'arc'); closeNodeMenu(); }
+  }, true);
   window.addEventListener('blur', closeNodeMenu);
 
   // ---------- Pointer interaction ----------
@@ -914,8 +985,7 @@
     if (sh) {
       const n = state.nodes.find(x => x.id === +sh.dataset.id); if (!n) return;
       const side0 = sh.dataset.side;
-      const lockAngle = n.type === 'arc' ? (side0 === 'r' ? arcAngles(n).thr : arcAngles(n).thl)
-        : side0 === 'r' ? (n.th || 0) : side0 === 'l' ? (n.th || 0) + Math.PI : side0 === 'b' ? axis2(n) : axis2(n) + Math.PI;
+      const lockAngle = armAngle(n, side0);
       drag = { type: 'spread', n, side: side0, snap: snapshot(), moved: false, lockAngle };
       overlay.setPointerCapture(e.pointerId); return;
     }
@@ -987,11 +1057,16 @@
     if (drag.type === 'spread') {
       drag.moved = true;
       const d = maxDim(), dx = p.px - drag.n.x * d.w, dy = p.py - drag.n.y * d.h, scale = armScale(drag.n, d);
-      const isArc = drag.n.type === 'arc';
+      const isArc = drag.n.type === 'arc', unlinked = drag.n.linked === false;
       if (!isArc) { const sp = spreads(drag.n); drag.n.sl = sp.l; drag.n.sr = sp.r; drag.n.st = sp.t; drag.n.sb = sp.b; }
-      // an arc's arms mirror each other: dragging one end sets the dip angle for both, so the node stays the apex
+      // linked: an arc's arms mirror each other (dragging one end sets the dip angle for both, so the node stays
+      // the apex) and a circle's l/r or t/b share one axis angle. Unlinked: each arm keeps its own angle instead.
       const setAngle = ang => {
-        if (isArc) { drag.n.phi = wrapAngle(drag.side === 'r' ? ang - (drag.n.th || 0) : (drag.n.th || 0) + Math.PI - ang); return; }
+        if (isArc) {
+          if (unlinked) { if (drag.side === 'r') drag.n.thr = ang; else drag.n.thl = ang; return; }
+          drag.n.phi = wrapAngle(drag.side === 'r' ? ang - (drag.n.th || 0) : (drag.n.th || 0) + Math.PI - ang); return;
+        }
+        if (unlinked) { drag.n[{ r: 'ar', l: 'al', t: 'at', b: 'ab' }[drag.side]] = ang; return; }
         if (drag.side === 'r') drag.n.th = ang; else if (drag.side === 'l') drag.n.th = ang - Math.PI;
         else if (drag.side === 'b') drag.n.th2 = ang; else drag.n.th2 = ang - Math.PI;
       };
@@ -1006,7 +1081,7 @@
         drag.n[SIDE_KEY[drag.side]] = Math.max(0.01, len / scale);
         if (len > 4) setAngle(ang); // avoid angle jitter from atan2 instability right at the node center
       }
-      if (isArc) drag.n.sl = drag.n.sr = drag.n[SIDE_KEY[drag.side]];
+      if (isArc && !unlinked) drag.n.sl = drag.n.sr = drag.n[SIDE_KEY[drag.side]];
       if (e.altKey) drag.n[SIDE_KEY[OPPOSITE_SIDE[drag.side]]] = drag.n[SIDE_KEY[drag.side]]; // mirror the opposite arm's length to grow it equally
       refreshHandles(); draw(); return;
     }
