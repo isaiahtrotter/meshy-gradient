@@ -96,7 +96,7 @@
   .node-menu button:hover { background: var(--field); }
   .node-menu button .right { display: flex; align-items: center; gap: 6px; }
   .node-menu button kbd { font-size: 10px; padding: 0 3px; }
-  .unlink-badge { position: absolute; z-index: 4; width: 16px; height: 16px; margin: -8px 0 0 -8px; display: none; pointer-events: none; }
+  .unlink-badge { position: absolute; z-index: 4; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; display: none; pointer-events: none; }
   .stage.dropping { outline: 2px dashed var(--accent); outline-offset: -8px; }
   .stage.space-pan, .stage.space-pan * { cursor: grab !important; }
   .stage.panning, .stage.panning * { cursor: grabbing !important; }
@@ -813,8 +813,8 @@
         grabEl.addEventListener('pointermove', withCurrentNode);
         c.arc.setAttribute('class', 'arc-path'); c.arc.innerHTML = '<path/>';
         c.unlink = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        c.unlink.setAttribute('class', 'unlink-badge'); c.unlink.setAttribute('viewBox', '0 0 16 16');
-        c.unlink.innerHTML = '<path d="M11.4307 1.6123C12.2472 0.795767 13.5711 0.795764 14.3877 1.6123C15.2042 2.42886 15.2042 3.75278 14.3877 4.56934L10.957 8L14.3877 11.4307C15.2042 12.2472 15.2042 13.5711 14.3877 14.3877C13.5711 15.2042 12.2472 15.2042 11.4307 14.3877L8 10.957L4.56934 14.3877C3.75278 15.2042 2.42886 15.2042 1.6123 14.3877C0.795764 13.5711 0.795767 12.2472 1.6123 11.4307L5.04297 8L1.6123 4.56934C0.79577 3.75278 0.795755 2.42885 1.6123 1.6123C2.42885 0.795756 3.75278 0.795769 4.56934 1.6123L8 5.04297L11.4307 1.6123Z" fill="black" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+        c.unlink.setAttribute('class', 'unlink-badge'); c.unlink.setAttribute('viewBox', '0 0 11 11');
+        c.unlink.innerHTML = '<path d="M7.84082 1.08105C8.38231 0.63967 9.16366 0.639559 9.70508 1.08105L9.81738 1.18262L9.91895 1.29492C10.392 1.87508 10.358 2.73066 9.81738 3.27148L7.58887 5.5L9.81738 7.72852C10.3941 8.30545 10.3942 9.24053 9.81738 9.81738C9.24053 10.3942 8.30544 10.3941 7.72852 9.81738L5.5 7.58887L3.27148 9.81738C2.69456 10.3941 1.75947 10.3942 1.18262 9.81738C0.605767 9.24053 0.605878 8.30545 1.18262 7.72852L3.41113 5.5L1.18262 3.27148C0.60588 2.69456 0.605761 1.75947 1.18262 1.18262L1.29492 1.08105C1.83635 0.639556 2.61769 0.639671 3.15918 1.08105L3.27148 1.18262L5.5 3.41113L7.72852 1.18262L7.84082 1.08105Z" fill="black" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';
         overlay.appendChild(c.arc); overlay.appendChild(c.ring); overlay.appendChild(c.lbl); overlay.appendChild(c.unlink);
         ctlEls.set(n.id, c);
       }
