@@ -1,14 +1,15 @@
-// Undo/redo over nodes + canvas size. Capture `snapshot()` before a change and `pushUndo(snap)` once it's committed.
+// Undo/redo over the whole document: nodes, canvas size, and every sidebar parameter (blend, grain, colour
+// adjustments, blend mode). Capture `snapshot()` before a change and `pushUndo(snap)` once it's committed.
 
 import { UNDO_LIMIT } from './constants.js';
-import { state, setNodes, setCanvasSize } from './state.js';
+import { serializeConfig, applyConfig } from './state.js';
 
 const undoStack = [], redoStack = [];
 const hooks = { change: () => {}, restore: () => {} };
 export const onUndoChange = fn => { hooks.change = fn; };  // fn(canUndo)
 export const onRestore = fn => { hooks.restore = fn; };    // called after undo/redo rewrote state
 
-export const snapshot = () => JSON.stringify({ nodes: state.nodes, w: state.w, h: state.h });
+export const snapshot = () => JSON.stringify(serializeConfig());
 export const canUndo = () => undoStack.length > 0;
 
 export function pushUndo(snap) {
@@ -18,9 +19,7 @@ export function pushUndo(snap) {
   hooks.change(true);
 }
 function restore(json) {
-  const s = JSON.parse(json);
-  setNodes(s.nodes);
-  setCanvasSize(s.w, s.h);
+  applyConfig(JSON.parse(json));
   hooks.restore();
 }
 export function undo() {

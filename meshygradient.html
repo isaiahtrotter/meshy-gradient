@@ -13,11 +13,7 @@
   <div class="stage" id="stage">
     <div class="canvas-size-tag" id="sizeTag"></div>
     <div class="preview-wrap">
-      <button class="chip" id="addArcBtn" aria-pressed="false" title="Click on the canvas to place an arc">+ Arc</button>
-      <button class="chip" id="addLineBtn" aria-pressed="false" title="Click on the canvas to place a line">+ Line</button>
-      <button class="chip zoom-chip" id="zoomChip" title="Zoom (⌘/Ctrl + scroll, ⌘ +/−). Click to fit">100%</button>
       <button class="chip preview-btn" id="previewBtn" aria-pressed="false" title="Toggle preview (hold Space)">Preview</button>
-      <kbd>Space</kbd>
     </div>
     <div class="work" id="work">
     <div class="ref" id="ref" hidden>
@@ -35,6 +31,11 @@
     <div class="loupe-hex" id="loupeHex"></div>
     <div class="node-menu" id="nodeMenu" hidden></div>
     <div class="stage-hint" id="hint" hidden>Click to add a node. Drag the arm handles for spread, the dotted ring for hardness.</div>
+    <div class="node-bar">
+      <button class="icon-btn" id="addCircleBtn" aria-pressed="true" title="Add a circle node"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.4" fill="none"/></svg></button>
+      <button class="icon-btn" id="addLineBtn" aria-pressed="false" title="Click on the canvas to place a line"><svg width="16" height="16" viewBox="0 0 16 16"><line x1="3" y1="12" x2="13" y2="4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+      <button class="icon-btn" id="addArcBtn" aria-pressed="false" title="Click on the canvas to place an arc"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 11 A6 6 0 0 1 13 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg></button>
+    </div>
   </div>
 
   <aside class="panel">
@@ -81,7 +82,7 @@
     <section>
       <h2>Blend</h2>
       <div class="slider"><span class="slider-label">Softness</span><span class="slider-value" id="softVal">0.33</span><input type="range" id="soft" min="0" max="1" step="0.001" value="0.33333" data-min="0.05" data-max="0.2"></div>
-      <button type="button" class="toggle-row" id="blendModeBtn" aria-pressed="false"><span class="slider-label">Blend mode</span><span class="slider-value" id="blendModeVal">Normal</span></button>
+      <div class="slider"><span class="slider-label">Blend mode</span><span class="slider-value word" id="blendModeVal">Normal</span><input type="range" id="blendMode" min="0" max="4" step="1" value="0"></div>
     </section>
 
     <section>

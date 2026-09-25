@@ -80,8 +80,12 @@ function sliderFill(el) { el.style.setProperty('--pct', ((+el.value - +el.min) /
 function mappedValue(el) { const min = +el.dataset.min, max = +el.dataset.max; return min + (+el.value) * (max - min); }
 function reverseMapped(el, val) { const min = +el.dataset.min, max = +el.dataset.max; return (val - min) / (max - min); }
 
+const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay'];
+const BLEND_MODE_LABELS = { normal: 'Normal', linear: 'Linear', multiply: 'Multiply', screen: 'Screen', overlay: 'Overlay' };
+
 const SLIDERS = [
   { id: 'soft', out: 'softVal', get: () => reverseMapped($('soft'), state.soft), set: el => { state.soft = mappedValue(el); }, fmt: v => v.toFixed(2) },
+  { id: 'blendMode', out: 'blendModeVal', get: () => BLEND_MODES.indexOf(state.blendMode), set: el => { state.blendMode = BLEND_MODES[Math.round(+el.value)]; }, fmt: v => BLEND_MODE_LABELS[BLEND_MODES[Math.round(v)]] },
   { id: 'grain', out: 'grainVal', get: () => reverseMapped($('grain'), state.grain), set: el => { state.grain = mappedValue(el); }, fmt: v => v.toFixed(2) },
   { id: 'grainSize', out: 'grainSizeVal', get: () => state.grainSize, set: el => { state.grainSize = +el.value; }, fmt: v => v.toFixed(1) },
   { id: 'density', out: 'densityVal', get: () => state.density, set: el => { state.density = +el.value; }, fmt: v => v.toFixed(1) },
@@ -90,7 +94,11 @@ const SLIDERS = [
   { id: 'adjBri', out: 'adjBriVal', get: () => state.adj.bri, set: el => { state.adj.bri = +el.value; }, fmt: v => v.toFixed(2) },
 ];
 for (const s of SLIDERS) {
-  $(s.id).addEventListener('input', e => { s.set(e.target); sliderFill(e.target); $(s.out).textContent = s.fmt(+e.target.value); draw(); });
+  const el = $(s.id);
+  let dragSnap = null;
+  el.addEventListener('pointerdown', () => { dragSnap = snapshot(); });
+  el.addEventListener('input', e => { s.set(e.target); sliderFill(e.target); $(s.out).textContent = s.fmt(+e.target.value); draw(); });
+  el.addEventListener('change', () => { if (dragSnap) { pushUndo(dragSnap); dragSnap = null; } });
 }
 
 // Hue/Saturation/Brightness preview their effect on hover/drag, tinted by the gradient's average colour.
@@ -103,26 +111,10 @@ function updatePreviewColor() {
     rgbToHex(...[r, g, b].map(v => Math.round((v / nodes.length) * 255))));
 }
 for (const id of ['adjSat', 'adjBri']) $(id).addEventListener('pointerenter', updatePreviewColor);
-const BLEND_MODES = [
-  { id: 'normal', label: 'Normal' },
-  { id: 'linear', label: 'Linear' },
-  { id: 'multiply', label: 'Multiply' },
-  { id: 'screen', label: 'Screen' },
-  { id: 'overlay', label: 'Overlay' },
-];
-function setBlendMode(mode) {
-  state.blendMode = mode;
-  $('blendModeBtn').setAttribute('aria-pressed', String(mode !== 'normal'));
-  $('blendModeVal').textContent = BLEND_MODES.find(m => m.id === mode).label;
-}
-$('blendModeBtn').addEventListener('click', () => {
-  const i = BLEND_MODES.findIndex(m => m.id === state.blendMode);
-  setBlendMode(BLEND_MODES[(i + 1) % BLEND_MODES.length].id);
-  draw();
-});
 
 $('grainType').addEventListener('click', e => {
   const b = e.target.closest('button[data-grain-type]'); if (!b) return;
+  pushUndo();
   state.grainType = b.dataset.grainType;
   for (const btn of $('grainType').querySelectorAll('button[data-grain-type]')) btn.setAttribute('aria-pressed', String(btn === b));
   draw();
@@ -146,7 +138,6 @@ function animateSliderTo(el, target, { delay = 0, duration = 150, onFrame } = {}
 
 export function syncControlsFromState({ animate = false } = {}) {
   $('cw').value = state.w; $('ch').value = state.h;
-  setBlendMode(state.blendMode);
   for (const btn of $('grainType').querySelectorAll('button[data-grain-type]')) {
     btn.setAttribute('aria-pressed', String(btn.dataset.grainType === state.grainType));
   }

@@ -163,9 +163,9 @@ test.describe('document', () => {
     expect((await getState(page)).soft).toBeCloseTo(0.05 + 0.8 * 0.15, 9);
 
     await page.keyboard.press('Meta+=');
-    await expect(page.locator('#zoomChip')).toHaveText('125%');
-    await page.click('#zoomChip');
-    await expect(page.locator('#zoomChip')).toHaveText('100%');
+    await expect.poll(() => page.evaluate(() => window.__meshy.view.zoom)).toBeCloseTo(1.25, 5);
+    await page.keyboard.press('Meta+0');
+    await expect.poll(() => page.evaluate(() => window.__meshy.view.zoom)).toBe(1);
 
     await page.keyboard.press('p');
     await expect(page.locator('#overlay')).toHaveClass(/hide-handles/);

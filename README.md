@@ -88,8 +88,9 @@ Legacy shapes still accepted by the normalizer: single `r`, `rx`/`ry`, absent `t
 
 ## Conventions
 
-- Undo: `const snap = snapshot()` before a change, `pushUndo(snap)` once committed. Snapshots cover nodes
-  and canvas size only.
+- Undo: `const snap = snapshot()` before a change, `pushUndo(snap)` once committed. `snapshot()`/`restore()`
+  go through `serializeConfig()`/`applyConfig()`, so a snapshot covers the whole document (nodes, canvas
+  size, and every sidebar parameter), not just nodes.
 - Every mutation ends in `refreshAll()` (handles + selection panel + draw) or `refreshHandles(); draw()`
   during drags.
 - Actions on "the selection or everything" go through `targetNodes()`.
@@ -121,6 +122,5 @@ Pure modules (`geometry`, `nodes`, `state`, `undo`, `color`) import cleanly in N
 1. Decouple `scheduleSave()` from `draw()`: save on state mutation, not on render.
 2. Perf: only re-lay-out handles for changed nodes; half-resolution preview while dragging; render only the
    visible part of the frame when zoomed in.
-3. Extend undo snapshots to cover softness/grain/adjustments (presets change them but undo doesn't restore).
-4. Add a storage version/migration hook beyond the normalizer for future non-node schema changes.
-5. Check in a test runner (vitest) for the pure modules and an eslint config.
+3. Add a storage version/migration hook beyond the normalizer for future non-node schema changes.
+4. Check in a test runner (vitest) for the pure modules and an eslint config.

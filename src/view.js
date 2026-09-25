@@ -72,7 +72,6 @@ export function layout() {
   frame.style.height = h + 'px';
   applyPan();
   $('sizeTag').textContent = `${state.w} × ${state.h} px`;
-  $('zoomChip').textContent = Math.round(view.zoom * 100) + '%';
   updateExportHeight();
   refreshHandles(); draw();
 }
@@ -105,7 +104,6 @@ export function setZoom(z, cx, cy) {
 export function resetZoom() { view.zoom = 1; view.panX = view.panY = 0; layout(); }
 export function panBy(dx, dy) { view.panX += dx; view.panY += dy; applyPan(); refreshHandles(); draw(); }
 
-$('zoomChip').addEventListener('click', resetZoom);
 stage.addEventListener('wheel', e => {
   e.preventDefault();
   if (e.ctrlKey || e.metaKey) { // pinch on a trackpad arrives as ctrl+wheel

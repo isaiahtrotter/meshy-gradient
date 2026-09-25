@@ -17,13 +17,13 @@ $('previewBtn').addEventListener('click', () => setPreview(!session.previewing))
 
 // Placement modes are mutually exclusive; the pending type is what the next canvas click creates.
 export const pendingNodeType = () => (session.addingArc ? 'arc' : session.addingLine ? 'line' : 'circle');
-export function setAddingArc(on) { setPlacement(on ? 'arc' : null); }
-export function setAddingLine(on) { setPlacement(on ? 'line' : null); }
 export function setPlacement(type) {
   session.addingArc = type === 'arc'; session.addingLine = type === 'line';
+  $('addCircleBtn').setAttribute('aria-pressed', String(!session.addingArc && !session.addingLine));
   $('addArcBtn').setAttribute('aria-pressed', String(session.addingArc));
   $('addLineBtn').setAttribute('aria-pressed', String(session.addingLine));
   setHint(type === 'arc' ? 'Click on the canvas to place an arc.' : type === 'line' ? 'Click on the canvas to place a line.' : DEFAULT_HINT);
 }
-$('addArcBtn').addEventListener('click', () => setAddingArc(!session.addingArc));
-$('addLineBtn').addEventListener('click', () => setAddingLine(!session.addingLine));
+$('addCircleBtn').addEventListener('click', () => setPlacement(null));
+$('addArcBtn').addEventListener('click', () => setPlacement('arc'));
+$('addLineBtn').addEventListener('click', () => setPlacement('line'));
