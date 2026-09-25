@@ -518,8 +518,10 @@
     return { cx, cy, R: Math.abs(R), angleMid: aC + (d1 + d2) / 2, halfSpan: Math.abs(d1 - d2) / 2 };
   }
   const arcEnds = (n, cx, cy, scale) => {
-    const { thl, thr } = arcAngles(n), len = n.sl * scale;
-    return { P1: { x: cx + len * Math.cos(thl), y: cy + len * Math.sin(thl) }, P2: { x: cx + len * Math.cos(thr), y: cy + len * Math.sin(thr) } };
+    // linked mode keeps sl === sr (the drag code enforces it), but unlinked needs each end at its own length —
+    // using n.sl for both, as before, silently ignored the right end's own length once it could differ from sl
+    const { thl, thr } = arcAngles(n), lenL = (n.sl ?? 0.5) * scale, lenR = (n.sr ?? 0.5) * scale;
+    return { P1: { x: cx + lenL * Math.cos(thl), y: cy + lenL * Math.sin(thl) }, P2: { x: cx + lenR * Math.cos(thr), y: cy + lenR * Math.sin(thr) } };
   };
 
   // ---------- WebGL ----------
@@ -638,7 +640,7 @@
             const C = { x: n.x * scX, y: n.y * scY }, { P1, P2 } = arcEnds(n, C.x, C.y, 1);
             // capped eps: keeps cx/cy within a range the GPU's float32 math stays precise over near the snap,
             // which the handle-UI call below doesn't need to worry about since it isn't rendering a soft blur
-            const g = arcGeom(n, C, P1, P2, n.sl, 0.03), sw = n.sw ?? 0.3;
+            const g = arcGeom(n, C, P1, P2, ((n.sl ?? 0.5) + (n.sr ?? 0.5)) / 2, 0.03), sw = n.sw ?? 0.3;
             nodeArr[i * 4] = g.cx; nodeArr[i * 4 + 1] = g.cy; nodeArr[i * 4 + 2] = sw; nodeArr[i * 4 + 3] = sw;
             node2Arr[i * 4] = g.R; node2Arr[i * 4 + 1] = g.angleMid; node2Arr[i * 4 + 2] = g.halfSpan; node2Arr[i * 4 + 3] = n.k || 2.2;
             th2Arr[i] = 0; typeArr[i] = 1;
@@ -837,7 +839,7 @@
         if (isArc) {
           const { P1, P2 } = arcEnds(n, cx, cy, dims.m);
           set(c.hs.l, { left: P1.x + 'px', top: P1.y + 'px' }); set(c.hs.r, { left: P2.x + 'px', top: P2.y + 'px' });
-          const g = arcGeom(n, { x: cx, y: cy }, P1, P2, n.sl * dims.m);
+          const g = arcGeom(n, { x: cx, y: cy }, P1, P2, ((n.sl ?? 0.5) + (n.sr ?? 0.5)) / 2 * dims.m);
           set(c.arc, { width: dims.w + 'px', height: dims.h + 'px' }); c.arc.setAttribute('viewBox', `0 0 ${dims.w} ${dims.h}`);
           const pts = []; const N = 48;
           for (let i = 0; i <= N; i++) { const a = g.angleMid - g.halfSpan + (2 * g.halfSpan * i) / N; pts.push((g.cx + g.R * Math.cos(a)).toFixed(1) + ' ' + (g.cy + g.R * Math.sin(a)).toFixed(1)); }
