@@ -263,13 +263,18 @@ input[type=range]::-moz-range-progress {
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 0; height: 36px; background: transparent; border: 0; box-shadow: none; }
 input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transparent; border: 0; opacity: 0; }
 
-/* Hue/Saturation/Brightness: preview the effect of the drag on hover/while dragging. A real overlay element
-   (not a background swap on the native track pseudo-element) because background-image can't be transitioned
-   between two structurally different gradients — opacity can, so the preview cross-fades in on a sibling div. */
+/* Hue/Saturation/Brightness/Softness: preview the effect of the drag on hover/while dragging only. A real
+   overlay element (not a background swap on the native track pseudo-element) because background-image can't
+   be transitioned between two structurally different gradients — opacity can, so the preview cross-fades in
+   on a sibling div. */
 .adj-glow {
   position: absolute; inset: 0; border-radius: var(--radius); pointer-events: none;
-  opacity: 1; transition: opacity .15s ease-out;
+  opacity: 0; transition: opacity .15s ease-out;
 }
+#soft:hover ~ .adj-glow, #soft:active ~ .adj-glow,
+#adjHue:hover ~ .adj-glow, #adjHue:active ~ .adj-glow,
+#adjSat:hover ~ .adj-glow, #adjSat:active ~ .adj-glow,
+#adjBri:hover ~ .adj-glow, #adjBri:active ~ .adj-glow { opacity: 1; }
 /* Hue: a small window right at the handle reveals the true hue spectrum underneath, at full colour,
    everywhere else stays the plain flat track. */
 .adj-glow[data-for="hue"] {
@@ -283,13 +288,9 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 .adj-glow[data-for="bri"] {
   background: linear-gradient(to right, transparent var(--pct), var(--ctrl-bg) var(--pct)), linear-gradient(to right, rgba(51,51,51,.4) 0%, rgba(255,255,255,.4) 100%);
 }
-
-/* Softness: a permanent soft blurred glow right at the fill's edge — a literal illustration of what the
-   control does. Always on (not hover-gated), unlike the other .adj-glow uses above. */
 .adj-glow[data-for="soft"] {
   top: -20px; bottom: -20px; /* taller than the track so the blur has room to feather before .slider clips it,
                                  which is what makes it reach the track's own top and bottom edges */
-  opacity: 1;
   background: linear-gradient(to right, transparent, rgba(255,255,255,.85) 50%, transparent);
   background-size: 46px 100%; background-position: calc(var(--pct) - 23px) 0; background-repeat: no-repeat;
   filter: blur(10px);
