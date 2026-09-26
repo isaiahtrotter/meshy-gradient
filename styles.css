@@ -275,16 +275,17 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
   position: absolute; inset: 0; border-radius: var(--radius); pointer-events: none;
   opacity: 0; transition: opacity .15s ease-out;
 }
-#adjHue:hover ~ .adj-glow, #adjHue:active ~ .adj-glow,
-#adjSat:hover ~ .adj-glow, #adjSat:active ~ .adj-glow,
-#adjBri:hover ~ .adj-glow, #adjBri:active ~ .adj-glow { opacity: .5; }
+#adjHue:hover ~ .adj-glow, #adjHue:active ~ .adj-glow, #adjHue.glow-active ~ .adj-glow,
+#adjSat:hover ~ .adj-glow, #adjSat:active ~ .adj-glow, #adjSat.glow-active ~ .adj-glow,
+#adjBri:hover ~ .adj-glow, #adjBri:active ~ .adj-glow, #adjBri.glow-active ~ .adj-glow { opacity: .5; }
 /* Glow-bar family: this element's own background is the single centre line, shown at full 100% opacity;
-   the halo (box-shadow) alpha values below are already baked down to the equivalent of a 50% overlay. */
-#soft:hover ~ .adj-glow, #soft:active ~ .adj-glow,
-#grain:hover ~ .adj-glow, #grain:active ~ .adj-glow,
-#grainSize:hover ~ .adj-glow, #grainSize:active ~ .adj-glow,
-#density:hover ~ .adj-glow, #density:active ~ .adj-glow,
-#blendMode:hover ~ .adj-glow, #blendMode:active ~ .adj-glow { opacity: 1; }
+   the halo (box-shadow) alpha values below are already baked down to the equivalent of a 50% overlay.
+   .glow-active is toggled by JS during a preset's programmatic slide (no real pointer hover to trigger it). */
+#soft:hover ~ .adj-glow, #soft:active ~ .adj-glow, #soft.glow-active ~ .adj-glow,
+#grain:hover ~ .adj-glow, #grain:active ~ .adj-glow, #grain.glow-active ~ .adj-glow,
+#grainSize:hover ~ .adj-glow, #grainSize:active ~ .adj-glow, #grainSize.glow-active ~ .adj-glow,
+#density:hover ~ .adj-glow, #density:active ~ .adj-glow, #density.glow-active ~ .adj-glow,
+#blendMode:hover ~ .adj-glow, #blendMode:active ~ .adj-glow, #blendMode.glow-active ~ .adj-glow { opacity: 1; }
 /* Hue: a small window right at the handle reveals the true hue spectrum underneath, at full colour,
    everywhere else stays the plain flat track. */
 .adj-glow[data-for="hue"] {

@@ -118,12 +118,15 @@ const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
 function animateSliderTo(el, target, { delay = 0, duration = 150, onFrame } = {}) {
   if (sliderAnims.has(el)) cancelAnimationFrame(sliderAnims.get(el));
   const start = +el.value, startTime = performance.now() + delay;
+  let started = false;
   function step(now) {
+    if (!started && now >= startTime) { started = true; el.classList.add('glow-active'); }
     const t = Math.min(1, Math.max(0, (now - startTime) / duration));
     const val = start + (target - start) * easeOutCubic(t);
     el.value = val; sliderFill(el);
     if (onFrame) onFrame(val);
-    if (now < startTime + duration) sliderAnims.set(el, requestAnimationFrame(step)); else sliderAnims.delete(el);
+    if (now < startTime + duration) sliderAnims.set(el, requestAnimationFrame(step));
+    else { sliderAnims.delete(el); el.classList.remove('glow-active'); }
   }
   sliderAnims.set(el, requestAnimationFrame(step));
 }
@@ -135,7 +138,7 @@ export function syncControlsFromState({ animate = false } = {}) {
   }
   SLIDERS.forEach((s, i) => {
     const el = $(s.id), target = s.get(), out = $(s.out);
-    if (animate) animateSliderTo(el, target, { delay: i * 25, onFrame: v => { out.textContent = s.fmt(v); } });
+    if (animate) animateSliderTo(el, target, { delay: (SLIDERS.length - 1 - i) * 25, onFrame: v => { out.textContent = s.fmt(v); } });
     else { el.value = target; sliderFill(el); out.textContent = s.fmt(+el.value); }
   });
 }
