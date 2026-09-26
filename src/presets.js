@@ -4,7 +4,7 @@
 import { isNum } from './constants.js';
 import { state, applyConfig, serializeConfig } from './state.js';
 import { pushUndo } from './undo.js';
-import { $, setStatus } from './dom.js';
+import { $, setStatus, showToast } from './dom.js';
 import { rgbaCss } from './color.js';
 import { layout } from './view.js';
 import { refreshAll } from './refresh.js';
@@ -54,9 +54,10 @@ export const pickDefaultPreset = list => list.find(p => p.default) || list[list.
 export { renderPresets };
 export async function loadPresets() { renderPresets(await fetchPresets()); }
 
-async function copyGradient() {
+async function copyGradient(e) {
+  const anchor = e.currentTarget; // e itself is only valid synchronously; grab this before the first await
   const payload = JSON.stringify(serializeConfig({ stripIds: true }));
-  const done = () => setStatus('Gradient copied. Paste it into presets.json to add it as a preset.');
+  const done = () => { setStatus('Gradient copied. Paste it into presets.json to add it as a preset.'); showToast(anchor, 'Copied gradient'); };
   try { await navigator.clipboard.writeText(payload); done(); }
   catch {
     try {

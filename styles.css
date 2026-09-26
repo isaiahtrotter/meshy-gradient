@@ -118,6 +118,17 @@ body {
 .node-menu button .right { display: flex; align-items: center; gap: 6px; }
 .node-menu button kbd { font-size: 10px; padding: 0 3px; }
 
+.toast {
+  position: fixed; z-index: 200; white-space: nowrap; pointer-events: none;
+  background: var(--panel); color: var(--ink); font: 400 12px/1 var(--font-ui);
+  padding: 7px 10px; border-radius: 6px; border: 1px solid var(--line);
+  box-shadow: 0 8px 20px -6px rgba(0,0,0,.4);
+  opacity: 0; transition: opacity .15s ease, transform .15s ease;
+}
+.toast.from-left { transform: translateX(-4px); }
+.toast.from-right { transform: translateX(4px); }
+.toast.show { opacity: 1; transform: translateX(0); }
+
 .modal-overlay {
   position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
   background: rgba(0,0,0,.5);
