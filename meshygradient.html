@@ -7,8 +7,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=Geist:wght@400;500&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script>
+// A stale cached HTML/JS mismatch (or corrupted saved state) can throw during boot and silently leave the
+// editor half-wired — controls that look present but do nothing. Surface that instead of failing silently.
+window.addEventListener('error', function () {
+  var el = document.getElementById('bootError');
+  if (el) el.hidden = false;
+}, true);
+</script>
 </head>
 <body>
+<div id="bootError" class="boot-error" hidden>
+  Something went wrong loading the editor. Try a hard refresh (Cmd/Ctrl+Shift+R). If that doesn't help, open
+  the browser console, run <code>localStorage.removeItem('meshGradientState.v1')</code>, then reload.
+</div>
 <div class="topbar">
   <div class="topbar-spacer"></div>
   <div class="topbar-center">

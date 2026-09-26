@@ -94,6 +94,9 @@ const SLIDERS = [
 ];
 for (const s of SLIDERS) {
   const el = $(s.id);
+  // A stale cached page (HTML/JS version mismatch) could be missing an element the current JS expects; skip
+  // that one control instead of throwing and leaving every remaining control in this file unwired.
+  if (!el) { console.error(`Missing #${s.id} — reload the page (a hard refresh if that doesn't fix it).`); continue; }
   let dragSnap = null;
   el.addEventListener('pointerdown', () => { dragSnap = snapshot(); });
   el.addEventListener('input', e => { s.set(e.target); sliderFill(e.target); $(s.out).textContent = s.fmt(+e.target.value); draw(); });
