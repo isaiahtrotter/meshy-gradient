@@ -91,7 +91,7 @@ test.describe('nodes', () => {
     expect(typeof n.st).toBe('number');
   });
 
-  test('brush draws a stroke; stops set hardness along it; the ring rotates it; it has no node menu', async ({ page }) => {
+  test('brush draws a stroke; stops set hardness along it; the ring rotates it; its menu only flips', async ({ page }) => {
     await page.keyboard.press('Escape');
     await page.click('#addStrokeBtn');
     const fr = await frameBox(page);
@@ -140,9 +140,46 @@ test.describe('nodes', () => {
     await page.mouse.up();
     expect((await selectedNode(page)).th).toBeCloseTo(Math.PI / 2, 1);
 
-    // no convert/unlink menu
+    // its menu has only the flips: no convert, no unlink
     await page.locator('.handle.selected').click({ button: 'right' });
+    await expect(page.locator('#nodeMenu')).toBeVisible();
+    await expect(page.locator('#nodeMenu button[data-to], #nodeMenu button[data-action="toggle-link"]')).toHaveCount(0);
+    await expect(page.locator('#nodeMenu button[data-flip]')).toHaveCount(2);
+    await page.keyboard.press('Escape');
+  });
+
+  test('flip horizontal / vertical from the menu and the keyboard', async ({ page }) => {
+    await loadConfig(page, { w: 1000, h: 1000, nodes: [
+      { id: 1, x: .3, y: .4, type: 'stroke', th: .5, pts: [[-.1, 0], [0, .05], [.1, -.02]] },
+      { id: 2, x: .7, y: .6, type: 'arc', th: .3, phi: .4, sl: .2, sr: .2 },
+    ] });
+    const node = id => page.evaluate(i => window.__meshy.state.nodes.find(n => n.id === i), id);
+    await page.locator('.handle[data-id="1"]').click({ button: 'right' });
+    await expect(page.locator('#nodeMenu button[data-flip]')).toHaveText([/Flip horizontal/, /Flip vertical/]);
+    await page.locator('#nodeMenu button[data-flip="x"]').click();
     await expect(page.locator('#nodeMenu')).toBeHidden();
+    let n = await node(1);
+    expect(n.th).toBeCloseTo(Math.PI - .5, 9);
+    expect(n.pts).toEqual([[-.1, 0], [0, -.05], [.1, .02]]);
+    expect([n.x, n.y]).toEqual([.3, .4]); // a single node flips in place
+
+    // Shift+V on the arc (via its menu's key), then undo restores it
+    await page.locator('.handle[data-id="2"]').click({ button: 'right' });
+    await expect(page.locator('#nodeMenu button[data-to]')).toHaveCount(3); // non-strokes keep convert + link
+    await page.keyboard.press('Shift+V');
+    await expect(page.locator('#nodeMenu')).toBeHidden();
+    n = await node(2);
+    expect([n.th, n.phi]).toEqual([-.3, -.4]); // flipped exactly once
+    await page.keyboard.press('Meta+z');
+    n = await node(2);
+    expect([n.th, n.phi]).toEqual([.3, .4]);
+
+    // with both selected, Shift+H also mirrors their positions across the group's centre
+    await page.keyboard.press('Meta+a');
+    await page.keyboard.press('Shift+H');
+    expect((await node(1)).x).toBeCloseTo(.7, 9);
+    expect((await node(2)).x).toBeCloseTo(.3, 9);
+    await expect(page.locator('#overlay')).not.toHaveClass(/hide-handles/); // Shift+H didn't toggle preview
   });
 
   test('select all, delete, undo', async ({ page }) => {

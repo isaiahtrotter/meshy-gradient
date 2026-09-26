@@ -23,7 +23,7 @@ composes handles + panel + draw, so most mutations end with `refreshAll()` from 
 | `color.js` | hex/rgb/hsv/hsl conversions, `parseHexInput`, `randomColor` | — |
 | `geometry.js` | pure arc maths: `arcGeom`, `halfArcGeom`, `wrapAngle` | — |
 | `stroke.js` | pure brush-stroke maths: `smoothStroke` (raw pointer samples → path), `strokeFromPath`, `strokeWorld`, `pointAt`/`nearestT`, hardness stops (`stopFactor`, `strokeK`), the stroke normalizer helpers | constants |
-| `nodes.js` | the node model: `normalizeNode`, `createNode`, `armAngle`, `armEnds`, `arcCurves`, `convertNodeType`, `toggleLinked` | geometry, color, stroke |
+| `nodes.js` | the node model: `normalizeNode`, `createNode`, `armAngle`, `armEnds`, `arcCurves`, `convertNodeType`, `toggleLinked`, `flipNode` | geometry, color, stroke |
 | `state.js` | `state`, `PALETTES`, ids, selection helpers, `targetNodes`, `addNode`/`setNodes`, `serializeConfig`/`applyConfig` | constants, nodes |
 | `undo.js` | undo/redo stacks, `snapshot`, `pushUndo`, `onRestore`/`onUndoChange` hooks | state |
 | `persistence.js` | localStorage save/load (`meshGradientState.v1`), debounced + flushed on pagehide | state |
@@ -36,10 +36,10 @@ composes handles + panel + draw, so most mutations end with `refreshAll()` from 
 | `view.js` | preview renderer + `draw()`, `layout()`, zoom/pan, reference image | renderer, handles, exporter, persistence |
 | `colorPanel.js` | Selected panel, hex input, HSV picker, `refreshSelectionPanel`, `setSelectedColor` | state, undo, handles, view |
 | `refresh.js` | `refreshAll`, `refreshSelection` | handles, colorPanel, view |
-| `actions.js` | `deleteSelected`, `selectAllNodes`, `clearSelection`, `nudgeSelected` | state, undo, refresh |
+| `actions.js` | `deleteSelected`, `selectAllNodes`, `clearSelection`, `nudgeSelected`, `flipSelected` | state, undo, nodes, refresh |
 | `modes.js` | preview toggle, arc/line placement, the brush, hint text | session, dom |
 | `sampling.js` | eyedropper, loupe, `colorAtCanvasPoint` | view, refresh, modes |
-| `nodeMenu.js` | right-click menu: type conversion, link/unlink (none for strokes) | nodes, state, undo, refresh |
+| `nodeMenu.js` | right-click menu: type conversion, link/unlink, flip H/V (strokes: flip only) | nodes, state, undo, actions, refresh |
 | `interaction.js` | the pointer drag state machine (spread / hard / move / marquee / pan / draw / stopMove / stopHard) | most of the above |
 | `keyboard.js` | global shortcuts | actions, modes, sampling, view, undo |
 | `controls.js` | canvas size + scrubbers, sliders, palettes, align/shuffle/scatter, `syncControlsFromState`, `seedNodes` | state, undo, view, refresh, actions |

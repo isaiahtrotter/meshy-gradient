@@ -7,7 +7,7 @@ import { undo, redo } from './undo.js';
 import { view, setZoom, resetZoom } from './view.js';
 import { setPreview, setPlacement } from './modes.js';
 import { setSampling } from './sampling.js';
-import { deleteSelected, selectAllNodes, clearSelection, nudgeSelected } from './actions.js';
+import { deleteSelected, selectAllNodes, clearSelection, nudgeSelected, flipSelected } from './actions.js';
 
 const setSpaceHeld = on => { session.spaceHeld = on; stage.classList.toggle('space-pan', on); };
 const releaseSpace = () => { if (session.spaceHeld) { setSpaceHeld(false); setPreview(false); } };
@@ -34,6 +34,7 @@ document.addEventListener('keydown', e => {
     else if (session.previewing) setPreview(false);
     else clearSelection();
   }
+  else if (e.shiftKey && !mod && (key === 'h' || key === 'v')) { e.preventDefault(); flipSelected(key === 'h' ? 'x' : 'y'); } // before plain H (preview)
   else if ((key === 'p' || key === 'h') && !mod) { setPreview(!session.previewing); }
   else if (key === 'i' && !mod) { e.preventDefault(); setSampling(!session.sampling); }
   else if (key === 'b' && !mod) { setPlacement(session.placing === 'stroke' ? null : 'stroke'); }

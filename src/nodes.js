@@ -111,6 +111,20 @@ export function convertNodeType(n, to) {
   return normalizeNode(base);
 }
 
+// Mirrors a node in place about its own centre: axis 'x' flips horizontally (left ↔ right), 'y' vertically.
+// Mirroring across the x-axis negates every angle; mirroring across the y-axis is that plus a half turn. Doing it
+// that way (rather than swapping l/r fields) keeps every arm's own length with its mirrored arm, and an arc's
+// circle follows because arcCircle() is built from th and the sign of phi. A stroke negates its local y instead:
+// with th negated too, R(-th)·(x, -y) is exactly the mirrored path.
+export function flipNode(n, axis) {
+  const f = a => wrapAngle((axis === 'x' ? Math.PI : 0) - a);
+  n.th = f(n.th);
+  if (n.type === 'stroke') { n.pts = n.pts.map(([x, y]) => [x, y === 0 ? 0 : -y]); return; }
+  if (n.type === 'circle') n.th2 = f(n.th2);
+  if (n.type === 'arc') n.phi = -n.phi;
+  if (!n.linked) for (const k of ['ar', 'al', 'at', 'ab']) if (k in n) n[k] = f(n[k]);
+}
+
 export function toggleLinked(n) {
   if (n.type === 'stroke') return; // one path, no arms to unlink
   if (!n.linked) {
