@@ -111,6 +111,10 @@ body {
 }
 .node-bar .icon-btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .stage.previewing .node-bar { display: none; }
+.mobile-undo, .mobile-redo { position: absolute; bottom: 14px; z-index: 2; }
+.mobile-undo { left: 14px; }
+.mobile-redo { right: 14px; }
+.stage.previewing .mobile-undo, .stage.previewing .mobile-redo { display: none; }
 .stage.sampling, .stage.sampling * { cursor: none !important; }
 .stage.hard-dragging, .stage.hard-dragging * { cursor: none !important; }
 .loupe { position: fixed; z-index: 50; width: 132px; height: 132px; margin: -66px 0 0 -66px; border-radius: 50%; overflow: hidden; pointer-events: none; display: none;

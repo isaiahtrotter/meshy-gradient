@@ -3,7 +3,7 @@
 
 import { MOBILE_BREAKPOINT, CANVAS_MIN, CANVAS_MAX, clamp } from './constants.js';
 import { state, targetNodes, addNode, setCanvasSize as setCanvasSizeState } from './state.js';
-import { snapshot, pushUndo, undo } from './undo.js';
+import { snapshot, pushUndo, undo, redo } from './undo.js';
 import { $ } from './dom.js';
 import { layout, draw } from './view.js';
 import { refreshAll } from './refresh.js';
@@ -70,6 +70,8 @@ attachScrub($('ch'), $('ch'), { onInput: scrubH, threshold: 6, mobileOnly: true 
 $('delBtn').addEventListener('click', deleteSelected);
 $('selAll').addEventListener('click', selectAllNodes);
 $('undoBtn').addEventListener('click', undo);
+$('mobileUndoBtn').addEventListener('click', undo);
+$('mobileRedoBtn').addEventListener('click', redo);
 
 // ---------- Sliders ----------
 // Softness and grain map the 0..1 range input onto data-min..data-max.

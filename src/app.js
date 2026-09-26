@@ -17,7 +17,11 @@ import './shortcuts.js';
 import { syncControlsFromState, seedNodes, renderPalettes } from './controls.js';
 import { fetchPresets, pickDefaultPreset, renderPresets } from './presets.js';
 
-onUndoChange(can => { $('undoBtn').disabled = !can; });
+onUndoChange((canUndo, canRedo) => {
+  $('undoBtn').disabled = !canUndo;
+  $('mobileUndoBtn').disabled = !canUndo;
+  $('mobileRedoBtn').disabled = !canRedo;
+});
 onRestore(() => { syncControlsFromState(); layout(); refreshAll(); });
 
 // handy for poking at the document from the console
