@@ -284,6 +284,40 @@ test.describe('document', () => {
     await expect(page.locator('#overlay')).not.toHaveClass(/hide-handles/);
   });
 
+  test('right-clicking a slider eases it back to its default over ~100ms, showing the hover glow, as one undo step', async ({ page }) => {
+    await page.locator('#adjHue').evaluate(el => { el.value = 90; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(await page.evaluate(() => window.__meshy.state.adj.hue)).toBe(90);
+
+    // sample the animation via rAF from inside the page, so timing isn't skewed by Playwright's own action overhead
+    const samples = await page.evaluate(() => new Promise(resolve => {
+      const el = document.getElementById('adjHue'), out = [];
+      el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+      const t0 = performance.now();
+      (function tick() {
+        out.push({ t: performance.now() - t0, val: +el.value, glow: el.classList.contains('glow-active') });
+        performance.now() - t0 < 200 ? requestAnimationFrame(tick) : resolve(out);
+      })();
+    }));
+    expect(samples.some(s => s.glow)).toBe(true); // the hover glow shows at some point during the animation
+    expect(samples[samples.length - 1].glow).toBe(false); // and is gone once it's done
+    expect(samples[samples.length - 1].val).toBe(0); // eased all the way to the default
+    const doneAt = samples.find(s => s.val === 0)?.t;
+    expect(doneAt).toBeLessThan(200); expect(doneAt).toBeGreaterThan(20); // ~100ms, not instant
+
+    expect(await page.evaluate(() => window.__meshy.state.adj.hue)).toBe(0);
+    await page.keyboard.press('Meta+z'); // one undo step restores the pre-reset value
+    expect(await page.evaluate(() => window.__meshy.state.adj.hue)).toBe(90);
+    await page.keyboard.press('Meta+Shift+z');
+    expect(await page.evaluate(() => window.__meshy.state.adj.hue)).toBe(0);
+
+    // right-clicking a slider already at its default is a no-op: no new undo step
+    const canUndoBefore = await page.evaluate(() => !document.getElementById('undoBtn').disabled);
+    await page.locator('#adjHue').evaluate(el => el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })));
+    await page.waitForTimeout(150);
+    expect(await page.evaluate(() => window.__meshy.state.adj.hue)).toBe(0);
+    expect(await page.evaluate(() => !document.getElementById('undoBtn').disabled)).toBe(canUndoBefore);
+  });
+
   test('temperature slider warms the render and a preset without one resets it to neutral', async ({ page }) => {
     const setTemp = v => page.locator('#adjTemp').evaluate((el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }, v);
     const shot = async () => { await page.waitForTimeout(120); return page.locator('#gl').screenshot(); };

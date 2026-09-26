@@ -119,9 +119,26 @@ for (const s of SLIDERS) {
   // that one control instead of throwing and leaving every remaining control in this file unwired.
   if (!el) { console.error(`Missing #${s.id} — reload the page (a hard refresh if that doesn't fix it).`); continue; }
   let dragSnap = null;
-  el.addEventListener('pointerdown', () => { dragSnap = snapshot(); });
+  el.addEventListener('pointerdown', () => {
+    dragSnap = snapshot();
+    // a manual drag interrupting a right-click reset's animation would otherwise fight it for el.value each frame
+    if (sliderAnims.has(el)) { cancelAnimationFrame(sliderAnims.get(el)); sliderAnims.delete(el); el.classList.remove('glow-active'); }
+  });
   el.addEventListener('input', e => { s.set(e.target); sliderFill(e.target); $(s.out).textContent = s.fmt(+e.target.value); draw(); });
   el.addEventListener('change', () => { if (dragSnap) { pushUndo(dragSnap); dragSnap = null; } });
+  // Right-click resets it to its built-in default (the input's own initial `value` attribute, i.e. defaultValue),
+  // animating there over 100ms with the same hover-preview glow a real drag shows.
+  el.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const def = +el.defaultValue;
+    if (Math.abs(+el.value - def) < 1e-6) return; // already at default: nothing to animate or undo
+    const snap = snapshot();
+    animateSliderTo(el, def, {
+      duration: 100,
+      onFrame: v => { s.set(el); $(s.out).textContent = s.fmt(v); draw(); },
+      onDone: () => pushUndo(snap),
+    });
+  });
 }
 
 $('grainType').addEventListener('click', e => {
@@ -132,10 +149,11 @@ $('grainType').addEventListener('click', e => {
   draw();
 });
 
-// Animates a range input's handle (and readout) to a new value; used when a preset lands.
+// Animates a range input's handle (and readout) to a new value; used when a preset lands, and to reset a
+// slider to its default on right-click (below). glow-active shows the same hover-preview glow a real drag would.
 const sliderAnims = new Map();
 const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
-function animateSliderTo(el, target, { delay = 0, duration = 150, onFrame } = {}) {
+function animateSliderTo(el, target, { delay = 0, duration = 150, onFrame, onDone } = {}) {
   if (sliderAnims.has(el)) cancelAnimationFrame(sliderAnims.get(el));
   const start = +el.value, startTime = performance.now() + delay;
   let started = false;
@@ -146,7 +164,7 @@ function animateSliderTo(el, target, { delay = 0, duration = 150, onFrame } = {}
     el.value = val; sliderFill(el);
     if (onFrame) onFrame(val);
     if (now < startTime + duration) sliderAnims.set(el, requestAnimationFrame(step));
-    else { sliderAnims.delete(el); el.classList.remove('glow-active'); }
+    else { sliderAnims.delete(el); el.classList.remove('glow-active'); if (onDone) onDone(); }
   }
   sliderAnims.set(el, requestAnimationFrame(step));
 }
