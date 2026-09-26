@@ -19,23 +19,34 @@ function commitCanvasSize(w, h) {
 $('cw').addEventListener('change', () => commitCanvasSize(+$('cw').value, state.h));
 $('ch').addEventListener('change', () => commitCanvasSize(state.w, +$('ch').value));
 
+// Pointer lock hides the real OS cursor (that's what makes an unbounded drag possible — no cursor position
+// to run out of screen). This stands in for it: a plain drawn element we fully control, which is why it can
+// wrap around the browser's edges instead of just stopping there like a real cursor would.
+let fakeCursorEl = null;
+function fakeCursor() {
+  if (!fakeCursorEl) { fakeCursorEl = document.createElement('div'); fakeCursorEl.className = 'fake-cursor'; document.body.appendChild(fakeCursorEl); }
+  return fakeCursorEl;
+}
+function moveFakeCursor(x, y) { fakeCursor().style.transform = `translate(${x}px, ${y}px)`; }
+
 // Drag-to-scrub a numeric input. With threshold 0 the drag engages immediately (desktop prefix letter, pointer
-// locked for mice so the cursor can't hit the screen edge). With a threshold it engages only after that much
-// movement, so a plain tap still focuses the input (mobile, dragging on the input itself).
-function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly = false, noLock = false } = {}) {
+// locked for mice so the drag can run past the screen edge — see the fake cursor above). With a threshold it
+// engages only after that much movement, so a plain tap still focuses the input (mobile, dragging on the input).
+function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly = false } = {}) {
   trigger.addEventListener('pointerdown', e => {
     if (input.disabled) return;
     if (mobileOnly && window.innerWidth > MOBILE_BREAKPOINT) return;
     const startVal = +input.value || 0, startX = e.clientX;
     const min = input.min !== '' ? +input.min : -Infinity, max = input.max !== '' ? +input.max : Infinity;
     const snap = onInput ? snapshot() : null;
-    let engaged = false, locked = false, lastVal = startVal, accum = 0;
+    let engaged = false, locked = false, lastVal = startVal, accum = 0, fx = e.clientX, fy = e.clientY;
     const engage = () => {
       engaged = true;
-      // Pointer lock keeps a far drag from hitting the screen edge, but it also hides the system cursor
-      // while active — skip it (noLock) where a visible, moving cursor matters more than that reach.
-      locked = !noLock && threshold === 0 && e.pointerType === 'mouse' && !!trigger.requestPointerLock;
-      if (locked) trigger.requestPointerLock(); else { try { trigger.setPointerCapture(e.pointerId); } catch {} }
+      locked = threshold === 0 && e.pointerType === 'mouse' && !!trigger.requestPointerLock;
+      if (locked) {
+        trigger.requestPointerLock();
+        fx = e.clientX; fy = e.clientY; moveFakeCursor(fx, fy); fakeCursor().hidden = false;
+      } else { try { trigger.setPointerCapture(e.pointerId); } catch {} }
       if (threshold) input.blur();
       document.body.classList.add('scrubbing');
     };
@@ -47,13 +58,18 @@ function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly = fals
     };
     const move = ev => {
       if (!engaged) { if (Math.abs(ev.clientX - startX) < threshold) return; engage(); }
-      if (locked) { accum += ev.movementX; apply(accum); } else apply(ev.clientX - startX);
+      if (locked) {
+        accum += ev.movementX; apply(accum);
+        fx = (fx + ev.movementX) % window.innerWidth; if (fx < 0) fx += window.innerWidth;
+        fy = Math.min(window.innerHeight - 1, Math.max(0, fy + ev.movementY));
+        moveFakeCursor(fx, fy);
+      } else apply(ev.clientX - startX);
     };
     const up = ev => {
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
       if (!engaged) return;
       document.body.classList.remove('scrubbing');
-      if (locked) { if (document.pointerLockElement === trigger) document.exitPointerLock(); }
+      if (locked) { if (document.pointerLockElement === trigger) document.exitPointerLock(); fakeCursor().hidden = true; }
       else { try { trigger.releasePointerCapture(ev.pointerId); } catch {} }
       if (snap && lastVal !== startVal) pushUndo(snap);
       if (!onInput) input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -63,8 +79,8 @@ function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly = fals
   });
 }
 const scrubW = v => applyCanvasSizeLive(v, state.h), scrubH = v => applyCanvasSizeLive(state.w, v);
-attachScrub($('cwScrub'), $('cw'), { onInput: scrubW, noLock: true });
-attachScrub($('chScrub'), $('ch'), { onInput: scrubH, noLock: true });
+attachScrub($('cwScrub'), $('cw'), { onInput: scrubW });
+attachScrub($('chScrub'), $('ch'), { onInput: scrubH });
 attachScrub($('cw'), $('cw'), { onInput: scrubW, threshold: 6, mobileOnly: true });
 attachScrub($('ch'), $('ch'), { onInput: scrubH, threshold: 6, mobileOnly: true });
 
