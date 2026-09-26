@@ -63,7 +63,7 @@ body {
   flex: none; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
   padding: 20px; background: var(--stage); border-bottom: 1px solid rgba(255,255,255,.07);
 }
-.topbar-center { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.topbar-center { display: flex; align-items: center; justify-content: center; gap: 10px; }
 .topbar-right { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .topbar .icon-btn { width: 20px; height: 20px; padding: 0; border: none; background: none; }
 .topbar .icon-btn svg { width: 20px; height: 20px; }
