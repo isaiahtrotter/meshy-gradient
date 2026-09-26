@@ -138,11 +138,20 @@ function animateSliderTo(el, target, { delay = 0, duration = 150, onFrame } = {}
   sliderAnims.set(el, requestAnimationFrame(step));
 }
 
-export function syncControlsFromState({ animate = false } = {}) {
-  $('cw').value = state.w; $('ch').value = state.h;
+let grainTypeTimer = null;
+function setGrainTypeButtons() {
   for (const btn of $('grainType').querySelectorAll('button[data-grain-type]')) {
     btn.setAttribute('aria-pressed', String(btn.dataset.grainType === state.grainType));
   }
+}
+
+export function syncControlsFromState({ animate = false } = {}) {
+  $('cw').value = state.w; $('ch').value = state.h;
+  clearTimeout(grainTypeTimer);
+  // Mono/Duo/Multi sit right above the "Opacity" (grain) slider, so they should flip at the same point in the
+  // ripple as that slider does instead of snapping immediately, ahead of the animation reaching them.
+  const grainDelay = (SLIDERS.length - 1 - SLIDERS.findIndex(s => s.id === 'grain')) * 25;
+  if (animate) grainTypeTimer = setTimeout(setGrainTypeButtons, grainDelay); else setGrainTypeButtons();
   SLIDERS.forEach((s, i) => {
     const el = $(s.id), target = s.get(), out = $(s.out);
     if (animate) animateSliderTo(el, target, { delay: (SLIDERS.length - 1 - i) * 25, onFrame: v => { out.textContent = s.fmt(v); } });
