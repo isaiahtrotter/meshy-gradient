@@ -240,7 +240,7 @@ input[type=number], #selHex { font-family: var(--font-mono); }
 input[type=number]:focus-visible, input[type=text]:focus-visible, select:focus-visible, button:focus-visible, input[type=range]:focus-visible, .handle:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 1px;
 }
-.slider { position: relative; --pct: 0%; }
+.slider { position: relative; --pct: 0%; overflow: hidden; border-radius: var(--radius); }
 .slider-label { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font: 400 14px/1 var(--font-ui); color: var(--ink); pointer-events: none; z-index: 1; }
 .slider-value { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font: 400 14px/1 var(--font-mono); color: var(--ink); pointer-events: none; z-index: 1; font-variant-numeric: tabular-nums; }
 .slider-value.word { font-family: var(--font-ui); }
@@ -284,6 +284,14 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 }
 .adj-glow[data-for="bri"] {
   background: linear-gradient(to right, transparent var(--pct), var(--ctrl-bg) var(--pct)), linear-gradient(to right, #202020 0%, #f2f2f2 100%);
+}
+
+/* Softness: a permanent soft blurred glow right at the fill's edge — a literal illustration of what the
+   control does. Always on (not hover-gated), unlike the other .adj-glow uses above. */
+.adj-glow[data-for="soft"] {
+  opacity: 1;
+  background: radial-gradient(circle 14px at var(--pct) 50%, rgba(255,255,255,.8), transparent 70%);
+  filter: blur(8px);
 }
 .checker { background-color: #fff; background-image: linear-gradient(45deg, #c8c8c8 25%, transparent 25%), linear-gradient(-45deg, #c8c8c8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c8c8c8 75%), linear-gradient(-45deg, transparent 75%, #c8c8c8 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; }
 .swatch { position: relative; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; flex: none; overflow: hidden; }
