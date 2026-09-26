@@ -76,7 +76,14 @@ $('mobileRedoBtn').addEventListener('click', redo);
 // ---------- Sliders ----------
 // Softness and grain map the 0..1 range input onto data-min..data-max.
 // Set on the .slider wrapper (not the input) so a sibling overlay, like .adj-glow, inherits it too.
-function sliderFill(el) { el.closest('.slider').style.setProperty('--pct', ((+el.value - +el.min) / (+el.max - +el.min)) * 100 + '%'); }
+function sliderFill(el) {
+  const slider = el.closest('.slider');
+  const pct = ((+el.value - +el.min) / (+el.max - +el.min)) * 100;
+  slider.style.setProperty('--pct', pct + '%');
+  // At the exact ends, push the glow-bar handle a little further out so it tucks fully behind the rounded
+  // corner (clipped by .slider's overflow: hidden) instead of a thin line sitting right on the edge.
+  slider.style.setProperty('--handle-shift', pct <= 0 ? '-4px' : pct >= 100 ? '4px' : '0px');
+}
 function mappedValue(el) { const min = +el.dataset.min, max = +el.dataset.max; return min + (+el.value) * (max - min); }
 function reverseMapped(el, val) { const min = +el.dataset.min, max = +el.dataset.max; return (val - min) / (max - min); }
 

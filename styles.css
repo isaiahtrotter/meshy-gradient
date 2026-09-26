@@ -244,7 +244,7 @@ input[type=number], #selHex { font-family: var(--font-mono); }
 input[type=number]:focus-visible, input[type=text]:focus-visible, select:focus-visible, button:focus-visible, input[type=range]:focus-visible, .handle:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 1px;
 }
-.slider { position: relative; --pct: 0%; overflow: hidden; border-radius: var(--radius); }
+.slider { position: relative; --pct: 0%; --handle-shift: 0px; overflow: hidden; border-radius: var(--radius); }
 .slider-label { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font: 400 14px/1 var(--font-ui); color: var(--ink); pointer-events: none; z-index: 1; }
 .slider-value { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font: 400 14px/1 var(--font-mono); color: var(--ink); pointer-events: none; z-index: 1; font-variant-numeric: tabular-nums; }
 .slider-value.word { font-family: var(--font-ui); }
@@ -310,7 +310,7 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
    own bespoke effect (Hue/Saturation/Brightness draw their own colour). */
 .adj-glow[data-for="soft"], .adj-glow[data-for="grain"], .adj-glow[data-for="grainSize"],
 .adj-glow[data-for="density"], .adj-glow[data-for="blendMode"] {
-  inset: auto; top: 0; bottom: 0; left: var(--pct); width: 1px; margin-left: -.5px; border-radius: 0;
+  inset: auto; top: 0; bottom: 0; left: calc(var(--pct) + var(--handle-shift)); width: 1px; margin-left: -.5px; border-radius: 0;
   background: rgba(255,255,255,.5);
   box-shadow:
     0 0 6px 0 rgba(255,255,255,.43),
