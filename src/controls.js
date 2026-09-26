@@ -200,4 +200,16 @@ $('alignSection').addEventListener('click', e => {
   refreshAll();
 });
 
-for (const inp of document.querySelectorAll('input[type=number], input[type=text]')) inp.addEventListener('focus', () => inp.select());
+// A plain click selects everything (the old behaviour); a click-drag to select part of the value is left
+// alone instead of being stomped by an immediate select-all on focus. Distance, not selectionStart/End,
+// because number inputs don't expose a selection range in every browser. Keyboard (Tab) focus, which never
+// touches pointerdown, still selects all immediately like before.
+for (const inp of document.querySelectorAll('input[type=number], input[type=text]')) {
+  let downX = null;
+  inp.addEventListener('pointerdown', e => { downX = e.clientX; });
+  inp.addEventListener('focus', () => { if (downX === null) inp.select(); });
+  inp.addEventListener('pointerup', e => {
+    if (downX !== null && Math.abs(e.clientX - downX) < 3) inp.select();
+    downX = null;
+  });
+}
