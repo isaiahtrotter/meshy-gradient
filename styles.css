@@ -368,9 +368,14 @@ button.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--acc
 .panel .chip[aria-pressed="true"] { border-color: transparent; color: var(--ink); box-shadow: none; }
 /* Mono/Duo/Multi and the 1x-4x export scale chips: a gradient ring all around the button on hover, not just
    selected. Two background layers with different clip origins — the flat colour clipped inside the border,
-   the gradient clipped to the border itself — painted through a transparent border of the same width. */
-#grainType .chip:hover:not([aria-pressed="true"]), #scales .chip:hover:not([aria-pressed="true"]) {
+   the gradient (transparent until hovered) clipped to the border itself — painted through a border of the
+   same width and colour (transparent) at rest, so hovering only swaps a background layer, never the border
+   width itself; that's what caused the 1px shift when the border only existed in the :hover rule. */
+#grainType .chip:not([aria-pressed="true"]), #scales .chip:not([aria-pressed="true"]) {
   border: 1px solid transparent; box-shadow: none;
+  background: linear-gradient(var(--ctrl-bg), var(--ctrl-bg)) padding-box, linear-gradient(transparent, transparent) border-box;
+}
+#grainType .chip:hover:not([aria-pressed="true"]), #scales .chip:hover:not([aria-pressed="true"]) {
   background: linear-gradient(var(--ctrl-bg), var(--ctrl-bg)) padding-box, var(--ctrl-grad) border-box;
 }
 .panel button.primary, .panel .icon-btn, .panel .swatch { height: 36px; }
