@@ -278,7 +278,11 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 #soft:hover ~ .adj-glow, #soft:active ~ .adj-glow,
 #adjHue:hover ~ .adj-glow, #adjHue:active ~ .adj-glow,
 #adjSat:hover ~ .adj-glow, #adjSat:active ~ .adj-glow,
-#adjBri:hover ~ .adj-glow, #adjBri:active ~ .adj-glow { opacity: 1; }
+#adjBri:hover ~ .adj-glow, #adjBri:active ~ .adj-glow,
+#grain:hover ~ .adj-glow, #grain:active ~ .adj-glow,
+#grainSize:hover ~ .adj-glow, #grainSize:active ~ .adj-glow,
+#density:hover ~ .adj-glow, #density:active ~ .adj-glow,
+#blendMode:hover ~ .adj-glow, #blendMode:active ~ .adj-glow { opacity: 1; }
 /* Hue: a small window right at the handle reveals the true hue spectrum underneath, at full colour,
    everywhere else stays the plain flat track. */
 .adj-glow[data-for="hue"] {
@@ -292,14 +296,13 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 .adj-glow[data-for="bri"] {
   background: linear-gradient(to right, transparent var(--pct), var(--ctrl-bg) var(--pct)), linear-gradient(to right, rgba(51,51,51,.4) 0%, rgba(255,255,255,.4) 100%);
 }
-/* A true spatially-varying blur (Figma's "progressive blur": 0 at the handle, ramping up toward the edges)
-   isn't a thing CSS's single-radius filter: blur() can do. Faked instead with a stack of concentric
-   box-shadows on a thin bar at the handle — each ring a bigger blur radius and lower opacity than the last,
-   so the sharp core softens into an increasingly heavy blur the further out it bleeds, all the way to the
-   slider's own edges. */
-.adj-glow[data-for="soft"] {
+/* A glowing bar at the handle: a soft white core (50% opacity) haloed by concentric box-shadows, each a
+   bigger blur radius and lower opacity than the last, bleeding out toward the slider's own edges. Shared by
+   every slider that doesn't have its own bespoke effect (Hue/Saturation/Brightness draw their own colour). */
+.adj-glow[data-for="soft"], .adj-glow[data-for="grain"], .adj-glow[data-for="grainSize"],
+.adj-glow[data-for="density"], .adj-glow[data-for="blendMode"] {
   inset: auto; top: 0; bottom: 0; left: var(--pct); width: 2px; margin-left: -1px;
-  background: rgba(255,255,255,.9);
+  background: rgba(255,255,255,.5);
   box-shadow:
     0 0 6px 0 rgba(255,255,255,.85),
     0 0 16px 3px rgba(255,255,255,.55),
