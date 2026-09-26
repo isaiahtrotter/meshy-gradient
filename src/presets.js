@@ -54,7 +54,7 @@ export const pickDefaultPreset = list => list.find(p => p.default) || list[list.
 export { renderPresets };
 export async function loadPresets() { renderPresets(await fetchPresets()); }
 
-$('copyGradient').addEventListener('click', async () => {
+async function copyGradient() {
   const payload = JSON.stringify(serializeConfig({ stripIds: true }));
   const done = () => setStatus('Gradient copied. Paste it into presets.json to add it as a preset.');
   try { await navigator.clipboard.writeText(payload); done(); }
@@ -65,4 +65,6 @@ $('copyGradient').addEventListener('click', async () => {
       done();
     } catch { setStatus('Could not copy automatically. Open the console to grab the JSON.', true); console.log(payload); }
   }
-});
+}
+$('copyGradient').addEventListener('click', copyGradient);
+$('copyGradientBtn').addEventListener('click', copyGradient);
