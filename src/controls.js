@@ -171,7 +171,7 @@ export function syncControlsFromState({ animate = false } = {}) {
   });
 }
 
-// ---------- Palettes, shuffle, scatter, align ----------
+// ---------- Palettes, shuffle + scatter (bottom toolbar), align ----------
 export function seedNodes(p) {
   const spots = [[0.15, 0.2], [0.8, 0.15], [0.25, 0.85], [0.85, 0.8], [0.5, 0.5]];
   p.forEach((c, i) => addNode('circle', spots[i % spots.length][0] + (Math.random() - .5) * .1, spots[i % spots.length][1] + (Math.random() - .5) * .1, c, 0.45 + Math.random() * 0.15));

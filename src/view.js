@@ -58,8 +58,9 @@ export function clearReference() {
 
 // ---------- Layout ----------
 export function layout() {
-  const pad = 28 * 2;
-  const availW = stage.clientWidth - pad, availH = stage.clientHeight - pad - 40;
+  // the stage's own padding (styles.css), whose bottom holds the toolbar
+  const cs = getComputedStyle(stage), px = k => parseFloat(cs[k]) || 0;
+  const availW = stage.clientWidth - px('paddingLeft') - px('paddingRight'), availH = stage.clientHeight - px('paddingTop') - px('paddingBottom');
   const ac = state.w / state.h;
   let h, ar;
   if (ref.img) {

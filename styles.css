@@ -77,9 +77,10 @@ body {
 }
 
 /* Stage */
+/* The bottom padding holds the toolbar: 12px below it + 44px bar + 12px above. layout() reads these paddings. */
 .stage {
   position: relative; background: var(--stage); display: grid; place-items: center;
-  padding: 28px; min-height: 0; overflow: hidden; user-select: none; touch-action: none;
+  padding: 28px 28px 68px; min-height: 0; overflow: hidden; user-select: none; touch-action: none;
 }
 .work { display: flex; align-items: center; gap: 24px; will-change: transform; }
 .ref { position: relative; flex: none; box-shadow: 0 30px 60px -20px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.08); }
@@ -105,13 +106,20 @@ body {
 .stage.previewing .preview-btn { border-color: var(--accent); color: var(--accent); }
 .stage.previewing .stage-hint, .stage.previewing .ref-x { display: none; }
 .stage.previewing .overlay { pointer-events: none; }
+/* Bottom toolbar: 20px icons, 12px padding, 16px between everything (the divider included). It sits in the
+   stage's bottom padding (see .stage), so it never covers the canvas. */
 .node-bar {
-  position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 2;
-  display: flex; align-items: center; gap: 8px;
+  position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 2;
+  display: flex; align-items: center; gap: 16px; padding: 12px;
+  background: var(--ctrl-grad); border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), 0 7px 25px rgba(0,0,0,.25);
 }
-.node-bar .icon-btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.node-bar .icon-btn { width: 20px; height: 20px; padding: 0; border: none; border-radius: 0; background: none; color: var(--ink); }
+.node-bar .icon-btn svg { width: 20px; height: 20px; }
+.node-bar .icon-btn:hover, .node-bar .icon-btn[aria-pressed="true"] { color: var(--accent); }
+.node-bar-sep { width: 1px; height: 20px; background: color-mix(in srgb, var(--ink) 20%, transparent); }
 .stage.previewing .node-bar { display: none; }
-.mobile-undo, .mobile-redo { position: absolute; bottom: 14px; z-index: 2; }
+.mobile-undo, .mobile-redo { position: absolute; bottom: 18px; z-index: 2; } /* centred on the 44px toolbar */
 .mobile-undo { left: 14px; }
 .mobile-redo { right: 14px; }
 .stage.previewing .mobile-undo, .stage.previewing .mobile-redo { display: none; }
