@@ -343,7 +343,11 @@ button.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--acc
 .pal:hover { border-color: var(--ink-3); }
 
 .presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.preset { position: relative; width: 100%; height: auto; aspect-ratio: 1 / 1; border-radius: var(--radius); border: 1px solid var(--line); cursor: pointer; padding: 0; background: #000; }
+.preset {
+  position: relative; width: 100%; height: auto; aspect-ratio: 1 / 1; border-radius: var(--radius);
+  border: 1px solid var(--line); cursor: pointer; padding: 0; background-color: #000;
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+}
 .preset:hover { border-color: var(--ink-3); }
 
 .status { display: none; }

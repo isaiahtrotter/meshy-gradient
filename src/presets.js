@@ -5,15 +5,43 @@ import { isNum } from './constants.js';
 import { state, applyConfig, serializeConfig } from './state.js';
 import { pushUndo } from './undo.js';
 import { $, setStatus, showToast } from './dom.js';
-import { rgbaCss } from './color.js';
 import { layout } from './view.js';
 import { refreshAll } from './refresh.js';
 import { scheduleSave } from './persistence.js';
 import { syncControlsFromState } from './controls.js';
+import { normalizeNode } from './nodes.js';
+import { makeRenderer } from './renderer.js';
 
-const presetPreviewBg = nodes => nodes
-  .map(n => `radial-gradient(circle at ${(n.x * 100).toFixed(1)}% ${(n.y * 100).toFixed(1)}%, ${rgbaCss(n.color, n.a ?? 1)} 0%, transparent 65%)`)
-  .join(', ');
+const GRAIN_TYPES = ['mono', 'duo', 'multi'];
+const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay'];
+// Mirrors applyConfig()'s defaults (state.js), but returns a plain renderable scene instead of touching state.
+function presetScene(p) {
+  return {
+    w: isNum(p.w) ? p.w : 1600, h: isNum(p.h) ? p.h : 1000,
+    nodes: Array.isArray(p.nodes) ? p.nodes.map(normalizeNode) : [],
+    soft: isNum(p.soft) ? p.soft : 0.1,
+    grain: isNum(p.grain) ? p.grain : 0.02,
+    grainSize: isNum(p.grainSize) ? p.grainSize : 1,
+    grainType: GRAIN_TYPES.includes(p.grainType) ? p.grainType : 'mono',
+    density: isNum(p.density) ? p.density : 1.4,
+    adj: { hue: isNum(p.adj?.hue) ? p.adj.hue : 0, sat: isNum(p.adj?.sat) ? p.adj.sat : 1, bri: isNum(p.adj?.bri) ? p.adj.bri : 1 },
+    blendMode: BLEND_MODES.includes(p.blendMode) ? p.blendMode : (p.linear ? 'linear' : 'normal'),
+    seed: isNum(p.seed) ? p.seed : 0,
+  };
+}
+// A real rendered thumbnail (not a CSS approximation), sized to the preset's own aspect ratio and capped at `size`.
+function renderPresetThumb(p, size = 160) {
+  const scene = presetScene(p);
+  const scale = size / Math.max(scene.w, scene.h);
+  const tw = Math.max(1, Math.round(scene.w * scale)), th = Math.max(1, Math.round(scene.h * scale));
+  const canvas = document.createElement('canvas'); canvas.width = tw; canvas.height = th;
+  const r = makeRenderer(canvas, { preserveDrawingBuffer: true });
+  if (!r) return null;
+  r.render(tw, th, scene);
+  const url = canvas.toDataURL('image/png');
+  r.gl.getExtension('WEBGL_lose_context')?.loseContext();
+  return url;
+}
 
 function applyPreset(p) {
   pushUndo();
@@ -31,7 +59,8 @@ function renderPresets(presets) {
   presets.forEach((p, i) => {
     const b = document.createElement('button'); b.className = 'preset'; b.type = 'button';
     b.setAttribute('aria-label', `Apply preset ${i + 1}`);
-    b.style.background = presetPreviewBg(p.nodes);
+    const thumb = renderPresetThumb(p);
+    if (thumb) b.style.backgroundImage = `url(${thumb})`;
     b.addEventListener('click', () => applyPreset(p));
     wrap.appendChild(b);
   });

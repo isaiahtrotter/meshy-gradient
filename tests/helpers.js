@@ -23,10 +23,16 @@ export async function openApp(page) {
 
 // Load a full gradient config as if it were the saved session.
 export async function loadConfig(page, cfg) {
+  // Any earlier mutation on this page armed persistence.js's 300ms debounced save; if it's still pending when
+  // we reload, its pagehide flush clobbers the localStorage value we're about to set with the page's current
+  // (unrelated) state. Wait it out first so the reload's pagehide has nothing left to flush.
+  await page.waitForTimeout(350);
   await page.evaluate(c => localStorage.setItem('meshGradientState.v1', JSON.stringify(c)), cfg);
   await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForFunction(() => window.__meshy);
-  await page.waitForTimeout(300);
+  // window.__meshy exists as soon as app.js's module body runs, well before boot() (async: fetches presets,
+  // loads state, renders preset thumbnails) actually finishes — wait for something boot() only does at the end.
+  await page.waitForFunction(() => window.__meshy && document.querySelectorAll('#presets .preset').length > 0);
+  await page.waitForTimeout(100);
 }
 
 export const getState = page => page.evaluate(() => {
