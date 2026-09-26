@@ -140,7 +140,10 @@ body {
   transition: left .15s cubic-bezier(.3,.7,.2,1), opacity .12s ease, visibility .12s;
 }
 .toolbar-tip.visible { opacity: 1; visibility: visible; }
-/* No font-size override here: the kbd's own base rule (11px) already matches the shortcuts modal's keys. */
+/* No font-size override here: the kbd's own base rule (11px) already matches the shortcuts modal's keys. The
+   pill's own line-height: 1 (set above, for its label) would otherwise squash the key's box short and cramped —
+   line-height: 1.45 restores the same ratio body text uses, which is what the shortcuts modal's keys inherit. */
+.toolbar-tip kbd { line-height: 1.45; }
 .mobile-undo, .mobile-redo { position: absolute; bottom: 34px; z-index: 2; } /* centred on the 44px toolbar */
 .mobile-undo { left: 14px; }
 .mobile-redo { right: 14px; }
