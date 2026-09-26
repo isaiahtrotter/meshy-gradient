@@ -116,6 +116,11 @@ body {
 .node-bar .icon-btn { width: 20px; height: 20px; padding: 0; border: none; border-radius: 0; background: none; color: var(--ink); }
 .node-bar .icon-btn svg { width: 20px; height: 20px; }
 .node-bar .icon-btn:hover, .node-bar .icon-btn[aria-pressed="true"] { color: var(--accent); }
+/* Each of the four tool icons gets its own hover/active tint instead of the shared accent colour. */
+.node-bar #addLineBtn:hover, .node-bar #addLineBtn[aria-pressed="true"] { color: #4BBDFF; }
+.node-bar #addArcBtn:hover, .node-bar #addArcBtn[aria-pressed="true"] { color: #C0FF7C; }
+.node-bar #addCircleBtn:hover, .node-bar #addCircleBtn[aria-pressed="true"] { color: #B477FF; }
+.node-bar #addStrokeBtn:hover, .node-bar #addStrokeBtn[aria-pressed="true"] { color: #FF9F63; }
 .node-bar-sep { width: 1px; height: 20px; background: color-mix(in srgb, var(--ink) 20%, transparent); }
 .stage.previewing .node-bar { display: none; }
 .mobile-undo, .mobile-redo { position: absolute; bottom: 34px; z-index: 2; } /* centred on the 44px toolbar */
