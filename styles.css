@@ -289,9 +289,12 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 /* Softness: a permanent soft blurred glow right at the fill's edge — a literal illustration of what the
    control does. Always on (not hover-gated), unlike the other .adj-glow uses above. */
 .adj-glow[data-for="soft"] {
+  top: -20px; bottom: -20px; /* taller than the track so the blur has room to feather before .slider clips it,
+                                 which is what makes it reach the track's own top and bottom edges */
   opacity: 1;
-  background: radial-gradient(circle 14px at var(--pct) 50%, rgba(255,255,255,.8), transparent 70%);
-  filter: blur(8px);
+  background: linear-gradient(to right, transparent, rgba(255,255,255,.85) 50%, transparent);
+  background-size: 46px 100%; background-position: calc(var(--pct) - 23px) 0; background-repeat: no-repeat;
+  filter: blur(10px);
 }
 .checker { background-color: #fff; background-image: linear-gradient(45deg, #c8c8c8 25%, transparent 25%), linear-gradient(-45deg, #c8c8c8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c8c8c8 75%), linear-gradient(-45deg, transparent 75%, #c8c8c8 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; }
 .swatch { position: relative; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; flex: none; overflow: hidden; }
