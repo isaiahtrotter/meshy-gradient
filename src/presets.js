@@ -96,5 +96,4 @@ async function copyGradient(e) {
     } catch { setStatus('Could not copy automatically. Open the console to grab the JSON.', true); console.log(payload); }
   }
 }
-$('copyGradient').addEventListener('click', copyGradient);
 $('copyGradientBtn').addEventListener('click', copyGradient);

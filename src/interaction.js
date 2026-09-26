@@ -38,6 +38,8 @@ overlay.addEventListener('pointerdown', e => {
     session.drag = {
       type: 'hard', n, snap: snapshot(), moved: false, r: hardToRadius(n.k), lastDist: Math.hypot(dx0, dy0),
       startAngle: Math.atan2(dy0, dx0), startTh: n.th, startTh2: n.type === 'circle' ? n.th2 : 0,
+      // orbiting rotates the whole arm cross; unlinked nodes keep each arm's own angle instead of th/th2
+      startAr: n.ar, startAl: n.al, startAt: n.at, startAb: n.ab,
     };
     ring.classList.add('active'); stage.classList.add('hard-dragging');
     overlay.setPointerCapture(e.pointerId); return;
@@ -122,15 +124,22 @@ function moveHard(drag, p, e) {
   const delta = dist - drag.lastDist; drag.lastDist = dist;
   drag.r = Math.min(hardToRadius(HARD_K_MIN), Math.max(hardToRadius(HARD_K_MAX), drag.r + delta)); // clamped every frame: no overshoot to retrace
   n.k = Math.round(radiusToHard(drag.r) * 10) / 10;
-  // orbiting around the ring rotates the whole axis cross, preserving the angle between the two axes
+  // orbiting around the ring rotates the whole arm cross by the same delta, preserving every arm's angle
+  // relative to the others — th/th2 when linked, each arm's own stored angle (ar/al/at/ab) when unlinked
   let rot = wrapAngle(angle - drag.startAngle), indAngle;
-  if (e.shiftKey) { // snap the primary axis to 15° steps; the second axis keeps its offset from the first
-    const step = Math.PI / 12, snappedTh = Math.round((drag.startTh + rot) / step) * step;
-    rot = snappedTh - drag.startTh;
+  const refStart = n.linked ? drag.startTh : drag.startAr;
+  if (e.shiftKey) { // snap the r-arm's resulting angle to 15° steps; every other arm keeps its offset from it
+    const step = Math.PI / 12, snapped = Math.round((refStart + rot) / step) * step;
+    rot = snapped - refStart;
     indAngle = drag.startAngle + rot; // the ring indicator snaps with the axis instead of trailing the pointer
   }
-  n.th = drag.startTh + rot;
-  if (n.type === 'circle') n.th2 = drag.startTh2 + rot;
+  if (n.linked) {
+    n.th = drag.startTh + rot;
+    if (n.type === 'circle') n.th2 = drag.startTh2 + rot;
+  } else {
+    n.ar = wrapAngle(drag.startAr + rot); n.al = wrapAngle(drag.startAl + rot);
+    if (n.type === 'circle') { n.at = wrapAngle(drag.startAt + rot); n.ab = wrapAngle(drag.startAb + rot); }
+  }
   updateHardIndicator(n, p, indAngle);
 }
 function moveMarquee(drag, p) {

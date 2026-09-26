@@ -174,7 +174,7 @@ test.describe('document', () => {
 
   test('copy gradient produces a preset-shaped payload', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await page.click('#copyGradient');
+    await page.click('#copyGradientBtn');
     const payload = JSON.parse(await page.evaluate(() => navigator.clipboard.readText()));
     const s = await getState(page);
     expect(payload.nodes).toHaveLength(s.n);
