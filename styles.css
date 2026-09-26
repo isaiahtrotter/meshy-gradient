@@ -288,12 +288,20 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 .adj-glow[data-for="bri"] {
   background: linear-gradient(to right, transparent var(--pct), var(--ctrl-bg) var(--pct)), linear-gradient(to right, rgba(51,51,51,.4) 0%, rgba(255,255,255,.4) 100%);
 }
+/* A true spatially-varying blur (Figma's "progressive blur": 0 at the handle, ramping up toward the edges)
+   isn't a thing CSS's single-radius filter: blur() can do. Faked instead with a stack of concentric
+   box-shadows on a thin bar at the handle — each ring a bigger blur radius and lower opacity than the last,
+   so the sharp core softens into an increasingly heavy blur the further out it bleeds, all the way to the
+   slider's own edges. */
 .adj-glow[data-for="soft"] {
-  top: -20px; bottom: -20px; /* taller than the track so the blur has room to feather before .slider clips it,
-                                 which is what makes it reach the track's own top and bottom edges */
-  background: linear-gradient(to right, transparent, rgba(255,255,255,.85) 50%, transparent);
-  background-size: 46px 100%; background-position: calc(var(--pct) - 23px) 0; background-repeat: no-repeat;
-  filter: blur(10px);
+  inset: auto; top: 0; bottom: 0; left: var(--pct); width: 2px; margin-left: -1px;
+  background: rgba(255,255,255,.9);
+  box-shadow:
+    0 0 6px 0 rgba(255,255,255,.85),
+    0 0 16px 3px rgba(255,255,255,.55),
+    0 0 40px 8px rgba(255,255,255,.3),
+    0 0 90px 16px rgba(255,255,255,.16),
+    0 0 160px 24px rgba(255,255,255,.08);
 }
 .checker { background-color: #fff; background-image: linear-gradient(45deg, #c8c8c8 25%, transparent 25%), linear-gradient(-45deg, #c8c8c8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c8c8c8 75%), linear-gradient(-45deg, transparent 75%, #c8c8c8 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; }
 .swatch { position: relative; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; flex: none; overflow: hidden; }
