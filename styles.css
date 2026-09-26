@@ -305,7 +305,7 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 .adj-glow[data-for="soft"], .adj-glow[data-for="grain"], .adj-glow[data-for="grainSize"],
 .adj-glow[data-for="density"], .adj-glow[data-for="blendMode"] {
   inset: auto; top: 0; bottom: 0; left: var(--pct); width: 2px; margin-left: -1px;
-  background: rgba(255,255,255,1);
+  background: rgba(255,255,255,.5);
   box-shadow:
     0 0 6px 0 rgba(255,255,255,.43),
     0 0 16px 3px rgba(255,255,255,.28),
