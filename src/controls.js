@@ -9,7 +9,6 @@ import { $ } from './dom.js';
 import { layout, draw } from './view.js';
 import { refreshAll } from './refresh.js';
 import { deleteSelected, selectAllNodes } from './actions.js';
-import { updateExportHeight } from './exporter.js';
 
 // ---------- Canvas size ----------
 function applyCanvasSizeLive(w, h) { setCanvasSizeState(w, h); $('cw').value = state.w; $('ch').value = state.h; layout(); }
@@ -65,7 +64,6 @@ function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly = fals
 const scrubW = v => applyCanvasSizeLive(v, state.h), scrubH = v => applyCanvasSizeLive(state.w, v);
 attachScrub($('cwScrub'), $('cw'), { onInput: scrubW });
 attachScrub($('chScrub'), $('ch'), { onInput: scrubH });
-attachScrub($('ewScrub'), $('ew'), { onInput: v => { $('ew').value = v; updateExportHeight(); } });
 attachScrub($('cw'), $('cw'), { onInput: scrubW, threshold: 6, mobileOnly: true });
 attachScrub($('ch'), $('ch'), { onInput: scrubH, threshold: 6, mobileOnly: true });
 

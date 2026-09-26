@@ -9,11 +9,20 @@ export function updateExportHeight() {
   const ew = +$('ew').value || state.w;
   $('eh').value = Math.round(ew * state.h / state.w);
 }
-$('ew').addEventListener('input', updateExportHeight);
+// Export width tracks the canvas size at whichever scale (1x-4x) is selected, so resizing the canvas
+// immediately updates the (disabled, display-only) export fields instead of leaving a stale pixel width.
+function currentScale() {
+  const pressed = $('scales').querySelector('button[aria-pressed="true"]');
+  return pressed ? +pressed.dataset.s : 1;
+}
+export function updateExportSize() {
+  $('ew').value = state.w * currentScale();
+  updateExportHeight();
+}
 $('scales').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  $('ew').value = state.w * +b.dataset.s; updateExportHeight();
   for (const btn of $('scales').querySelectorAll('button')) btn.setAttribute('aria-pressed', String(btn === b));
+  updateExportSize();
 });
 
 $('exportBtn').addEventListener('click', async () => {

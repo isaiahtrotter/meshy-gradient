@@ -7,7 +7,7 @@ import { $, stage, frame, work, frameRect, setStatus } from './dom.js';
 import { makeRenderer } from './renderer.js';
 import { scheduleSave } from './persistence.js';
 import { refreshHandles } from './handles.js';
-import { updateExportHeight } from './exporter.js';
+import { updateExportSize } from './exporter.js';
 
 // ---------- Preview renderer ----------
 export const glCanvas = $('gl');
@@ -72,7 +72,7 @@ export function layout() {
   frame.style.height = h + 'px';
   applyPan();
   $('sizeTag').textContent = `${state.w} × ${state.h} px`;
-  updateExportHeight();
+  updateExportSize();
   refreshHandles(); draw();
 }
 new ResizeObserver(() => layout()).observe(stage);
