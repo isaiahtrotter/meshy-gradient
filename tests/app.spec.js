@@ -53,6 +53,27 @@ test.describe('nodes', () => {
     expect((await getState(page)).n).toBe(seeded + 2);
   });
 
+  test('L / A / C / B keyboard shortcuts toggle placement mode, matching the toolbar buttons', async ({ page }) => {
+    const pressed = id => page.getAttribute(`#${id}`, 'aria-pressed');
+    expect(await pressed('addCircleBtn')).toBe('true'); // circle is the default placement
+
+    await page.keyboard.press('l');
+    expect(await pressed('addLineBtn')).toBe('true');
+    await page.keyboard.press('l'); // pressing it again toggles back off, to circle
+    expect(await pressed('addCircleBtn')).toBe('true');
+
+    await page.keyboard.press('a');
+    expect(await pressed('addArcBtn')).toBe('true');
+    await page.keyboard.press('c'); // switching straight from arc to circle, not toggling arc off first
+    expect(await pressed('addCircleBtn')).toBe('true');
+    expect(await pressed('addArcBtn')).toBe('false');
+
+    await page.keyboard.press('b');
+    expect(await pressed('addStrokeBtn')).toBe('true');
+    await page.keyboard.press('Escape');
+    expect(await pressed('addCircleBtn')).toBe('true');
+  });
+
   test('spread handle drag changes arm length and angle', async ({ page }) => {
     await page.click('#addLineBtn');
     await clickCanvas(page, 0.15, 0.6);
@@ -278,14 +299,15 @@ test.describe('document', () => {
     await expect(page.locator('#adjTempVal')).toHaveText('0');
   });
 
-  test('bottom toolbar tooltip: 1s delay, then slides instantly between icons, showing a shortcut key when there is one', async ({ page }) => {
+  test('bottom toolbar tooltip: .5s delay, then slides instantly between icons, showing each tool\'s shortcut key', async ({ page }) => {
     const tip = page.locator('.toolbar-tip');
     await page.hover('#addLineBtn');
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(200);
     await expect(tip).not.toHaveClass(/visible/);
-    await page.waitForTimeout(700); // ~1100ms total: past the 1s delay
+    await page.waitForTimeout(400); // ~600ms total: past the .5s delay
     await expect(tip).toHaveClass(/visible/);
-    await expect(tip).toHaveText('Line');
+    await expect(tip.locator('span')).toHaveText('Line');
+    await expect(tip.locator('kbd')).toHaveText('L');
 
     await page.hover('#addStrokeBtn'); // straight to another icon in the bar: no second delay
     await page.waitForTimeout(100);

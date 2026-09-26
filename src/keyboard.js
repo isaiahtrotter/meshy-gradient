@@ -9,6 +9,10 @@ import { setPreview, setPlacement } from './modes.js';
 import { setSampling } from './sampling.js';
 import { deleteSelected, selectAllNodes, clearSelection, nudgeSelected, flipSelected } from './actions.js';
 
+// Placement-mode shortcuts, one per bottom-toolbar tool; 'circle' is the default (null) placement, so its key
+// just selects it rather than toggling — there's nothing "below" it to toggle back to.
+const PLACEMENT_KEYS = { l: 'line', a: 'arc', c: null, b: 'stroke' };
+
 const setSpaceHeld = on => { session.spaceHeld = on; stage.classList.toggle('space-pan', on); };
 const releaseSpace = () => { if (session.spaceHeld) { setSpaceHeld(false); setPreview(false); } };
 document.addEventListener('keyup', e => { if (e.key === ' ' || e.code === 'Space') releaseSpace(); });
@@ -37,7 +41,7 @@ document.addEventListener('keydown', e => {
   else if (e.shiftKey && !mod && (key === 'h' || key === 'v')) { e.preventDefault(); flipSelected(key === 'h' ? 'x' : 'y'); } // before plain H (preview)
   else if ((key === 'p' || key === 'h') && !mod) { setPreview(!session.previewing); }
   else if (key === 'i' && !mod) { e.preventDefault(); setSampling(!session.sampling); }
-  else if (key === 'b' && !mod) { setPlacement(session.placing === 'stroke' ? null : 'stroke'); }
+  else if (!mod && key in PLACEMENT_KEYS) { const t = PLACEMENT_KEYS[key]; setPlacement(session.placing === t ? null : t); }
   else if (e.key.startsWith('Arrow') && state.selected.size) {
     e.preventDefault();
     const step = e.shiftKey ? 0.01 : 0.001;

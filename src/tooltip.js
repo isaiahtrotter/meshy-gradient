@@ -1,9 +1,9 @@
 // A single shared tooltip for the bottom toolbar's icon buttons (src/tooltip.js is imported once from app.js).
-// The first hover in the bar waits out TIP_DELAY before the pill appears; while it's visible, moving straight to
-// another icon (without leaving the bar) slides it sideways instead of hiding and re-arming the delay. Buttons
-// opt in with `data-tip` (the label) and, when they have one, `data-key` (rendered as a <kbd>).
+// The first hover in the bar waits out TIP_DELAY (.5s) before the pill appears; while it's visible, moving
+// straight to another icon (without leaving the bar) slides it sideways instead of hiding and re-arming the
+// delay. Buttons opt in with `data-tip` (the label) and, when they have one, `data-key` (rendered as a <kbd>).
 
-const TIP_DELAY = 1000;
+const TIP_DELAY = 500;
 const bar = document.querySelector('.node-bar');
 
 const tip = document.createElement('div');
