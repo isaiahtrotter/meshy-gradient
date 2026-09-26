@@ -24,7 +24,7 @@ function presetScene(p) {
     grainSize: isNum(p.grainSize) ? p.grainSize : 1,
     grainType: GRAIN_TYPES.includes(p.grainType) ? p.grainType : 'mono',
     density: isNum(p.density) ? p.density : 1.4,
-    adj: { hue: isNum(p.adj?.hue) ? p.adj.hue : 0, sat: isNum(p.adj?.sat) ? p.adj.sat : 1, bri: isNum(p.adj?.bri) ? p.adj.bri : 1 },
+    adj: { hue: isNum(p.adj?.hue) ? p.adj.hue : 0, sat: isNum(p.adj?.sat) ? p.adj.sat : 1, bri: isNum(p.adj?.bri) ? p.adj.bri : 1, temp: isNum(p.adj?.temp) ? p.adj.temp : 0 },
     blendMode: BLEND_MODES.includes(p.blendMode) ? p.blendMode : (p.linear ? 'linear' : 'normal'),
     seed: isNum(p.seed) ? p.seed : 0,
   };

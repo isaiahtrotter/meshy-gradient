@@ -106,7 +106,7 @@ export function makeRenderer(canvas, opts) {
       gl.uniform1f(U.uSoft, s.soft / 0.2); gl.uniform1f(U.uGrain, s.grain); gl.uniform1f(U.uGrainSize, s.grainSize);
       gl.uniform1f(U.uSeed, s.seed); gl.uniform1f(U.uBlendMode, BLEND_MODE_INDEX[s.blendMode] || 0); gl.uniform1f(U.uRefW, s.w);
       gl.uniform1f(U.uGrainType, GRAIN_TYPE_INDEX[s.grainType] || 0); gl.uniform1f(U.uDensity, s.density);
-      gl.uniform3f(U.uAdj, s.adj.hue * Math.PI / 180, s.adj.sat, s.adj.bri);
+      gl.uniform4f(U.uAdj, s.adj.hue * Math.PI / 180, s.adj.sat, s.adj.bri, (s.adj.temp || 0) / 100);
       gl.uniform4fv(U.uNode, nodeArr); gl.uniform4fv(U.uNode2, node2Arr); gl.uniform2fv(U.uNode3, node3Arr);
       gl.uniform1fv(U.uTh2, th2Arr); gl.uniform1fv(U.uType, typeArr); gl.uniform4fv(U.uColor, colArr);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);

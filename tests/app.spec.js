@@ -263,6 +263,21 @@ test.describe('document', () => {
     await expect(page.locator('#overlay')).not.toHaveClass(/hide-handles/);
   });
 
+  test('temperature slider warms the render and a preset without one resets it to neutral', async ({ page }) => {
+    const setTemp = v => page.locator('#adjTemp').evaluate((el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }, v);
+    const shot = async () => { await page.waitForTimeout(120); return page.locator('#gl').screenshot(); };
+    await setTemp(0); const neutral = await shot();
+    await setTemp(80);
+    expect((await page.evaluate(() => window.__meshy.state.adj.temp))).toBe(80);
+    await expect(page.locator('#adjTempVal')).toHaveText('80');
+    expect((await shot()).equals(neutral)).toBe(false);
+
+    await page.locator('#presets .preset').first().click(); // presets predate temperature
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => window.__meshy.state.adj.temp)).toBe(0);
+    await expect(page.locator('#adjTempVal')).toHaveText('0');
+  });
+
   test('copy gradient produces a preset-shaped payload', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.click('#copyGradientBtn');

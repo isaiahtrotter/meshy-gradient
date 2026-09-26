@@ -13,7 +13,7 @@ export const VS = `attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }
 export const FS = `
   precision highp float;
   uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uBlendMode, uRefW, uGrainType, uDensity;
-  uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec3 uAdj; uniform vec2 uNode3[${MAXN}];
+  uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec4 uAdj; uniform vec2 uNode3[${MAXN}];
   uniform sampler2D uPts;
   float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
   vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
@@ -134,12 +134,18 @@ export const FS = `
       vec3 b = normalCol;
       col = mix(2.0 * b * b, 1.0 - 2.0 * (1.0 - b) * (1.0 - b), step(0.5, b));
     }
-    // global variation: hue rotate, saturation, brightness
-    const vec3 kk = vec3(0.57735);
+    // global variation: hue rotate, saturation, brightness, temperature
+    const vec3 kk = vec3(0.57735), luma = vec3(0.2126, 0.7152, 0.0722);
     float ca = cos(uAdj.x), sa = sin(uAdj.x);
     col = col * ca + cross(kk, col) * sa + kk * dot(kk, col) * (1.0 - ca);
-    float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    float lum = dot(col, luma);
     col = mix(vec3(lum), col, uAdj.y) * uAdj.z;
+    if (uAdj.w != 0.0) {
+      // temperature (-1 cool .. 1 warm): a white-balance gain, red and blue pulled in opposite directions, then
+      // divided by its own luminance so it shifts the colour without brightening or darkening (Brightness does that)
+      vec3 gain = vec3(1.0 + 0.3 * uAdj.w, 1.0 + 0.05 * uAdj.w, 1.0 - 0.3 * uAdj.w);
+      col *= gain / dot(gain, luma);
+    }
     // grain cell size is relative to the canvas's logical width (uRefW), not device pixels, so it looks the
     // same in the small preview and a large export
     float grainPx = uGrainSize * (uRes.x / uRefW);

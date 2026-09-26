@@ -22,8 +22,7 @@ window.addEventListener('error', function () {
   the browser console, run <code>localStorage.removeItem('meshGradientState.v1')</code>, then reload.
 </div>
 <div class="topbar">
-  <div class="topbar-spacer"></div>
-  <div class="topbar-center">
+  <div class="topbar-right">
     <button id="shortcutsBtn" class="icon-btn" title="Keyboard shortcuts" aria-haspopup="dialog" aria-expanded="false">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M7.5 5V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -32,12 +31,10 @@ window.addEventListener('error', function () {
         <path d="M7.5 15C7.5 16.3807 6.38071 17.5 5 17.5C3.61929 17.5 2.5 16.3807 2.5 15C2.5 13.6192 3.61929 12.5 5 12.5H15C16.3807 12.5 17.5 13.6192 17.5 15C17.5 16.3807 16.3807 17.5 15 17.5C13.6192 17.5 12.5 16.3807 12.5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
-  </div>
-  <div class="topbar-right">
     <button id="copyGradientBtn" class="icon-btn" title="Copy gradient">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="6.5" y="6.5" width="9" height="11" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
-        <path d="M4.5 12.5V3.5C4.5 2.94772 4.94772 2.5 5.5 2.5H11.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+        <path d="M16.1667 16.6667H8C7.72386 16.6667 7.5 16.4428 7.5 16.1667V8C7.5 7.72386 7.72386 7.5 8 7.5H16.1667C16.4428 7.5 16.6667 7.72386 16.6667 8V16.1667C16.6667 16.4428 16.4428 16.6667 16.1667 16.6667Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12.5007 7.49967V3.83301C12.5007 3.55687 12.2768 3.33301 12.0007 3.33301H3.83398C3.55784 3.33301 3.33398 3.55687 3.33398 3.83301V11.9997C3.33398 12.2758 3.55784 12.4997 3.83398 12.4997H7.50065" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
   </div>
@@ -186,6 +183,7 @@ window.addEventListener('error', function () {
       <div class="slider"><span class="slider-label">Hue</span><span class="slider-value" id="adjHueVal">0</span><input type="range" id="adjHue" min="-180" max="180" step="1" value="0"><div class="adj-glow" data-for="hue"></div><div class="slider-edge"></div></div>
       <div class="slider"><span class="slider-label">Saturation</span><span class="slider-value" id="adjSatVal">1.00</span><input type="range" id="adjSat" min="0" max="2" step="0.01" value="1"><div class="adj-glow" data-for="sat"></div><div class="slider-edge"></div></div>
       <div class="slider"><span class="slider-label">Brightness</span><span class="slider-value" id="adjBriVal">1.00</span><input type="range" id="adjBri" min="0.2" max="1.8" step="0.01" value="1"><div class="adj-glow" data-for="bri"></div><div class="slider-edge"></div></div>
+      <div class="slider"><span class="slider-label">Temperature</span><span class="slider-value" id="adjTempVal">0</span><input type="range" id="adjTemp" min="-100" max="100" step="1" value="0"><div class="adj-glow" data-for="temp"></div><div class="slider-edge"></div></div>
     </section>
 
     <section id="paletteSection">

@@ -111,6 +111,7 @@ const SLIDERS = [
   { id: 'adjHue', out: 'adjHueVal', get: () => state.adj.hue, set: el => { state.adj.hue = +el.value; }, fmt: v => String(Math.round(v)) },
   { id: 'adjSat', out: 'adjSatVal', get: () => state.adj.sat, set: el => { state.adj.sat = +el.value; }, fmt: v => v.toFixed(2) },
   { id: 'adjBri', out: 'adjBriVal', get: () => state.adj.bri, set: el => { state.adj.bri = +el.value; }, fmt: v => v.toFixed(2) },
+  { id: 'adjTemp', out: 'adjTempVal', get: () => state.adj.temp, set: el => { state.adj.temp = +el.value; }, fmt: v => String(Math.round(v)) },
 ];
 for (const s of SLIDERS) {
   const el = $(s.id);

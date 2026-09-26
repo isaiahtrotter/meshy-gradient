@@ -19,7 +19,7 @@ export const state = {
   nodes: [],
   selected: new Set(),
   soft: 0.1, grain: 0.02, grainSize: 1, grainType: 'mono', density: 1.4,
-  adj: { hue: 0, sat: 1, bri: 1 },
+  adj: { hue: 0, sat: 1, bri: 1, temp: 0 }, // temp: -100 cool .. 100 warm
   blendMode: 'normal',
   seed: Math.random() * 1000,
 };
@@ -100,6 +100,9 @@ export function applyConfig(s, { reassignIds } = {}) {
     if (isNum(s.adj.sat)) state.adj.sat = clamp(s.adj.sat, 0, 2);
     if (isNum(s.adj.bri)) state.adj.bri = clamp(s.adj.bri, 0.2, 1.8);
   }
+  // newer than the other adjustments, so presets and saves from before it have none: that means neutral, not
+  // "keep whatever temperature is currently set"
+  state.adj.temp = isNum(s.adj?.temp) ? clamp(s.adj.temp, -100, 100) : 0;
   // `linear` is the old boolean flag this replaced; still accepted from older saved state/presets.
   state.blendMode = BLEND_MODES.includes(s.blendMode) ? s.blendMode : (s.linear ? 'linear' : 'normal');
   if (isNum(s.seed)) state.seed = s.seed;
