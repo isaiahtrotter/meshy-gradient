@@ -275,14 +275,16 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
   position: absolute; inset: 0; border-radius: var(--radius); pointer-events: none;
   opacity: 0; transition: opacity .15s ease-out;
 }
-#soft:hover ~ .adj-glow, #soft:active ~ .adj-glow,
 #adjHue:hover ~ .adj-glow, #adjHue:active ~ .adj-glow,
 #adjSat:hover ~ .adj-glow, #adjSat:active ~ .adj-glow,
-#adjBri:hover ~ .adj-glow, #adjBri:active ~ .adj-glow,
+#adjBri:hover ~ .adj-glow, #adjBri:active ~ .adj-glow { opacity: .5; }
+/* Glow-bar family: this element's own background is the single centre line, shown at full 100% opacity;
+   the halo (box-shadow) alpha values below are already baked down to the equivalent of a 50% overlay. */
+#soft:hover ~ .adj-glow, #soft:active ~ .adj-glow,
 #grain:hover ~ .adj-glow, #grain:active ~ .adj-glow,
 #grainSize:hover ~ .adj-glow, #grainSize:active ~ .adj-glow,
 #density:hover ~ .adj-glow, #density:active ~ .adj-glow,
-#blendMode:hover ~ .adj-glow, #blendMode:active ~ .adj-glow { opacity: .5; }
+#blendMode:hover ~ .adj-glow, #blendMode:active ~ .adj-glow { opacity: 1; }
 /* Hue: a small window right at the handle reveals the true hue spectrum underneath, at full colour,
    everywhere else stays the plain flat track. */
 .adj-glow[data-for="hue"] {
@@ -296,19 +298,20 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 .adj-glow[data-for="bri"] {
   background: linear-gradient(to right, transparent var(--pct), var(--ctrl-bg) var(--pct)), linear-gradient(to right, rgba(51,51,51,.4) 0%, rgba(255,255,255,.4) 100%);
 }
-/* A glowing bar at the handle: a soft white core (50% opacity) haloed by concentric box-shadows, each a
-   bigger blur radius and lower opacity than the last, bleeding out toward the slider's own edges. Shared by
-   every slider that doesn't have its own bespoke effect (Hue/Saturation/Brightness draw their own colour). */
+/* A glowing bar at the handle: a solid white centre line at full opacity, haloed by concentric box-shadows
+   (their alphas already halved from the line's own strength), each a bigger blur radius and lower opacity
+   than the last, bleeding out toward the slider's own edges. Shared by every slider that doesn't have its
+   own bespoke effect (Hue/Saturation/Brightness draw their own colour). */
 .adj-glow[data-for="soft"], .adj-glow[data-for="grain"], .adj-glow[data-for="grainSize"],
 .adj-glow[data-for="density"], .adj-glow[data-for="blendMode"] {
   inset: auto; top: 0; bottom: 0; left: var(--pct); width: 2px; margin-left: -1px;
-  background: rgba(255,255,255,.5);
+  background: rgba(255,255,255,1);
   box-shadow:
-    0 0 6px 0 rgba(255,255,255,.85),
-    0 0 16px 3px rgba(255,255,255,.55),
-    0 0 40px 8px rgba(255,255,255,.3),
-    0 0 90px 16px rgba(255,255,255,.16),
-    0 0 160px 24px rgba(255,255,255,.08);
+    0 0 6px 0 rgba(255,255,255,.43),
+    0 0 16px 3px rgba(255,255,255,.28),
+    0 0 40px 8px rgba(255,255,255,.15),
+    0 0 90px 16px rgba(255,255,255,.08),
+    0 0 160px 24px rgba(255,255,255,.04);
 }
 .checker { background-color: #fff; background-image: linear-gradient(45deg, #c8c8c8 25%, transparent 25%), linear-gradient(-45deg, #c8c8c8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c8c8c8 75%), linear-gradient(-45deg, transparent 75%, #c8c8c8 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; }
 .swatch { position: relative; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; flex: none; overflow: hidden; }
