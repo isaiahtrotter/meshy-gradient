@@ -3,7 +3,6 @@
 
 import { MOBILE_BREAKPOINT, CANVAS_MIN, CANVAS_MAX, clamp } from './constants.js';
 import { state, targetNodes, addNode, setCanvasSize as setCanvasSizeState } from './state.js';
-import { hexToRgb, rgbToHex } from './color.js';
 import { snapshot, pushUndo, undo } from './undo.js';
 import { $ } from './dom.js';
 import { layout, draw } from './view.js';
@@ -102,17 +101,6 @@ for (const s of SLIDERS) {
   el.addEventListener('input', e => { s.set(e.target); sliderFill(e.target); $(s.out).textContent = s.fmt(+e.target.value); draw(); });
   el.addEventListener('change', () => { if (dragSnap) { pushUndo(dragSnap); dragSnap = null; } });
 }
-
-// Hue/Saturation/Brightness preview their effect on hover/drag, tinted by the gradient's average colour.
-function updatePreviewColor() {
-  const nodes = state.nodes;
-  if (!nodes.length) return;
-  let r = 0, g = 0, b = 0;
-  for (const n of nodes) { const [nr, ng, nb] = hexToRgb(n.color); r += nr; g += ng; b += nb; }
-  document.documentElement.style.setProperty('--preview-color',
-    rgbToHex(...[r, g, b].map(v => Math.round((v / nodes.length) * 255))));
-}
-for (const id of ['adjSat', 'adjBri']) $(id).addEventListener('pointerenter', updatePreviewColor);
 
 $('grainType').addEventListener('click', e => {
   const b = e.target.closest('button[data-grain-type]'); if (!b) return;
