@@ -347,6 +347,7 @@ button {
   white-space: nowrap;
 }
 button:hover { border-color: var(--ink-3); }
+.panel button:hover:not(:disabled) { filter: brightness(1.15); }
 button.primary {
   background: linear-gradient(180deg, #2E3F8B 0%, #394DA9 100%);
   border: 1px solid #4E64C5; color: #ffffff;
