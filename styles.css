@@ -282,7 +282,7 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 #grain:hover ~ .adj-glow, #grain:active ~ .adj-glow,
 #grainSize:hover ~ .adj-glow, #grainSize:active ~ .adj-glow,
 #density:hover ~ .adj-glow, #density:active ~ .adj-glow,
-#blendMode:hover ~ .adj-glow, #blendMode:active ~ .adj-glow { opacity: 1; }
+#blendMode:hover ~ .adj-glow, #blendMode:active ~ .adj-glow { opacity: .5; }
 /* Hue: a small window right at the handle reveals the true hue spectrum underneath, at full colour,
    everywhere else stays the plain flat track. */
 .adj-glow[data-for="hue"] {
