@@ -322,6 +322,7 @@ test.describe('document', () => {
 
     await page.hover('#shuffle'); // no shortcut: no stray empty kbd
     await page.waitForTimeout(100);
+    await expect(tip.locator('span')).toHaveText('Shuffle colors');
     await expect(tip.locator('kbd')).toHaveCount(0);
 
     await page.mouse.move(200, 200); // leave the bar entirely
