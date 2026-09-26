@@ -47,7 +47,8 @@ export function addNode(type, x, y, color, spread) {
   state.nodes.push(n);
   return n;
 }
-export function cloneNode(n) { return { ...n, id: allocId() }; }
+// Deep, so a clone never shares a stroke's pts/stops arrays with its source.
+export function cloneNode(n) { return { ...structuredClone(n), id: allocId() }; }
 export function replaceNode(id, node) {
   const i = state.nodes.findIndex(n => n.id === id);
   if (i >= 0) state.nodes[i] = node;

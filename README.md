@@ -22,24 +22,25 @@ composes handles + panel + draw, so most mutations end with `refreshAll()` from 
 | `constants.js` | limits, breakpoint, `clamp`, `isNum` | — |
 | `color.js` | hex/rgb/hsv/hsl conversions, `parseHexInput`, `randomColor` | — |
 | `geometry.js` | pure arc maths: `arcGeom`, `halfArcGeom`, `wrapAngle` | — |
-| `nodes.js` | the node model: `normalizeNode`, `createNode`, `armAngle`, `armEnds`, `arcCurves`, `convertNodeType`, `toggleLinked` | geometry, color |
+| `stroke.js` | pure brush-stroke maths: `smoothStroke` (raw pointer samples → path), `strokeFromPath`, `strokeWorld`, `pointAt`/`nearestT`, hardness stops (`stopFactor`, `strokeK`), the stroke normalizer helpers | constants |
+| `nodes.js` | the node model: `normalizeNode`, `createNode`, `armAngle`, `armEnds`, `arcCurves`, `convertNodeType`, `toggleLinked` | geometry, color, stroke |
 | `state.js` | `state`, `PALETTES`, ids, selection helpers, `targetNodes`, `addNode`/`setNodes`, `serializeConfig`/`applyConfig` | constants, nodes |
 | `undo.js` | undo/redo stacks, `snapshot`, `pushUndo`, `onRestore`/`onUndoChange` hooks | state |
 | `persistence.js` | localStorage save/load (`meshGradientState.v1`), debounced + flushed on pagehide | state |
-| `session.js` | transient UI state: `drag`, `previewing`, placement mode, `sampling`, `spaceHeld` | — |
+| `session.js` | transient UI state: `drag`, `previewing`, `placing` (null / arc / line / stroke), `sampling`, `spaceHeld` | — |
 | `dom.js` | `$`, stage/frame/overlay refs, `frameRect`, `maxDim`, `normPos`, `setStatus` | — |
 | `shader.js` | GLSL source + the per-slot uniform layout comment | constants |
 | `renderer.js` | `makeRenderer(canvas)` → `render(w, h, state)`, `renderClean` (grain off); packs nodes into slots | shader, nodes, color |
 | `exporter.js` | export width/height inputs, JPG export | renderer, state |
-| `handles.js` | per-node overlay DOM, `refreshHandles`, hardness ring maths | state, session, nodes, dom |
+| `handles.js` | per-node overlay DOM (incl. a stroke's path, stop dots and stop rings), `refreshHandles`, hardness ring maths | state, session, nodes, stroke, dom |
 | `view.js` | preview renderer + `draw()`, `layout()`, zoom/pan, reference image | renderer, handles, exporter, persistence |
 | `colorPanel.js` | Selected panel, hex input, HSV picker, `refreshSelectionPanel`, `setSelectedColor` | state, undo, handles, view |
 | `refresh.js` | `refreshAll`, `refreshSelection` | handles, colorPanel, view |
 | `actions.js` | `deleteSelected`, `selectAllNodes`, `clearSelection`, `nudgeSelected` | state, undo, refresh |
-| `modes.js` | preview toggle, arc/line placement, hint text | session, dom |
+| `modes.js` | preview toggle, arc/line placement, the brush, hint text | session, dom |
 | `sampling.js` | eyedropper, loupe, `colorAtCanvasPoint` | view, refresh, modes |
-| `nodeMenu.js` | right-click menu: type conversion, link/unlink | nodes, state, undo, refresh |
-| `interaction.js` | the pointer drag state machine (spread / hard / move / marquee / pan) | most of the above |
+| `nodeMenu.js` | right-click menu: type conversion, link/unlink (none for strokes) | nodes, state, undo, refresh |
+| `interaction.js` | the pointer drag state machine (spread / hard / move / marquee / pan / draw / stopMove / stopHard) | most of the above |
 | `keyboard.js` | global shortcuts | actions, modes, sampling, view, undo |
 | `controls.js` | canvas size + scrubbers, sliders, palettes, align/shuffle/scatter, `syncControlsFromState`, `seedNodes` | state, undo, view, refresh, actions |
 | `presets.js` | fetches `presets.json` (cached), applies presets, picks the default preset, Copy gradient | state, undo, view, refresh, controls |
@@ -53,14 +54,21 @@ capture-phase pointerdown swallows clicks while sampling). `interaction.js` impo
 Every node in `state.nodes` has passed through `normalizeNode()` (on create, load, preset, undo restore), so
 readers never apply fallbacks. Positions and lengths are normalized: `x`,`y` in 0..1 of the canvas.
 
-Common fields: `id`, `type` (`'circle'|'arc'|'line'`), `x`, `y`, `a` (alpha), `k` (hardness), `color`
-(`#rrggbb` lowercase), `th` (primary axis angle), `linked` (bool), `sl`, `sr` (left/right arm lengths).
+Common fields: `id`, `type` (`'circle'|'arc'|'line'|'stroke'`), `x`, `y`, `a` (alpha), `k` (hardness), `color`
+(`#rrggbb` lowercase), `th` (primary axis angle), `linked` (bool), `sl`, `sr` (left/right arm lengths; not on strokes).
 
 | `type` | Extra fields | Length units |
 |---|---|---|
 | `circle` | `st`, `sb`, `th2` (second axis angle) | spread × `PX_PER_SPREAD` (100px) on screen; `× uSoft` in shader |
 | `arc` | `phi` (bend at apex), `sw` (band width) | fraction of the canvas's long side |
 | `line` | `sw` | fraction of the long side |
+| `stroke` | `pts` (`[x, y]` pairs relative to the pivot, unrotated, ≤ `MAX_STROKE_PTS`), `stops` (`[{ t, m }]`), `sw` | fraction of the long side |
+
+Strokes come from the brush (bottom bar, or `B`): the drag is smoothed and resampled (`smoothStroke`) and the pivot
+`x`, `y` is the path's bounding-box centre. `th` rotates the path about the pivot (the main ring's orbit). `stops`
+vary hardness along the path: `t` is the arc-length fraction, `m` multiplies `k`, and there is always a stop at
+`t = 0` and `t = 1`; `m` eases between stops in log space (`stopFactor`). A stroke is always linked, has no arms,
+and never converts to or from another type.
 
 Unlinked nodes (`linked: false`) store each arm's own angle in `ar`, `al` (and `at`, `ab` for circles).
 `armAngle(n, side)` is the only reader; it derives angles from `th`/`th2`/`phi` when linked.
@@ -73,7 +81,10 @@ Legacy shapes still accepted by the normalizer: single `r`, `rx`/`ry`, absent `t
    a debounced localStorage save.
 2. `render(w, h, state)` walks the nodes and packs each into a **slot** across parallel uniform arrays
    (`uNode`, `uNode2`, `uNode3`, `uTh2`, `uType`, `uColor`). The layout per `uType` is documented at the top
-   of `shader.js`. An unlinked arc or line consumes two slots. `MAXN` = 40 slots.
+   of `shader.js`. An unlinked arc or line consumes two slots. `MAXN` = 40 slots. A stroke takes one slot, and its
+   points (with a per-point hardness from its stops) go in row `slot` of a `MAX_STROKE_PTS × MAXN` float texture
+   (`uPts`, needs `OES_texture_float`; without it strokes are skipped). The shader keeps each pixel's strongest
+   segment weight, compared in log space so it's continuous where the nearest segment switches.
 3. The fragment shader loops over slots, computes a weight `(1 / (1 + d²))^k` per slot from a normalized
    distance, and blends colours by weight (`blendMode`: `normal`/`linear`/`multiply`/`screen`/`overlay` — the
    last four are order-independent generalizations of the usual two-layer blend modes, computed via weighted

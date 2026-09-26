@@ -1,18 +1,21 @@
 // The node model. Every node in state passes through normalizeNode(), so readers can rely on every field below
 // being present and never need inline fallbacks.
 //
-// Common:  id, type ('circle'|'arc'|'line'), x, y (0..1 of the canvas), a (alpha), k (hardness), color, th
-//          (primary axis angle), linked (true unless the arms have been unlinked), sl, sr (left/right arm lengths)
+// Common:  id, type ('circle'|'arc'|'line'|'stroke'), x, y (0..1 of the canvas), a (alpha), k (hardness), color,
+//          th (primary axis angle), linked (true unless the arms have been unlinked), sl, sr (left/right arm lengths)
 // circle:  st, sb (top/bottom arm lengths), th2 (second axis angle). Lengths are in "spread" units (× PX_PER_SPREAD
 //          on screen, × softness in the shader).
 // arc:     phi (bend at the apex), sw (band width). Lengths are a fraction of the canvas's long side.
 // line:    sw. Same length units as an arc.
+// stroke:  pts (the drawn path), stops (hardness along it), sw; see stroke.js. No arms: no sl/sr, always linked,
+//          never converts to or from another type. th rotates the path about x, y.
 // unlinked: ar, al (and at, ab for circles) hold each arm's own angle. Linked nodes derive them from th/th2/phi.
 
 import { wrapAngle, arcGeom, halfArcGeom } from './geometry.js';
 import { randomColor, HEX6 } from './color.js';
+import { sanitizePts, sanitizeStops } from './stroke.js';
 
-export const NODE_TYPES = ['circle', 'arc', 'line'];
+export const NODE_TYPES = ['circle', 'arc', 'line', 'stroke'];
 export const SIDE_KEY = { l: 'sl', r: 'sr', t: 'st', b: 'sb' };
 export const ANGLE_KEY = { l: 'al', r: 'ar', t: 'at', b: 'ab' };
 export const OPPOSITE_SIDE = { l: 'r', r: 'l', t: 'b', b: 't' };
@@ -24,13 +27,21 @@ const isNum = v => typeof v === 'number' && Number.isFinite(v);
 // Does not touch `id`; the caller owns ids.
 export function normalizeNode(raw) {
   const n = { ...raw };
-  n.type = n.type === 'arc' || n.type === 'line' ? n.type : 'circle';
+  n.type = NODE_TYPES.includes(n.type) ? n.type : 'circle';
   if (!isNum(n.x)) n.x = 0.5;
   if (!isNum(n.y)) n.y = 0.5;
   n.a = isNum(n.a) ? n.a : 1;
   n.k = isNum(n.k) && n.k > 0 ? n.k : DEFAULTS.k;
   n.th = isNum(n.th) ? n.th : 0;
   n.color = typeof n.color === 'string' && HEX6.test(n.color) ? n.color.toLowerCase() : randomColor();
+  if (n.type === 'stroke') {
+    n.pts = sanitizePts(n.pts); n.stops = sanitizeStops(n.stops);
+    n.sw = isNum(n.sw) && n.sw > 0 ? n.sw : DEFAULTS.sw;
+    n.linked = true;
+    for (const f of ['sl', 'sr', 'st', 'sb', 'th2', 'phi', 'ar', 'al', 'at', 'ab', 'r', 'rx', 'ry', 'thr', 'thl']) delete n[f];
+    return n;
+  }
+  delete n.pts; delete n.stops;
   const rx = n.rx ?? n.r ?? DEFAULTS.spread, ry = n.ry ?? n.r ?? DEFAULTS.spread;
   n.sl = isNum(n.sl) ? n.sl : rx;
   n.sr = isNum(n.sr) ? n.sr : rx;
@@ -90,9 +101,10 @@ export function arcCurves(n, C, scale, eps) {
 }
 
 // Returns a fresh node of the new type (same id/position/colour), or null if already that type.
-// The three kinds keep independent-axis state in different fields, so a conversion always starts linked.
+// The three arm-based kinds keep independent-axis state in different fields, so a conversion always starts linked.
+// A stroke's shape is its drawn path, which none of them can hold, so strokes never convert either way.
 export function convertNodeType(n, to) {
-  if (n.type === to) return null;
+  if (n.type === to || n.type === 'stroke' || to === 'stroke') return null;
   const len = (n.sl + n.sr) / 2;
   const base = { id: n.id, type: to, x: n.x, y: n.y, a: n.a, k: n.k, color: n.color, th: n.th, sl: len, sr: len };
   if (to === 'circle') { base.st = len; base.sb = len; }
@@ -100,6 +112,7 @@ export function convertNodeType(n, to) {
 }
 
 export function toggleLinked(n) {
+  if (n.type === 'stroke') return; // one path, no arms to unlink
   if (!n.linked) {
     // relink: fold the independent angles back into one shared angle (+ half the split, for an arc); the other
     // end snaps to the now-enforced opposite angle, which is the point of relinking

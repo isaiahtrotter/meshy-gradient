@@ -1,4 +1,4 @@
-// Right-click menu on a node: change its type, or unlink/relink its arms.
+// Right-click menu on a node: change its type, or unlink/relink its arms. Strokes get no menu (see nodes.js).
 
 import { nodeById, replaceNode, selectOnly } from './state.js';
 import { pushUndo } from './undo.js';
@@ -45,6 +45,7 @@ overlay.addEventListener('contextmenu', e => {
   e.preventDefault();
   const n = nodeById(+h.dataset.id); if (!n) return;
   selectOnly(n.id); refreshSelection();
+  if (n.type === 'stroke') return; // it can't change type or unlink, so there'd be nothing in the menu
   openNodeMenu(n);
 });
 document.addEventListener('pointerdown', e => { if (!nodeMenu.hidden && !e.target.closest('#nodeMenu')) closeNodeMenu(); });

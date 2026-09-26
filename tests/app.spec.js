@@ -91,6 +91,60 @@ test.describe('nodes', () => {
     expect(typeof n.st).toBe('number');
   });
 
+  test('brush draws a stroke; stops set hardness along it; the ring rotates it; it has no node menu', async ({ page }) => {
+    await page.keyboard.press('Escape');
+    await page.click('#addStrokeBtn');
+    const fr = await frameBox(page);
+    await page.mouse.move(fr.x + fr.width * .15, fr.y + fr.height * .8); await page.mouse.down();
+    for (let i = 1; i <= 30; i++) await page.mouse.move(fr.x + fr.width * (.15 + .5 * i / 30), fr.y + fr.height * (.8 - .3 * Math.sin(i / 30 * Math.PI)));
+    await page.mouse.up();
+    let n = await selectedNode(page);
+    expect(n.type).toBe('stroke');
+    expect(n.pts.length).toBeGreaterThan(2);
+    expect(n.linked).toBe(true);
+    expect(n.sl).toBeUndefined();
+    expect(n.stops.map(s => s.t)).toEqual([0, 1]);
+    await expect(page.locator('#addStrokeBtn')).toHaveAttribute('aria-pressed', 'true'); // the brush stays on
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#addStrokeBtn')).toHaveAttribute('aria-pressed', 'false');
+
+    // clicking the path adds a stop there without changing anything yet
+    const at = await page.evaluate(() => {
+      const p = [...document.querySelectorAll('.stroke-path .line')].find(e => e.ownerSVGElement.style.display === 'block');
+      const q = p.getPointAtLength(p.getTotalLength() * .3), r = p.ownerSVGElement.getBoundingClientRect();
+      return { x: r.left + q.x, y: r.top + q.y };
+    });
+    await page.mouse.click(at.x, at.y);
+    n = await selectedNode(page);
+    expect(n.stops).toHaveLength(3);
+    expect(n.stops[1].t).toBeCloseTo(.3, 1);
+
+    // pulling that stop's ring inward hardens the stroke there
+    const ring = page.locator('.stop-ring[data-stop="1"]').filter({ visible: true });
+    const rb = await ring.boundingBox(), R = (rb.width - 12) / 2;
+    await dragFrom(page, rb.x + rb.width / 2, rb.y + rb.height / 2 - R, 0, R - 2);
+    expect((await selectedNode(page)).stops[1].m).toBeGreaterThan(2);
+
+    // ⌥-click removes an interior stop; the ends can't be removed
+    await page.keyboard.down('Alt');
+    await page.locator('.stop-dot[data-stop="1"]').filter({ visible: true }).click();
+    await page.locator('.stop-dot[data-stop="0"]').filter({ visible: true }).click();
+    await page.keyboard.up('Alt');
+    expect((await selectedNode(page)).stops).toHaveLength(2);
+
+    // orbiting the main ring rotates the whole path
+    const mr = await page.locator('.hard-ring').filter({ visible: true }).boundingBox();
+    const cx = mr.x + mr.width / 2, cy = mr.y + mr.height / 2, mR = (mr.width - 20) / 2 - 7;
+    await page.mouse.move(cx, cy - mR); await page.mouse.down();
+    for (let i = 1; i <= 12; i++) { const a = -Math.PI / 2 + i / 12 * Math.PI / 2; await page.mouse.move(cx + mR * Math.cos(a), cy + mR * Math.sin(a)); }
+    await page.mouse.up();
+    expect((await selectedNode(page)).th).toBeCloseTo(Math.PI / 2, 1);
+
+    // no convert/unlink menu
+    await page.locator('.handle.selected').click({ button: 'right' });
+    await expect(page.locator('#nodeMenu')).toBeHidden();
+  });
+
   test('select all, delete, undo', async ({ page }) => {
     await page.keyboard.press('Meta+a');
     let s = await getState(page);
@@ -194,11 +248,16 @@ test.describe('document', () => {
   });
 
   test('legacy saved shapes still load', async ({ page }) => {
-    await loadConfig(page, { w: 800, h: 600, nodes: [{ id: 1, x: .2, y: .2, r: .4, color: '#ff0000' }, { id: 2, x: .8, y: .8, type: 'arc', sl: .3, sr: .3, th: 0, phi: .3, linked: false, thr: .5, thl: 3 }] });
+    await loadConfig(page, { w: 800, h: 600, nodes: [{ id: 1, x: .2, y: .2, r: .4, color: '#ff0000' }, { id: 2, x: .8, y: .8, type: 'arc', sl: .3, sr: .3, th: 0, phi: .3, linked: false, thr: .5, thl: 3 },
+      { id: 3, x: .5, y: .5, type: 'stroke', pts: [[0, 0], ['bad', 1], [.1, .1]], stops: [{ t: .5, m: 3 }], linked: false, sl: .2 }] });
     const s = await getState(page);
-    expect(s.types).toEqual(['circle', 'arc']);
+    expect(s.types).toEqual(['circle', 'arc', 'stroke']);
     expect(s.nodes[0].sl).toBe(.4);
     expect(s.nodes[1].ar).toBe(.5);
+    expect(s.nodes[2].pts).toEqual([[0, 0], [.1, .1]]);
+    expect(s.nodes[2].stops).toEqual([{ t: 0, m: 3 }, { t: .5, m: 3 }, { t: 1, m: 3 }]); // ends filled in
+    expect(s.nodes[2].linked).toBe(true);
+    expect(s.nodes[2].sl).toBeUndefined();
     await expect(page.locator('#status')).toHaveText('');
   });
 

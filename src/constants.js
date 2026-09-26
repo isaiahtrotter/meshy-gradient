@@ -1,6 +1,8 @@
 // Shared limits and tunables. Anything that also appears in CSS is noted.
 
 export const MAXN = 40;               // uniform slots in the shader; an unlinked arc/line uses two
+export const MAX_STROKE_PTS = 48;     // points per brush stroke; the columns of the renderer's stroke texture
+export const HARD_K_MIN = 1, HARD_K_MAX = 40; // the range the hardness rings drag through
 export const MOBILE_BREAKPOINT = 820; // must match the @media (max-width) in styles.css
 export const CANVAS_MIN = 16, CANVAS_MAX = 8192, EXPORT_MAX = 16384;
 export const ZOOM_MIN = 0.25, ZOOM_MAX = 8;

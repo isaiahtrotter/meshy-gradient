@@ -4,16 +4,20 @@
 //   move    – dragging selected nodes (alt/ctrl duplicates them)
 //   marquee – rubber-band selection; a plain click adds a node instead
 //   pan     – middle button or space + drag
+//   draw    – the brush: dragging on the canvas draws a new stroke node
+//   stopMove – sliding one of a stroke's hardness stops along its path (clicking the path adds one and starts this)
+//   stopHard – dragging a stop's dotted ring: radial motion sets the hardness at that point of the stroke
 
-import { MAXN } from './constants.js';
-import { state, nodeById, cloneNode, addNode, selectOnly, toggleSelected, removeNodes } from './state.js';
+import { MAXN, HARD_K_MIN, HARD_K_MAX, clamp } from './constants.js';
+import { state, nodeById, cloneNode, addNode, selectOnly, selectedNodes, toggleSelected, removeNodes } from './state.js';
 import { session } from './session.js';
 import { snapshot, pushUndo } from './undo.js';
 import { armAngle, SIDE_KEY, ANGLE_KEY, OPPOSITE_SIDE } from './nodes.js';
+import { cumLengths, pointAt, nearestT, smoothStroke, strokeFromPath, strokeWorld, strokeK, stopFactor, STOP_M_MIN, STOP_M_MAX } from './stroke.js';
 import { wrapAngle } from './geometry.js';
 import { stage, overlay, work, normPos, maxDim, frameRect, setStatus } from './dom.js';
 import { view, applyPan, draw } from './view.js';
-import { handleEls, hardToRadius, radiusToHard, HARD_K_MIN, HARD_K_MAX, armScale, updateHardIndicator, refreshHandles } from './handles.js';
+import { handleEls, hardToRadius, radiusToHard, stopHardToRadius, stopRadiusToHard, armScale, updateHardIndicator, refreshHandles } from './handles.js';
 import { refreshSelectionPanel } from './colorPanel.js';
 import { refreshAll, refreshSelection } from './refresh.js';
 import { colorAtCanvasPoint } from './sampling.js';
@@ -44,6 +48,12 @@ overlay.addEventListener('pointerdown', e => {
     ring.classList.add('active'); stage.classList.add('hard-dragging');
     overlay.setPointerCapture(e.pointerId); return;
   }
+  const stopDot = e.target.closest('.stop-dot');
+  if (stopDot) { beginStopMove(e, nodeById(+stopDot.dataset.id), +stopDot.dataset.stop); return; }
+  const stopRing = e.target.closest('.stop-ring');
+  if (stopRing) { beginStopHard(e, p, stopRing, nodeById(+stopRing.dataset.id), +stopRing.dataset.stop); return; }
+  const strokeHit = e.target.closest('.stroke-path .hit');
+  if (strokeHit) { addStopAt(e, p, nodeById(+strokeHit.dataset.id)); return; }
   const h = e.target.closest('.handle');
   if (h) {
     const id = +h.dataset.id;
@@ -55,6 +65,8 @@ overlay.addEventListener('pointerdown', e => {
     session.drag = { type: 'move', start: p, snap: snapshot(), moved: false, duplicating: false, cloneIds: null, sourceIds, sourceStart, orig: origFrom(sourceIds, sourceStart) };
     markDragging();
     updateDuplicateMode(e.altKey || e.ctrlKey);
+  } else if (session.placing === 'stroke') {
+    beginDraw(e, p); return;
   } else {
     const additive = e.shiftKey || e.metaKey || e.ctrlKey;
     if (!additive) state.selected.clear();
@@ -153,6 +165,83 @@ function moveMarquee(drag, p) {
   refreshHandles();
 }
 
+// ---------- Brush strokes ----------
+const DRAW_MIN_PX = 6;      // shorter than this and it was a click, not a stroke
+const STROKE_SPACING_PX = 10; // target distance between the stored path points, on screen at the time of drawing
+const STOP_GAP = 0.01;      // how close (in t) two stops may get
+const round4 = v => Math.round(v * 1e4) / 1e4;
+// The stroke's path in frame px, as it's laid out on screen.
+function strokeScreen(n) {
+  const d = maxDim(), P = strokeWorld(n, { x: n.x * d.w, y: n.y * d.h }, d.m);
+  return { P, cum: cumLengths(P) };
+}
+
+// The new stroke takes the selected node's colour, so selecting a node (or the last stroke) and recolouring it
+// sets the brush colour; with nothing selected it gets a random one.
+function beginDraw(e, p) {
+  if (state.nodes.length >= MAXN) { setStatus(`Limit of ${MAXN} nodes reached.`, true); return; }
+  const src = selectedNodes()[0];
+  session.drag = { type: 'draw', snap: snapshot(), raw: [[p.px, p.py]], len: 0, n: null, color: src ? src.color : null };
+  overlay.setPointerCapture(e.pointerId);
+}
+function moveDraw(drag, e) {
+  // coalesced events keep a fast stroke from turning into a few long straight segments
+  const evs = (e.getCoalescedEvents && e.getCoalescedEvents()) || [];
+  for (const ev of evs.length ? evs : [e]) {
+    const q = normPos(ev), last = drag.raw[drag.raw.length - 1], step = Math.hypot(q.px - last[0], q.py - last[1]);
+    if (step >= 1.5) { drag.raw.push([q.px, q.py]); drag.len += step; }
+  }
+  if (!drag.n) {
+    if (drag.len < DRAW_MIN_PX) return;
+    drag.n = addNode('stroke', 0.5, 0.5, drag.color);
+    selectOnly(drag.n.id);
+  }
+  Object.assign(drag.n, strokeFromPath(smoothStroke(drag.raw, STROKE_SPACING_PX), maxDim()));
+}
+
+// End stops are pinned to the ends of the path; the ones between slide along it, and ⌥-click removes them.
+function beginStopMove(e, n, i) {
+  if (!n) return;
+  const interior = i > 0 && i < n.stops.length - 1;
+  if (e.altKey) { if (interior) { pushUndo(); n.stops.splice(i, 1); refreshAll(); } return; }
+  session.drag = { type: 'stopMove', n, i, snap: snapshot(), moved: false, pinned: !interior };
+  overlay.setPointerCapture(e.pointerId);
+}
+function moveStop(drag, p) {
+  if (drag.pinned) return;
+  const { n, i } = drag, { P, cum } = strokeScreen(n);
+  const t = round4(clamp(nearestT(P, cum, [p.px, p.py]).t, n.stops[i - 1].t + STOP_GAP, n.stops[i + 1].t - STOP_GAP));
+  if (t !== n.stops[i].t) { n.stops[i].t = t; drag.moved = true; }
+}
+// Clicking the path adds a stop there, carrying the hardness the stroke already has at that point (so nothing
+// changes until it's dragged), and keeps the pointer on it so the same press can slide it.
+function addStopAt(e, p, n) {
+  if (!n) return;
+  const snap = snapshot(), { P, cum } = strokeScreen(n), t = round4(nearestT(P, cum, [p.px, p.py]).t);
+  const i = n.stops.findIndex(s => s.t >= t);
+  if (i <= 0 || t - n.stops[i - 1].t < STOP_GAP || n.stops[i].t - t < STOP_GAP) return;
+  n.stops.splice(i, 0, { t, m: round4(stopFactor(n.stops, t)) });
+  session.drag = { type: 'stopMove', n, i, snap, moved: true, pinned: false };
+  overlay.setPointerCapture(e.pointerId);
+  refreshAll();
+}
+function beginStopHard(e, p, ring, n, i) {
+  if (!n) return;
+  const { P, cum } = strokeScreen(n), [sx, sy] = pointAt(P, cum, n.stops[i].t);
+  session.drag = { type: 'stopHard', n, i, snap: snapshot(), moved: false, sx, sy, r: stopHardToRadius(strokeK(n, n.stops[i].t)), lastDist: Math.hypot(p.px - sx, p.py - sy) };
+  ring.classList.add('active');
+  overlay.setPointerCapture(e.pointerId);
+}
+// Same feel as the main ring: moving away from the stop softens, toward it hardens. The stop stores a multiplier
+// on the node's k, so the value set here is k / n.k.
+function moveStopHard(drag, p) {
+  drag.moved = true;
+  const dist = Math.hypot(p.px - drag.sx, p.py - drag.sy);
+  drag.r = clamp(drag.r + dist - drag.lastDist, stopHardToRadius(HARD_K_MAX), stopHardToRadius(HARD_K_MIN)); drag.lastDist = dist;
+  const k = Math.round(stopRadiusToHard(drag.r) * 10) / 10;
+  drag.n.stops[drag.i].m = clamp(round4(k / drag.n.k), STOP_M_MIN, STOP_M_MAX);
+}
+
 stage.addEventListener('pointermove', e => {
   const drag = session.drag;
   if (!drag) return;
@@ -164,6 +253,9 @@ stage.addEventListener('pointermove', e => {
   const p = normPos(e);
   if (drag.type === 'spread') { moveSpread(drag, p, e); refreshHandles(); draw(); }
   else if (drag.type === 'hard') { moveHard(drag, p, e); refreshHandles(); draw(); }
+  else if (drag.type === 'draw') { moveDraw(drag, e); refreshSelection(); draw(); }
+  else if (drag.type === 'stopMove') { moveStop(drag, p); refreshHandles(); draw(); }
+  else if (drag.type === 'stopHard') { moveStopHard(drag, p); refreshHandles(); draw(); }
   else if (drag.type === 'move') {
     updateDuplicateMode(e.altKey || e.ctrlKey);
     let dx = p.x - drag.start.x, dy = p.y - drag.start.y;
@@ -186,10 +278,11 @@ function endDrag(e) {
   const drag = session.drag;
   if (!drag) return;
   if (drag.type === 'pan') { stage.classList.remove('panning'); session.drag = null; return; }
-  if (drag.type === 'spread' || drag.type === 'hard') {
+  if (drag.type === 'spread' || drag.type === 'hard' || drag.type === 'stopMove' || drag.type === 'stopHard') {
     if (drag.moved) pushUndo(drag.snap);
-    overlay.querySelectorAll('.hard-ring.active').forEach(el => el.classList.remove('active')); stage.classList.remove('hard-dragging');
+    overlay.querySelectorAll('.hard-ring.active, .stop-ring.active').forEach(el => el.classList.remove('active')); stage.classList.remove('hard-dragging');
   }
+  if (drag.type === 'draw' && drag.n) pushUndo(drag.snap);
   if (drag.type === 'move') {
     if (drag.moved) pushUndo(drag.snap);
     else if (drag.duplicating && drag.cloneIds) { removeNodes(new Set(drag.cloneIds)); state.selected = new Set(drag.sourceIds); }

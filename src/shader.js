@@ -3,9 +3,10 @@
 //   uType 1 arc (or half):   uNode = (cx, cy, sw, sw)          uNode2 = (R, angleMid, halfSpan, k)
 //   uType 2 unlinked circle: uNode = (x, y, lenL, lenR)        uNode2 = (lenT, lenB, k, angR)  uTh2 = angL  uNode3 = (angT, angB)
 //   uType 3 line:            uNode = (Ax, Ay, Bx, By)          uNode2 = (sw, k, 0, 0)
-// Circle x/y are normalized canvas coords; arc and line coords are already in scaled render space (× sc).
+//   uType 4 stroke:          uNode = (pointCount, sw, 0, 0)    points in row `slot` of uPts, one texel each: (x, y, k, 0)
+// Circle x/y are normalized canvas coords; arc, line and stroke coords are already in scaled render space (× sc).
 
-import { MAXN } from './constants.js';
+import { MAXN, MAX_STROKE_PTS as MAXP } from './constants.js';
 
 export const VS = `attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }`;
 
@@ -13,6 +14,7 @@ export const FS = `
   precision highp float;
   uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uBlendMode, uRefW, uGrainType, uDensity;
   uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec3 uAdj; uniform vec2 uNode3[${MAXN}];
+  uniform sampler2D uPts;
   float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
   vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
   vec3 toSrgb(vec3 c){ return pow(max(c, 0.0), vec3(1.0/2.2)); }
@@ -24,7 +26,27 @@ export const FS = `
     for (int i = 0; i < ${MAXN}; i++) {
       if (i >= uCount) break;
       float w;
-      if (uType[i] > 2.5) {
+      if (uType[i] > 3.5) {
+        // stroke: a polyline with a hardness per point. Each segment's weight is (1/(1+d²))^k with k interpolated
+        // along it; keeping the strongest segment keeps the field continuous where the nearest segment switches.
+        // Compared as k·log(1+d²) so each segment costs one log, and there's a single exp at the end.
+        float cnt = uNode[i].x, rr = max(uNode[i].y * uSoft, 1e-4);
+        float row = (float(i) + 0.5) / ${MAXN}.0;
+        vec3 P0 = texture2D(uPts, vec2(0.5 / ${MAXP}.0, row)).xyz;
+        float best = 1e9, minD2 = 1e9;
+        for (int j = 1; j < ${MAXP}; j++) {
+          if (float(j) >= cnt) break;
+          vec3 P1 = texture2D(uPts, vec2((float(j) + 0.5) / ${MAXP}.0, row)).xyz;
+          vec2 AB = P1.xy - P0.xy; float len2 = dot(AB, AB);
+          float t = len2 > 1e-10 ? clamp(dot(p - P0.xy, AB) / len2, 0.0, 1.0) : 0.0;
+          vec2 dv = (p - (P0.xy + t * AB)) / rr;
+          float d2 = dot(dv, dv);
+          best = min(best, mix(P0.z, P1.z, t) * log(1.0 + d2));
+          minD2 = min(minD2, d2);
+          P0 = P1;
+        }
+        w = exp(-best) + 1e-7 / (1.0 + minD2);
+      } else if (uType[i] > 2.5) {
         // line: a straight capsule between two explicit endpoints — distance to the nearest point on segment A -> B
         vec2 A = uNode[i].xy, B = uNode[i].zw;
         float sw = uNode2[i].x, kLine = uNode2[i].y;

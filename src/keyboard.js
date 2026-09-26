@@ -29,13 +29,14 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
   else if (mod && key === 'a') { e.preventDefault(); selectAllNodes(); }
   else if (e.key === 'Escape') {
-    if (session.addingArc || session.addingLine) setPlacement(null);
+    if (session.placing) setPlacement(null);
     else if (session.sampling) setSampling(false);
     else if (session.previewing) setPreview(false);
     else clearSelection();
   }
   else if ((key === 'p' || key === 'h') && !mod) { setPreview(!session.previewing); }
   else if (key === 'i' && !mod) { e.preventDefault(); setSampling(!session.sampling); }
+  else if (key === 'b' && !mod) { setPlacement(session.placing === 'stroke' ? null : 'stroke'); }
   else if (e.key.startsWith('Arrow') && state.selected.size) {
     e.preventDefault();
     const step = e.shiftKey ? 0.01 : 0.001;

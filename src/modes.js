@@ -1,4 +1,4 @@
-// Stage modes: preview (hide handles), arc/line placement, and the hint line that describes the current mode.
+// Stage modes: preview (hide handles), arc/line placement, the brush, and the hint line that describes the mode.
 
 import { session } from './session.js';
 import { $, stage, overlay } from './dom.js';
@@ -15,15 +15,18 @@ export function setPreview(on) {
 }
 $('previewBtn').addEventListener('click', () => setPreview(!session.previewing));
 
-// Placement modes are mutually exclusive; the pending type is what the next canvas click creates.
-export const pendingNodeType = () => (session.addingArc ? 'arc' : session.addingLine ? 'line' : 'circle');
+// Placement modes are mutually exclusive; the pending type is what the next canvas click creates. Arc and line
+// drop back to circles after one placement; the brush stays on until Esc or another tool, like a brush should.
+const PLACEMENT_BUTTONS = { addCircleBtn: null, addLineBtn: 'line', addArcBtn: 'arc', addStrokeBtn: 'stroke' };
+const PLACEMENT_HINTS = {
+  arc: 'Click on the canvas to place an arc.',
+  line: 'Click on the canvas to place a line.',
+  stroke: 'Drag on the canvas to draw a stroke. Click its path to add a hardness stop. Esc to finish.',
+};
+export const pendingNodeType = () => session.placing || 'circle';
 export function setPlacement(type) {
-  session.addingArc = type === 'arc'; session.addingLine = type === 'line';
-  $('addCircleBtn').setAttribute('aria-pressed', String(!session.addingArc && !session.addingLine));
-  $('addArcBtn').setAttribute('aria-pressed', String(session.addingArc));
-  $('addLineBtn').setAttribute('aria-pressed', String(session.addingLine));
-  setHint(type === 'arc' ? 'Click on the canvas to place an arc.' : type === 'line' ? 'Click on the canvas to place a line.' : DEFAULT_HINT);
+  session.placing = type || null;
+  for (const [id, t] of Object.entries(PLACEMENT_BUTTONS)) $(id).setAttribute('aria-pressed', String(session.placing === t));
+  setHint(PLACEMENT_HINTS[session.placing] || DEFAULT_HINT);
 }
-$('addCircleBtn').addEventListener('click', () => setPlacement(null));
-$('addArcBtn').addEventListener('click', () => setPlacement('arc'));
-$('addLineBtn').addEventListener('click', () => setPlacement('line'));
+for (const [id, t] of Object.entries(PLACEMENT_BUTTONS)) $(id).addEventListener('click', () => setPlacement(t));
