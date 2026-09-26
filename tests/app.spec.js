@@ -53,7 +53,7 @@ test.describe('nodes', () => {
     expect((await getState(page)).n).toBe(seeded + 2);
   });
 
-  test('L / A / C / B keyboard shortcuts toggle placement mode, matching the toolbar buttons', async ({ page }) => {
+  test('L / A / C / P keyboard shortcuts toggle placement mode, matching the toolbar buttons', async ({ page }) => {
     const pressed = id => page.getAttribute(`#${id}`, 'aria-pressed');
     expect(await pressed('addCircleBtn')).toBe('true'); // circle is the default placement
 
@@ -68,7 +68,7 @@ test.describe('nodes', () => {
     expect(await pressed('addCircleBtn')).toBe('true');
     expect(await pressed('addArcBtn')).toBe('false');
 
-    await page.keyboard.press('b');
+    await page.keyboard.press('p');
     expect(await pressed('addStrokeBtn')).toBe('true');
     await page.keyboard.press('Escape');
     expect(await pressed('addCircleBtn')).toBe('true');
@@ -278,9 +278,9 @@ test.describe('document', () => {
     await page.keyboard.press('Meta+0');
     await expect.poll(() => page.evaluate(() => window.__meshy.view.zoom)).toBe(1);
 
-    await page.keyboard.press('p');
+    await page.keyboard.press('h'); // preview: 'p' is the pencil tool now, so only 'h' toggles it
     await expect(page.locator('#overlay')).toHaveClass(/hide-handles/);
-    await page.keyboard.press('p');
+    await page.keyboard.press('h');
     await expect(page.locator('#overlay')).not.toHaveClass(/hide-handles/);
   });
 
@@ -346,7 +346,8 @@ test.describe('document', () => {
     await page.hover('#addStrokeBtn'); // straight to another icon in the bar: no second delay
     await page.waitForTimeout(100);
     await expect(tip).toHaveClass(/visible/);
-    await expect(tip.locator('kbd')).toHaveText('B');
+    await expect(tip.locator('span')).toHaveText('Pencil');
+    await expect(tip.locator('kbd')).toHaveText('P');
     const gap = await page.evaluate(() => {
       const t = document.querySelector('.toolbar-tip').getBoundingClientRect();
       const b = document.querySelector('.node-bar').getBoundingClientRect();

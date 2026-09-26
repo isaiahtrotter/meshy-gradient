@@ -65,7 +65,7 @@ Common fields: `id`, `type` (`'circle'|'arc'|'line'|'stroke'`), `x`, `y`, `a` (a
 | `line` | `sw` | fraction of the long side |
 | `stroke` | `pts` (`[x, y]` pairs relative to the pivot, unrotated, ≤ `MAX_STROKE_PTS`), `stops` (`[{ t, m }]`), `sw` | fraction of the long side |
 
-Strokes come from the brush (bottom bar, or `B`): the drag is smoothed and resampled (`smoothStroke`) and the pivot
+Strokes come from the pencil tool (bottom bar, or `P`): the drag is smoothed and resampled (`smoothStroke`) and the pivot
 `x`, `y` is the path's bounding-box centre. `th` rotates the path about the pivot (the main ring's orbit). `stops`
 vary hardness along the path: `t` is the arc-length fraction, `m` multiplies `k`, and there is always a stop at
 `t = 0` and `t = 1`; `m` eases between stops in log space (`stopFactor`). A stroke is always linked, has no arms,
