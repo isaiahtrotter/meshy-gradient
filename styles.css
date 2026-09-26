@@ -244,6 +244,12 @@ input[type=number], #selHex { font-family: var(--font-mono); }
 input[type=number]:focus-visible, input[type=text]:focus-visible, select:focus-visible, button:focus-visible, input[type=range]:focus-visible, .handle:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 1px;
 }
+/* Canvas W/H: no focus outline box and no native step spinners — the only feedback is the selected-text
+   highlight (already applied via .select() on focus). */
+#cw:focus-visible, #ch:focus-visible { outline: none; }
+#cw::-webkit-outer-spin-button, #cw::-webkit-inner-spin-button,
+#ch::-webkit-outer-spin-button, #ch::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+#cw, #ch { -moz-appearance: textfield; appearance: textfield; }
 .slider { position: relative; --pct: 0%; --handle-shift: 0px; overflow: hidden; border-radius: var(--radius); }
 .slider-label { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font: 400 14px/1 var(--font-ui); color: var(--ink); pointer-events: none; z-index: 1; }
 .slider-value { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font: 400 14px/1 var(--font-mono); color: var(--ink); pointer-events: none; z-index: 1; font-variant-numeric: tabular-nums; }

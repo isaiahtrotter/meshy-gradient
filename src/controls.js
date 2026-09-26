@@ -22,7 +22,7 @@ $('ch').addEventListener('change', () => commitCanvasSize(state.w, +$('ch').valu
 // Drag-to-scrub a numeric input. With threshold 0 the drag engages immediately (desktop prefix letter, pointer
 // locked for mice so the cursor can't hit the screen edge). With a threshold it engages only after that much
 // movement, so a plain tap still focuses the input (mobile, dragging on the input itself).
-function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly = false } = {}) {
+function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly = false, noLock = false } = {}) {
   trigger.addEventListener('pointerdown', e => {
     if (input.disabled) return;
     if (mobileOnly && window.innerWidth > MOBILE_BREAKPOINT) return;
@@ -32,7 +32,9 @@ function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly = fals
     let engaged = false, locked = false, lastVal = startVal, accum = 0;
     const engage = () => {
       engaged = true;
-      locked = threshold === 0 && e.pointerType === 'mouse' && !!trigger.requestPointerLock;
+      // Pointer lock keeps a far drag from hitting the screen edge, but it also hides the system cursor
+      // while active — skip it (noLock) where a visible, moving cursor matters more than that reach.
+      locked = !noLock && threshold === 0 && e.pointerType === 'mouse' && !!trigger.requestPointerLock;
       if (locked) trigger.requestPointerLock(); else { try { trigger.setPointerCapture(e.pointerId); } catch {} }
       if (threshold) input.blur();
       document.body.classList.add('scrubbing');
@@ -61,8 +63,8 @@ function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly = fals
   });
 }
 const scrubW = v => applyCanvasSizeLive(v, state.h), scrubH = v => applyCanvasSizeLive(state.w, v);
-attachScrub($('cwScrub'), $('cw'), { onInput: scrubW });
-attachScrub($('chScrub'), $('ch'), { onInput: scrubH });
+attachScrub($('cwScrub'), $('cw'), { onInput: scrubW, noLock: true });
+attachScrub($('chScrub'), $('ch'), { onInput: scrubH, noLock: true });
 attachScrub($('cw'), $('cw'), { onInput: scrubW, threshold: 6, mobileOnly: true });
 attachScrub($('ch'), $('ch'), { onInput: scrubH, threshold: 6, mobileOnly: true });
 
