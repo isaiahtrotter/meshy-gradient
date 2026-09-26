@@ -74,7 +74,8 @@ $('undoBtn').addEventListener('click', undo);
 
 // ---------- Sliders ----------
 // Softness and grain map the 0..1 range input onto data-min..data-max.
-function sliderFill(el) { el.style.setProperty('--pct', ((+el.value - +el.min) / (+el.max - +el.min)) * 100 + '%'); }
+// Set on the .slider wrapper (not the input) so a sibling overlay, like .adj-glow, inherits it too.
+function sliderFill(el) { el.closest('.slider').style.setProperty('--pct', ((+el.value - +el.min) / (+el.max - +el.min)) * 100 + '%'); }
 function mappedValue(el) { const min = +el.dataset.min, max = +el.dataset.max; return min + (+el.value) * (max - min); }
 function reverseMapped(el, val) { const min = +el.dataset.min, max = +el.dataset.max; return (val - min) / (max - min); }
 

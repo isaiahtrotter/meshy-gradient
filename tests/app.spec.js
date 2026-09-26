@@ -157,7 +157,6 @@ test.describe('document', () => {
     await page.locator('#cw').blur(); // shortcuts are ignored while typing in a field
     await page.waitForTimeout(60);
     expect((await getState(page)).w).toBe(1200);
-    await expect(page.locator('#sizeTag')).toHaveText(`1200 × ${defaultPreset.h} px`);
 
     await page.locator('#soft').evaluate(el => { el.value = 0.8; el.dispatchEvent(new Event('input', { bubbles: true })); });
     expect((await getState(page)).soft).toBeCloseTo(0.05 + 0.8 * 0.15, 9);

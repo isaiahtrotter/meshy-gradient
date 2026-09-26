@@ -76,7 +76,7 @@ body {
 .icon-btn { width: 32px; padding: 0; display: flex; align-items: center; justify-content: center; }
 .icon-btn svg { display: block; }
 .stage.previewing .preview-btn { border-color: var(--accent); color: var(--accent); }
-.stage.previewing .stage-hint, .stage.previewing .canvas-size-tag, .stage.previewing .ref-x { display: none; }
+.stage.previewing .stage-hint, .stage.previewing .ref-x { display: none; }
 .stage.previewing .overlay { pointer-events: none; }
 .node-bar {
   position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 2;
@@ -139,10 +139,6 @@ body {
   position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
   color: var(--ink-3); font-size: 12px; white-space: nowrap; pointer-events: none;
 }
-.canvas-size-tag {
-  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
-  color: var(--ink-3); font-size: 12px; pointer-events: none;
-}
 
 /* Panel */
 .panel {
@@ -183,15 +179,15 @@ input[type=number], #selHex { font-family: var(--font-mono); }
 input[type=number]:focus-visible, input[type=text]:focus-visible, select:focus-visible, button:focus-visible, input[type=range]:focus-visible, .handle:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 1px;
 }
-.slider { position: relative; }
+.slider { position: relative; --pct: 0%; }
 .slider-label { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font: 400 14px/1 var(--font-ui); color: var(--ink); pointer-events: none; z-index: 1; }
 .slider-value { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font: 400 14px/1 var(--font-mono); color: var(--ink); pointer-events: none; z-index: 1; font-variant-numeric: tabular-nums; }
 .slider-value.word { font-family: var(--font-ui); }
-input[type=range] { --pct: 0%; -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 36px; margin: 0; background: transparent; cursor: pointer; }
+input[type=range] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 36px; margin: 0; background: transparent; cursor: pointer; }
 /* The filled/selected part gets a 1px 7% white inner border on its top, left and bottom edges. Drawn as
    extra background layers (not box-shadow) since -webkit-slider-runnable-track has no separate "fill" box. */
 input[type=range]::-webkit-slider-runnable-track {
-  height: 36px; border-radius: var(--radius); border: none; transition: background .15s ease-out;
+  height: 36px; border-radius: var(--radius); border: none;
   background:
     linear-gradient(to right, rgba(255,255,255,.07) var(--pct), transparent var(--pct)) top / 100% 1px no-repeat,
     linear-gradient(to right, rgba(255,255,255,.07) var(--pct), transparent var(--pct)) bottom / 100% 1px no-repeat,
@@ -200,32 +196,34 @@ input[type=range]::-webkit-slider-runnable-track {
 }
 input[type=range]::-moz-range-track { height: 36px; border-radius: var(--radius); background: var(--ctrl-bg); border: none; }
 input[type=range]::-moz-range-progress {
-  height: 36px; border-radius: var(--radius) 0 0 var(--radius); background: var(--ctrl-grad); transition: background .15s ease-out;
+  height: 36px; border-radius: var(--radius) 0 0 var(--radius); background: var(--ctrl-grad);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.07), inset 1px 0 0 rgba(255,255,255,.07), inset 0 -1px 0 rgba(255,255,255,.07);
 }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 0; height: 36px; background: transparent; border: 0; box-shadow: none; }
 input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transparent; border: 0; opacity: 0; }
 
-/* Hue/Saturation/Brightness: preview the effect of the drag directly in the track while hovering or dragging */
+/* Hue/Saturation/Brightness: preview the effect of the drag on hover/while dragging. A real overlay element
+   (not a background swap on the native track pseudo-element) because background-image can't be transitioned
+   between two structurally different gradients — opacity can, so the preview cross-fades in on a sibling div. */
 :root { --preview-color: #a1503f; }
-#adjHue:hover::-webkit-slider-runnable-track, #adjHue:active::-webkit-slider-runnable-track {
+.adj-glow {
+  position: absolute; inset: 0; border-radius: var(--radius); pointer-events: none;
+  opacity: 0; transition: opacity .15s ease-out;
+}
+#adjHue:hover ~ .adj-glow, #adjHue:active ~ .adj-glow,
+#adjSat:hover ~ .adj-glow, #adjSat:active ~ .adj-glow,
+#adjBri:hover ~ .adj-glow, #adjBri:active ~ .adj-glow { opacity: 1; }
+.adj-glow[data-for="hue"] {
   background:
     radial-gradient(circle 36px at var(--pct) 50%, transparent 0%, var(--ctrl-bg) 70%),
     linear-gradient(to right, rgba(255,0,0,.2) 0%, rgba(255,255,0,.2) 17%, rgba(0,255,0,.2) 33%, rgba(0,255,255,.2) 50%, rgba(0,0,255,.2) 67%, rgba(255,0,255,.2) 83%, rgba(255,0,0,.2) 100%);
 }
-#adjHue:hover::-moz-range-track, #adjHue:active::-moz-range-track { background: var(--ctrl-bg); }
-#adjHue:hover::-moz-range-progress, #adjHue:active::-moz-range-progress {
-  background: radial-gradient(circle 36px at right center, rgba(255,120,80,.2), transparent 70%);
-  box-shadow: none;
-}
-#adjSat:hover::-webkit-slider-runnable-track, #adjSat:active::-webkit-slider-runnable-track {
+.adj-glow[data-for="sat"] {
   background: linear-gradient(to right, transparent var(--pct), var(--ctrl-bg) var(--pct)), linear-gradient(to right, #6b6b6b 0%, var(--preview-color) 100%);
 }
-#adjSat:hover::-moz-range-progress, #adjSat:active::-moz-range-progress { background: linear-gradient(to right, #6b6b6b 0%, var(--preview-color) 100%); }
-#adjBri:hover::-webkit-slider-runnable-track, #adjBri:active::-webkit-slider-runnable-track {
+.adj-glow[data-for="bri"] {
   background: linear-gradient(to right, transparent var(--pct), var(--ctrl-bg) var(--pct)), linear-gradient(to right, #202020 0%, #f2f2f2 100%);
 }
-#adjBri:hover::-moz-range-progress, #adjBri:active::-moz-range-progress { background: linear-gradient(to right, #202020 0%, #f2f2f2 100%); }
 .checker { background-color: #fff; background-image: linear-gradient(45deg, #c8c8c8 25%, transparent 25%), linear-gradient(-45deg, #c8c8c8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c8c8c8 75%), linear-gradient(-45deg, transparent 75%, #c8c8c8 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; }
 .swatch { position: relative; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; flex: none; overflow: hidden; }
 .swatch::after { content: ''; position: absolute; inset: 0; background: var(--sw, #888); }

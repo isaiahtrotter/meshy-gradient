@@ -71,7 +71,6 @@ export function layout() {
   frame.style.width = (h * ac) + 'px';
   frame.style.height = h + 'px';
   applyPan();
-  $('sizeTag').textContent = `${state.w} × ${state.h} px`;
   updateExportSize();
   refreshHandles(); draw();
 }
