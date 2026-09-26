@@ -87,12 +87,18 @@ const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay'];
 export function applyConfig(s, { reassignIds } = {}) {
   if (isNum(s.w) && isNum(s.h)) setCanvasSize(s.w, s.h);
   setNodes(Array.isArray(s.nodes) ? s.nodes : [], reassignIds);
-  if (isNum(s.soft)) state.soft = s.soft;
-  if (isNum(s.grain)) state.grain = s.grain;
-  if (isNum(s.grainSize)) state.grainSize = s.grainSize;
+  // Clamped to each slider's own range so a corrupted or out-of-schema saved value (an old build, a hand-
+  // edited preset) can't push rendering into a degenerate state, e.g. a near-zero brightness reading black.
+  if (isNum(s.soft)) state.soft = clamp(s.soft, 0.05, 0.2);
+  if (isNum(s.grain)) state.grain = clamp(s.grain, 0, 0.15);
+  if (isNum(s.grainSize)) state.grainSize = clamp(s.grainSize, 1, 8);
   state.grainType = GRAIN_TYPES.includes(s.grainType) ? s.grainType : 'mono';
-  state.density = isNum(s.density) ? s.density : 1.4;
-  if (s.adj && typeof s.adj === 'object') for (const k of ['hue', 'sat', 'bri']) if (isNum(s.adj[k])) state.adj[k] = s.adj[k];
+  state.density = isNum(s.density) ? clamp(s.density, 0, 2) : 1.4;
+  if (s.adj && typeof s.adj === 'object') {
+    if (isNum(s.adj.hue)) state.adj.hue = clamp(s.adj.hue, -180, 180);
+    if (isNum(s.adj.sat)) state.adj.sat = clamp(s.adj.sat, 0, 2);
+    if (isNum(s.adj.bri)) state.adj.bri = clamp(s.adj.bri, 0.2, 1.8);
+  }
   // `linear` is the old boolean flag this replaced; still accepted from older saved state/presets.
   state.blendMode = BLEND_MODES.includes(s.blendMode) ? s.blendMode : (s.linear ? 'linear' : 'normal');
   if (isNum(s.seed)) state.seed = s.seed;
