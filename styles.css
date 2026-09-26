@@ -310,7 +310,7 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
    own bespoke effect (Hue/Saturation/Brightness draw their own colour). */
 .adj-glow[data-for="soft"], .adj-glow[data-for="grain"], .adj-glow[data-for="grainSize"],
 .adj-glow[data-for="density"], .adj-glow[data-for="blendMode"] {
-  inset: auto; top: 0; bottom: 0; left: var(--pct); width: 2px; margin-left: -1px; border-radius: 0;
+  inset: auto; top: 0; bottom: 0; left: var(--pct); width: 1px; margin-left: -.5px; border-radius: 0;
   background: rgba(255,255,255,.5);
   box-shadow:
     0 0 6px 0 rgba(255,255,255,.43),
