@@ -278,6 +278,35 @@ test.describe('document', () => {
     await expect(page.locator('#adjTempVal')).toHaveText('0');
   });
 
+  test('bottom toolbar tooltip: 1s delay, then slides instantly between icons, showing a shortcut key when there is one', async ({ page }) => {
+    const tip = page.locator('.toolbar-tip');
+    await page.hover('#addLineBtn');
+    await page.waitForTimeout(400);
+    await expect(tip).not.toHaveClass(/visible/);
+    await page.waitForTimeout(700); // ~1100ms total: past the 1s delay
+    await expect(tip).toHaveClass(/visible/);
+    await expect(tip).toHaveText('Line');
+
+    await page.hover('#addStrokeBtn'); // straight to another icon in the bar: no second delay
+    await page.waitForTimeout(100);
+    await expect(tip).toHaveClass(/visible/);
+    await expect(tip.locator('kbd')).toHaveText('B');
+    const gap = await page.evaluate(() => {
+      const t = document.querySelector('.toolbar-tip').getBoundingClientRect();
+      const b = document.querySelector('.node-bar').getBoundingClientRect();
+      return b.top - t.bottom;
+    });
+    expect(gap).toBeCloseTo(8, 0);
+
+    await page.hover('#shuffle'); // no shortcut: no stray empty kbd
+    await page.waitForTimeout(100);
+    await expect(tip.locator('kbd')).toHaveCount(0);
+
+    await page.mouse.move(200, 200); // leave the bar entirely
+    await page.waitForTimeout(150);
+    await expect(tip).not.toHaveClass(/visible/);
+  });
+
   test('copy gradient produces a preset-shaped payload', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.click('#copyGradientBtn');

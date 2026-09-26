@@ -44,6 +44,7 @@ composes handles + panel + draw, so most mutations end with `refreshAll()` from 
 | `keyboard.js` | global shortcuts | actions, modes, sampling, view, undo |
 | `controls.js` | canvas size + scrubbers, sliders, palettes, align/shuffle/scatter, `syncControlsFromState`, `seedNodes` | state, undo, view, refresh, actions |
 | `presets.js` | fetches `presets.json` (cached), applies presets, picks the default preset, Copy gradient | state, undo, view, refresh, controls |
+| `tooltip.js` | the bottom toolbar's shared hover tooltip (1s delay, then slides between icons); reads `data-tip`/`data-key` off each button | dom (via `document.querySelector`, no imports) |
 | `app.js` | entry: `boot()` fetches presets once, seeds a first-time visit from the default preset (or the first palette if none), wires undo hooks, first layout | everything |
 
 Listener registration order matters in one place: `sampling.js` must evaluate before `interaction.js` (its

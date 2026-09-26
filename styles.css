@@ -123,6 +123,24 @@ body {
 .node-bar #addStrokeBtn:hover, .node-bar #addStrokeBtn[aria-pressed="true"] { color: #FF9F63; }
 .node-bar-sep { width: 1px; height: 20px; background: color-mix(in srgb, var(--ink) 20%, transparent); }
 .stage.previewing .node-bar { display: none; }
+/* The bottom toolbar's shared tooltip (src/tooltip.js): one floating pill, positioned 8px above the toolbar and
+   centred on whichever icon is hovered. `left` transitions so moving from one icon straight to another (without
+   leaving the bar) slides the pill sideways instead of hiding and re-delaying; overflow: hidden clips its content
+   to the rounded pill while that slide is happening, so it reads as sliding behind a mask rather than a
+   free-floating label jumping across the gap. The first appearance in a hover still waits out the 1s delay. */
+.toolbar-tip {
+  position: fixed; top: 0; left: 0; z-index: 40;
+  transform: translate(-50%, calc(-100% - 8px));
+  display: flex; align-items: center; gap: 6px; overflow: hidden;
+  padding: 6px 10px; border-radius: 8px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--ink);
+  font: 400 12px/1 var(--font-ui); white-space: nowrap;
+  box-shadow: 0 12px 28px -8px rgba(0,0,0,.4);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: left .15s cubic-bezier(.3,.7,.2,1), opacity .12s ease, visibility .12s;
+}
+.toolbar-tip.visible { opacity: 1; visibility: visible; }
+.toolbar-tip kbd { font-size: 10px; }
 .mobile-undo, .mobile-redo { position: absolute; bottom: 34px; z-index: 2; } /* centred on the 44px toolbar */
 .mobile-undo { left: 14px; }
 .mobile-redo { right: 14px; }
@@ -457,6 +475,12 @@ button.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--acc
 .preset:hover { border-color: var(--ink-3); }
 
 .status { display: none; }
-kbd { font: inherit; font-size: 11px; color: var(--ink-2); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; background: var(--field); }
+/* Looks like a physical keycap: slightly rounded corners, and a solid (no-blur) shadow a couple of pixels down
+   standing in for the key's bottom edge/wall, in the same colour as the border so it reads as one continuous
+   shape rather than a diffuse drop shadow. */
+kbd {
+  font: inherit; font-size: 11px; color: var(--ink-2); border: 1px solid var(--line); border-radius: 4px;
+  padding: 0 4px; background: var(--field); box-shadow: 0 2px 0 0 var(--line);
+}
 .help { font-size: 12px; color: var(--ink-3); line-height: 1.7; }
 @media (prefers-reduced-motion: reduce) { .handle { transition: none; } }
