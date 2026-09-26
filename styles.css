@@ -134,13 +134,13 @@ body {
   display: flex; align-items: center; gap: 6px; overflow: hidden;
   padding: 6px 10px; border-radius: 8px;
   background: var(--panel); border: 1px solid var(--line); color: var(--ink);
-  font: 400 12px/1 var(--font-ui); white-space: nowrap;
+  font: 400 13px/1 var(--font-ui); white-space: nowrap;
   box-shadow: 0 12px 28px -8px rgba(0,0,0,.4);
   opacity: 0; visibility: hidden; pointer-events: none;
   transition: left .15s cubic-bezier(.3,.7,.2,1), opacity .12s ease, visibility .12s;
 }
 .toolbar-tip.visible { opacity: 1; visibility: visible; }
-.toolbar-tip kbd { font-size: 10px; }
+/* No font-size override here: the kbd's own base rule (11px) already matches the shortcuts modal's keys. */
 .mobile-undo, .mobile-redo { position: absolute; bottom: 34px; z-index: 2; } /* centred on the 44px toolbar */
 .mobile-undo { left: 14px; }
 .mobile-redo { right: 14px; }
