@@ -223,3 +223,20 @@ for (const inp of document.querySelectorAll('input[type=number], input[type=text
     downX = null;
   });
 }
+
+// Fade the panel's own scrollbar-less top/bottom edges in only while there's more content to scroll that
+// way. A MutationObserver (not just scroll/resize) because content height changes without scrolling too —
+// presets/palettes rendering in, a section showing or hiding.
+{
+  const panelScroll = $('panelScroll');
+  const fadeTop = document.querySelector('.panel-fade-top'), fadeBottom = document.querySelector('.panel-fade-bottom');
+  const updatePanelFades = () => {
+    const { scrollTop, scrollHeight, clientHeight } = panelScroll;
+    fadeTop.classList.toggle('visible', scrollTop > 1);
+    fadeBottom.classList.toggle('visible', scrollTop + clientHeight < scrollHeight - 1);
+  };
+  panelScroll.addEventListener('scroll', updatePanelFades);
+  window.addEventListener('resize', updatePanelFades);
+  new MutationObserver(updatePanelFades).observe(panelScroll, { childList: true, subtree: true, attributes: true });
+  updatePanelFades();
+}
