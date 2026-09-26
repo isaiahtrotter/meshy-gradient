@@ -9,6 +9,45 @@
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<div class="topbar">
+  <button id="shuffle" class="icon-btn" title="Shuffle colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 6.99999C19 6.99999 13.5 6.99999 11.5 12.5C9.5 18 5 18 2 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M20 5C20 5 21.219 6.21895 22 7C21.219 7.78105 20 9 20 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M22 18C19 18 13.5 18 11.5 12.5C9.5 6.99999 5 7.00001 2 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M20 20C20 20 21.219 18.781 22 18C21.219 17.219 20 16 20 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+  <button id="scatter" class="icon-btn" title="Scatter positions"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12L6 6M12 12L18 6M12 12L6 18M12 12L18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6 10.5V6H10.5M18 10.5V6H13.5M6 13.5V18H10.5M18 13.5V18H13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  <button id="shortcutsBtn" class="icon-btn" title="Keyboard shortcuts" aria-haspopup="dialog" aria-expanded="false">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M7.5 5V15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M12.5 5V15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M7.5 5C7.5 3.61929 6.38071 2.5 5 2.5C3.61929 2.5 2.5 3.61929 2.5 5C2.5 6.38071 3.61929 7.5 5 7.5H15C16.3807 7.5 17.5 6.38071 17.5 5C17.5 3.61929 16.3807 2.5 15 2.5C13.6192 2.5 12.5 3.61929 12.5 5" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M7.5 15C7.5 16.3807 6.38071 17.5 5 17.5C3.61929 17.5 2.5 16.3807 2.5 15C2.5 13.6192 3.61929 12.5 5 12.5H15C16.3807 12.5 17.5 13.6192 17.5 15C17.5 16.3807 16.3807 17.5 15 17.5C13.6192 17.5 12.5 16.3807 12.5 15" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+</div>
+<div id="shortcutsModal" class="modal-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="shortcutsTitle">
+    <div class="modal-head">
+      <h2 id="shortcutsTitle">Shortcuts</h2>
+      <button id="shortcutsClose" class="icon-btn" title="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14"><line x1="1.5" y1="1.5" x2="12.5" y2="12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="12.5" y1="1.5" x2="1.5" y2="12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="shortcut-row"><span>Undo</span><span class="keys"><kbd>⌘</kbd><kbd>Z</kbd></span></div>
+      <div class="shortcut-row"><span>Redo</span><span class="keys"><kbd>⌘</kbd><kbd>⇧</kbd><kbd>Z</kbd></span></div>
+      <div class="shortcut-row"><span>Select all</span><span class="keys"><kbd>⌘</kbd><kbd>A</kbd></span></div>
+      <div class="shortcut-row"><span>Delete selected</span><span class="keys"><kbd>Delete</kbd></span></div>
+      <div class="shortcut-row"><span>Deselect / cancel / exit</span><span class="keys"><kbd>Esc</kbd></span></div>
+      <div class="shortcut-row"><span>Toggle preview</span><span class="keys"><kbd>P</kbd></span></div>
+      <div class="shortcut-row"><span>Hold to preview</span><span class="keys"><kbd>Space</kbd></span></div>
+      <div class="shortcut-row"><span>Sample a colour</span><span class="keys"><kbd>I</kbd></span></div>
+      <div class="shortcut-row"><span>Nudge selection</span><span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></span></div>
+      <div class="shortcut-row"><span>Nudge further</span><span class="keys"><kbd>⇧</kbd><kbd>Arrow</kbd></span></div>
+      <div class="shortcut-row"><span>Zoom in / out</span><span class="keys"><kbd>⌘</kbd><kbd>+</kbd> / <kbd>⌘</kbd><kbd>−</kbd></span></div>
+      <div class="shortcut-row"><span>Reset zoom</span><span class="keys"><kbd>⌘</kbd><kbd>0</kbd></span></div>
+      <div class="shortcut-row"><span>Constrain drag to an axis</span><span class="keys"><kbd>⇧</kbd> + drag</span></div>
+      <div class="shortcut-row"><span>Duplicate while dragging</span><span class="keys"><kbd>⌥</kbd> + drag</span></div>
+      <div class="shortcut-row"><span>Node options (convert, link)</span><span class="keys">Right-click a node</span></div>
+    </div>
+  </div>
+</div>
 <div class="app">
   <div class="stage" id="stage">
     <div class="preview-wrap">
@@ -39,15 +78,18 @@
 
   <aside class="panel">
     <section id="alignSection">
-      <h2>Align</h2>
+      <h2>Alignment</h2>
       <div class="align-row">
-        <button class="icon-btn" data-axis="x" data-val="0" title="Align left"><svg width="16" height="16" viewBox="0 0 16 16"><line x1="2" y1="1" x2="2" y2="15" stroke="currentColor" stroke-width="1.4"/><rect x="2" y="5" width="8" height="6" rx="1" fill="currentColor"/></svg></button>
-        <button class="icon-btn" data-axis="x" data-val="0.5" title="Align center"><svg width="16" height="16" viewBox="0 0 16 16"><line x1="8" y1="1" x2="8" y2="15" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2"/><rect x="4" y="5" width="8" height="6" rx="1" fill="currentColor"/></svg></button>
-        <button class="icon-btn" data-axis="x" data-val="1" title="Align right"><svg width="16" height="16" viewBox="0 0 16 16"><line x1="14" y1="1" x2="14" y2="15" stroke="currentColor" stroke-width="1.4"/><rect x="6" y="5" width="8" height="6" rx="1" fill="currentColor"/></svg></button>
-        <span class="sep"></span>
-        <button class="icon-btn" data-axis="y" data-val="0" title="Align top"><svg width="16" height="16" viewBox="0 0 16 16"><line x1="1" y1="2" x2="15" y2="2" stroke="currentColor" stroke-width="1.4"/><rect x="4" y="2" width="8" height="6" rx="1" fill="currentColor"/></svg></button>
-        <button class="icon-btn" data-axis="y" data-val="0.5" title="Align middle"><svg width="16" height="16" viewBox="0 0 16 16"><line x1="1" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2"/><rect x="4" y="5" width="8" height="6" rx="1" fill="currentColor"/></svg></button>
-        <button class="icon-btn" data-axis="y" data-val="1" title="Align bottom"><svg width="16" height="16" viewBox="0 0 16 16"><line x1="1" y1="14" x2="15" y2="14" stroke="currentColor" stroke-width="1.4"/><rect x="4" y="8" width="8" height="6" rx="1" fill="currentColor"/></svg></button>
+        <div class="align-group">
+          <button class="align-btn" data-axis="x" data-val="0" title="Align left"><svg width="20" height="20" viewBox="0 0 20 20"><line x1="3" y1="2" x2="3" y2="18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="6" y="8" width="7" height="4" rx="2" fill="currentColor"/></svg></button>
+          <button class="align-btn" data-axis="x" data-val="0.5" title="Align center"><svg width="20" height="20" viewBox="0 0 20 20"><line x1="10" y1="2" x2="10" y2="18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="4" y="8" width="12" height="4" rx="2" fill="currentColor"/></svg></button>
+          <button class="align-btn" data-axis="x" data-val="1" title="Align right"><svg width="20" height="20" viewBox="0 0 20 20"><line x1="17" y1="2" x2="17" y2="18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="7" y="8" width="7" height="4" rx="2" fill="currentColor"/></svg></button>
+        </div>
+        <div class="align-group">
+          <button class="align-btn" data-axis="y" data-val="0" title="Align top"><svg width="20" height="20" viewBox="0 0 20 20"><line x1="2" y1="3" x2="18" y2="3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="8" y="6" width="4" height="7" rx="2" fill="currentColor"/></svg></button>
+          <button class="align-btn" data-axis="y" data-val="0.5" title="Align middle"><svg width="20" height="20" viewBox="0 0 20 20"><line x1="2" y1="10" x2="18" y2="10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="8" y="4" width="4" height="12" rx="2" fill="currentColor"/></svg></button>
+          <button class="align-btn" data-axis="y" data-val="1" title="Align bottom"><svg width="20" height="20" viewBox="0 0 20 20"><line x1="2" y1="17" x2="18" y2="17" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="8" y="7" width="4" height="7" rx="2" fill="currentColor"/></svg></button>
+        </div>
       </div>
     </section>
 
@@ -115,10 +157,6 @@
     <section id="paletteSection">
       <h2>Palettes</h2>
       <div class="palettes" id="palettes"></div>
-      <div class="row">
-        <button id="shuffle" class="icon-btn" title="Shuffle colors"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22 6.99999C19 6.99999 13.5 6.99999 11.5 12.5C9.5 18 5 18 2 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M20 5C20 5 21.219 6.21895 22 7C21.219 7.78105 20 9 20 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M22 18C19 18 13.5 18 11.5 12.5C9.5 6.99999 5 7.00001 2 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M20 20C20 20 21.219 18.781 22 18C21.219 17.219 20 16 20 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
-        <button id="scatter" class="icon-btn" title="Scatter positions"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 12L6 6M12 12L18 6M12 12L6 18M12 12L18 18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6 10.5V6H10.5M18 10.5V6H13.5M6 13.5V18H10.5M18 13.5V18H13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-      </div>
     </section>
 
     <section id="presetSection">

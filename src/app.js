@@ -13,6 +13,7 @@ import './nodeMenu.js';
 import './interaction.js';
 import './keyboard.js';
 import './exporter.js';
+import './shortcuts.js';
 import { syncControlsFromState, seedNodes, renderPalettes } from './controls.js';
 import { fetchPresets, pickDefaultPreset, renderPresets } from './presets.js';
 
