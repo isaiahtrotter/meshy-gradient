@@ -15,6 +15,8 @@
 // beneath the whole stack, regardless of where they sit in the array.
 // os: occluding softness (0..1), only meaningful when occ is true. Blurs the shape's own edge (like a brush's
 // hardness), independent of the global softness slider, which never touches occluding nodes.
+// oa: occluding blur angle in degrees, only meaningful when occ is true. The edge feather varies from a hard
+// minimum on the side facing away from this angle to the full `os` amount on the side facing it.
 
 import { wrapAngle, arcGeom, halfArcGeom } from './geometry.js';
 import { randomColor, HEX6 } from './color.js';
@@ -39,6 +41,7 @@ export function normalizeNode(raw) {
   n.a = isNum(n.a) ? n.a : 1;
   n.occ = n.occ === true;
   n.os = isNum(n.os) ? clamp01(n.os) : 0;
+  n.oa = isNum(n.oa) ? n.oa : 0;
   n.k = isNum(n.k) && n.k > 0 ? n.k : DEFAULTS.k;
   n.th = isNum(n.th) ? n.th : 0;
   n.color = typeof n.color === 'string' && HEX6.test(n.color) ? n.color.toLowerCase() : randomColor();

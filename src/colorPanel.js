@@ -29,6 +29,21 @@ $('occSoft').addEventListener('input', e => {
 });
 $('occSoft').addEventListener('change', () => { if (occSoftSnap) { pushUndo(occSoftSnap); occSoftSnap = null; } });
 
+// ---------- Occluded-node blur angle (which side gets the full softness vs. the hard-edge floor) ----------
+function fillOccAngle() {
+  const el = $('occAngle'), slider = el.closest('.slider');
+  slider.style.setProperty('--pct', ((+el.value - +el.min) / (+el.max - +el.min)) * 100 + '%');
+}
+let occAngleSnap = null;
+$('occAngle').addEventListener('pointerdown', () => { occAngleSnap = snapshot(); });
+$('occAngle').addEventListener('input', e => {
+  const v = +e.target.value;
+  for (const n of selectedNodes()) if (n.occ) n.oa = v;
+  fillOccAngle(); $('occAngleVal').textContent = Math.round(v) + '°';
+  refreshHandles(); draw();
+});
+$('occAngle').addEventListener('change', () => { if (occAngleSnap) { pushUndo(occAngleSnap); occAngleSnap = null; } });
+
 export function refreshSelectionPanel() {
   const sel = selectedNodes(), has = sel.length > 0;
   const occSel = sel.filter(n => n.occ);
@@ -44,8 +59,12 @@ export function refreshSelectionPanel() {
     if (!pickerDragging) syncPickerFromColor(sel[0].color, sel[0].a);
   } else { $('selHex').value = ''; closePicker(); }
   $('occSoftRow').hidden = occSel.length === 0;
+  $('occAngleRow').hidden = occSel.length === 0;
   if (occSel.length && document.activeElement !== $('occSoft')) {
     $('occSoft').value = occSel[0].os; fillOccSoft(); $('occSoftVal').textContent = occSoftToPx(occSel[0].os) + 'px';
+  }
+  if (occSel.length && document.activeElement !== $('occAngle')) {
+    $('occAngle').value = occSel[0].oa; fillOccAngle(); $('occAngleVal').textContent = Math.round(occSel[0].oa) + '°';
   }
 }
 

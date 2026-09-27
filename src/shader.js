@@ -7,10 +7,13 @@
 // Circle x/y are normalized canvas coords; arc, line and stroke coords are already in scaled render space (× sc).
 // uOcc[slot]: 1 if that slot's node occludes (composites over the averaged base via alpha-over, in slot order)
 // rather than joining the weighted-mean base layer. See the compositing step after the uBlendMode branch below.
-// uOccSoft[slot]: an occluding node's own edge feather half-width (already normalized, pre-divided by the
-// canvas's reference long side in renderer.js). Occluding nodes ignore uSoft AND their own hardness (k) —
-// they're rendered as a hard-edged shape at their configured size, smoothstep-feathered by this width alone,
-// instead of the continuous (1/(1+d²))^k falloff every non-occluding shape uses.
+// uOccSoft[slot]: an occluding node's own edge feather half-width on the side facing uOccAngle (already
+// normalized, pre-divided by the canvas's reference long side in renderer.js). uOccFloor is the same, fixed,
+// on the side facing away from it — so at uOccSoft = uOccFloor (slider at minimum) there's no directional
+// variation at all. Occluding nodes ignore uSoft AND their own hardness (k) — they're rendered as a
+// hard-edged shape at half its configured size (OCC_SIZE_SCALE, to read the same size as a non-occluding
+// node), smoothstep-feathered by this per-direction width, instead of the continuous (1/(1+d²))^k falloff
+// every non-occluding shape uses.
 
 import { MAXN, MAX_STROKE_PTS as MAXP } from './constants.js';
 
@@ -19,11 +22,19 @@ export const VS = `attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }
 export const FS = `
   precision highp float;
   uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uBlendMode, uRefW, uGrainType, uDensity;
-  uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec4 uAdj; uniform vec2 uNode3[${MAXN}]; uniform float uOcc[${MAXN}]; uniform float uOccSoft[${MAXN}];
+  uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec4 uAdj; uniform vec2 uNode3[${MAXN}]; uniform float uOcc[${MAXN}]; uniform float uOccSoft[${MAXN}]; uniform float uOccAngle[${MAXN}]; uniform float uOccFloor;
   uniform sampler2D uPts;
+  const float OCC_SIZE_SCALE = 0.5;
   float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
   vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
   vec3 toSrgb(vec3 c){ return pow(max(c, 0.0), vec3(1.0/2.2)); }
+  // Feather half-width for an occluding shape at a boundary point offset dv from its centre: uOccFloor on
+  // the side facing away from that node's blur angle, blending up to its own uOccSoft on the side facing it.
+  float occFeather(vec2 dv, float angle, float softMax){
+    float len = length(dv);
+    float cosA = len > 1e-6 ? dot(dv / len, vec2(cos(angle), sin(angle))) : 0.0;
+    return mix(uOccFloor, softMax, 0.5 + 0.5 * cosA);
+  }
   void main(){
     vec2 uv = gl_FragCoord.xy / uRes; uv.y = 1.0 - uv.y;
     vec2 sc = uRes / max(uRes.x, uRes.y);
@@ -41,7 +52,7 @@ export const FS = `
         // Compared as k·log(1+d²) so each segment costs one log, and there's a single exp at the end.
         float cnt = uNode[i].x;
         float trueSize = uNode[i].y;
-        float rr = max(uOcc[i] > 0.5 ? trueSize : trueSize * uSoft, 1e-4);
+        float rr = max(uOcc[i] > 0.5 ? trueSize * OCC_SIZE_SCALE : trueSize * uSoft, 1e-4);
         float row = (float(i) + 0.5) / ${MAXN}.0;
         vec3 P0 = texture2D(uPts, vec2(0.5 / ${MAXP}.0, row)).xyz;
         float best = 1e9, minD2 = 1e9;
@@ -57,8 +68,9 @@ export const FS = `
           P0 = P1;
         }
         if (uOcc[i] > 0.5) {
-          // hard-edged tube of half-width trueSize, feathered by uOccSoft; ignores per-point hardness
-          float excess = (sqrt(minD2) - 1.0) * trueSize;
+          // hard-edged tube of half-width trueSize × OCC_SIZE_SCALE, feathered by uOccSoft; ignores per-point
+          // hardness. No directional blur here (no single centre to project against along a whole path).
+          float excess = (sqrt(minD2) - 1.0) * (trueSize * OCC_SIZE_SCALE);
           w = 1.0 - smoothstep(-uOccSoft[i], uOccSoft[i], excess);
         } else {
           w = exp(-best) + 1e-7 / (1.0 + minD2);
@@ -71,9 +83,12 @@ export const FS = `
         float t = len2 > 1e-8 ? clamp(dot(p - A, AB) / len2, 0.0, 1.0) : 0.0;
         float dist = length(p - (A + t * AB));
         if (uOcc[i] > 0.5) {
-          // hard-edged band of half-width sw, feathered by uOccSoft; ignores kLine
-          float excess = dist - sw;
-          w = 1.0 - smoothstep(-uOccSoft[i], uOccSoft[i], excess);
+          // hard-edged band of half-width sw × OCC_SIZE_SCALE, feathered by uOccSoft; ignores kLine.
+          // Direction projects against the offset from the segment's midpoint.
+          vec2 mid = (A + B) * 0.5;
+          float feather = occFeather(p - mid, uOccAngle[i], uOccSoft[i]);
+          float excess = dist - sw * OCC_SIZE_SCALE;
+          w = 1.0 - smoothstep(-feather, feather, excess);
         } else {
           float rr = max(sw * uSoft, 1e-4);
           float dnorm = dist / rr;
@@ -94,11 +109,13 @@ export const FS = `
         float dL = ap - angL; dL = atan(sin(dL), cos(dL)); float wL = 1.0 / (dL * dL + 0.015);
         float dB = ap - angB; dB = atan(sin(dB), cos(dB)); float wB = 1.0 / (dB * dB + 0.015);
         float Rr = (wR * lenR + wT * lenT + wL * lenL + wB * lenB) / (wR + wT + wL + wB);
-        float excess = dist - Rr;
         if (uOcc[i] > 0.5) {
-          // hard-edged disc of radius Rr, feathered by uOccSoft; ignores kUn
-          w = 1.0 - smoothstep(-uOccSoft[i], uOccSoft[i], excess);
+          // hard-edged disc of radius Rr × OCC_SIZE_SCALE, feathered by uOccSoft; ignores kUn
+          float excess = dist - Rr * OCC_SIZE_SCALE;
+          float feather = occFeather(dv, uOccAngle[i], uOccSoft[i]);
+          w = 1.0 - smoothstep(-feather, feather, excess);
         } else {
+          float excess = dist - Rr;
           float rr = max(Rr * uSoft, 1e-4);
           float dnorm = excess / rr;
           float d2 = dnorm * dnorm;
@@ -115,18 +132,22 @@ export const FS = `
         float adiff = atan(dv.y, dv.x) - angleMid;
         adiff = atan(sin(adiff), cos(adiff));
         if (uOcc[i] > 0.5) {
-          // hard-edged band around the ring (or endpoint caps beyond the span), feathered by uOccSoft; ignores kArc
+          // hard-edged band around the ring (or endpoint caps beyond the span) at OCC_SIZE_SCALE of its
+          // configured width, feathered by uOccSoft; ignores kArc. Direction projects against the offset
+          // from the arc's own centre (used for both the ring and its endpoint caps).
+          float soOcc = so * OCC_SIZE_SCALE, siOcc = si * OCC_SIZE_SCALE;
           float excess;
           if (abs(adiff) <= halfSpan) {
             float d0 = dist - R;
-            excess = abs(d0) - (d0 >= 0.0 ? so : si);
+            excess = abs(d0) - (d0 >= 0.0 ? soOcc : siOcc);
           } else {
             vec2 e1 = ctr + R * vec2(cos(angleMid - halfSpan), sin(angleMid - halfSpan));
             vec2 e2 = ctr + R * vec2(cos(angleMid + halfSpan), sin(angleMid + halfSpan));
             float de = min(length(p - e1), length(p - e2));
-            excess = de - (so + si) * 0.5;
+            excess = de - (soOcc + siOcc) * 0.5;
           }
-          w = 1.0 - smoothstep(-uOccSoft[i], uOccSoft[i], excess);
+          float feather = occFeather(dv, uOccAngle[i], uOccSoft[i]);
+          w = 1.0 - smoothstep(-feather, feather, excess);
         } else {
           float dnorm;
           if (abs(adiff) <= halfSpan) {
@@ -151,12 +172,14 @@ export const FS = `
         vec2 ab = vec2(dd.x * u2.y - dd.y * u2.x, u1.x * dd.y - u1.y * dd.x) / det;
         vec2 rBase = vec2(ab.x < 0.0 ? uNode[i].z : uNode[i].w, ab.y < 0.0 ? uNode2[i].x : uNode2[i].y);
         if (uOcc[i] > 0.5) {
-          // hard-edged ellipse at its configured radii, feathered by uOccSoft; ignores its own hardness.
-          // The boundary distance is approximate (anisotropic radii aren't a true SDF) but close enough
-          // for a thin edge feather.
-          vec2 dNorm = abs(ab) / max(rBase, 1e-4);
-          float excess = (length(dNorm) - 1.0) * ((rBase.x + rBase.y) * 0.5);
-          w = 1.0 - smoothstep(-uOccSoft[i], uOccSoft[i], excess);
+          // hard-edged ellipse at OCC_SIZE_SCALE of its configured radii, feathered by uOccSoft; ignores its
+          // own hardness. The boundary distance is approximate (anisotropic radii aren't a true SDF) but
+          // close enough for a thin edge feather.
+          vec2 rOcc = rBase * OCC_SIZE_SCALE;
+          vec2 dNorm = abs(ab) / max(rOcc, 1e-4);
+          float excess = (length(dNorm) - 1.0) * ((rOcc.x + rOcc.y) * 0.5);
+          float feather = occFeather(dd, uOccAngle[i], uOccSoft[i]);
+          w = 1.0 - smoothstep(-feather, feather, excess);
         } else {
           vec2 r = max(rBase * uSoft, 1e-4);
           vec2 d = abs(ab) / r; float d2 = dot(d, d);

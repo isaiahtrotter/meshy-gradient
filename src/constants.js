@@ -11,6 +11,9 @@ export const UNDO_LIMIT = 60;
 // An occluding node's own softness slider (0..1) maps onto this px range, added to its edge (not scaled by
 // the global softness slider). The floor keeps an occluding node's edge always a little blurred, even at 0.
 export const OCC_SOFT_MIN_PX = 3, OCC_SOFT_MAX_PX = 60;
+// An occluding node's hard edge sits at half its configured size — matching how the same size value reads
+// on a non-occluding node, whose soft core sits around size × the global softness slider's default (~0.5).
+export const OCC_SIZE_SCALE = 0.5;
 
 export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 export const isNum = v => typeof v === 'number' && Number.isFinite(v);
