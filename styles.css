@@ -102,6 +102,7 @@ body {
 .align-btn:hover { color: var(--accent); }
 .icon-btn { width: 32px; padding: 0; display: flex; align-items: center; justify-content: center; }
 .icon-btn svg { display: block; }
+.icon-btn svg[hidden] { display: none; } /* the plain [hidden] UA rule loses to the display:block above */
 .stage.previewing .preview-btn { border-color: var(--accent); color: var(--accent); }
 .stage.previewing .stage-hint, .stage.previewing .ref-x { display: none; }
 .stage.previewing .overlay { pointer-events: none; }
@@ -122,7 +123,6 @@ body {
 .node-bar #addCircleBtn:hover, .node-bar #addCircleBtn[aria-pressed="true"] { color: #B477FF; }
 .node-bar #addStrokeBtn:hover, .node-bar #addStrokeBtn[aria-pressed="true"] { color: #FF9F63; }
 .node-bar-sep { width: 1px; height: 20px; background: color-mix(in srgb, var(--ink) 20%, transparent); }
-.stage.previewing .node-bar { display: none; }
 /* The bottom toolbar's shared tooltip (src/tooltip.js): one floating pill, positioned 8px above the toolbar and
    centred on whichever icon is hovered. `left` transitions so moving from one icon straight to another (without
    leaving the bar) slides the pill sideways instead of hiding and re-delaying; overflow: hidden clips its content

@@ -12,8 +12,13 @@ export function setPreview(on) {
   stage.classList.toggle('previewing', on); overlay.classList.toggle('hide-handles', on);
   $('previewBtn').setAttribute('aria-pressed', String(on));
   $('previewBtn').textContent = on ? 'Exit preview' : 'Preview';
+  $('previewToolBtn').setAttribute('aria-pressed', String(on));
+  // toggleAttribute, not the .hidden property: SVGElement doesn't reflect it in every engine
+  $('previewToolBtn').querySelector('.preview-icon-off').toggleAttribute('hidden', on);
+  $('previewToolBtn').querySelector('.preview-icon-on').toggleAttribute('hidden', !on);
 }
 $('previewBtn').addEventListener('click', () => setPreview(!session.previewing));
+$('previewToolBtn').addEventListener('click', () => setPreview(!session.previewing));
 
 // Placement modes are mutually exclusive; the pending type is what the next canvas click creates. Arc and line
 // drop back to circles after one placement; the brush stays on until Esc or another tool, like a brush should.
