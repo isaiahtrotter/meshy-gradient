@@ -7,8 +7,10 @@
 // Circle x/y are normalized canvas coords; arc, line and stroke coords are already in scaled render space (× sc).
 // uOcc[slot]: 1 if that slot's node occludes (composites over the averaged base via alpha-over, in slot order)
 // rather than joining the weighted-mean base layer. See the compositing step after the uBlendMode branch below.
-// uOccSoft[slot]: an occluding node's own edge-softness radius (already normalized, pre-divided by the canvas's
-// reference long side in renderer.js), added to its own size instead of the global uSoft multiplying it.
+// uOccSoft[slot]: an occluding node's own edge feather half-width (already normalized, pre-divided by the
+// canvas's reference long side in renderer.js). Occluding nodes ignore uSoft AND their own hardness (k) —
+// they're rendered as a hard-edged shape at their configured size, smoothstep-feathered by this width alone,
+// instead of the continuous (1/(1+d²))^k falloff every non-occluding shape uses.
 
 import { MAXN, MAX_STROKE_PTS as MAXP } from './constants.js';
 
@@ -38,7 +40,8 @@ export const FS = `
         // along it; keeping the strongest segment keeps the field continuous where the nearest segment switches.
         // Compared as k·log(1+d²) so each segment costs one log, and there's a single exp at the end.
         float cnt = uNode[i].x;
-        float rr = max(uOcc[i] > 0.5 ? uNode[i].y + uOccSoft[i] : uNode[i].y * uSoft, 1e-4);
+        float trueSize = uNode[i].y;
+        float rr = max(uOcc[i] > 0.5 ? trueSize : trueSize * uSoft, 1e-4);
         float row = (float(i) + 0.5) / ${MAXN}.0;
         vec3 P0 = texture2D(uPts, vec2(0.5 / ${MAXP}.0, row)).xyz;
         float best = 1e9, minD2 = 1e9;
@@ -53,7 +56,13 @@ export const FS = `
           minD2 = min(minD2, d2);
           P0 = P1;
         }
-        w = exp(-best) + 1e-7 / (1.0 + minD2);
+        if (uOcc[i] > 0.5) {
+          // hard-edged tube of half-width trueSize, feathered by uOccSoft; ignores per-point hardness
+          float excess = (sqrt(minD2) - 1.0) * trueSize;
+          w = 1.0 - smoothstep(-uOccSoft[i], uOccSoft[i], excess);
+        } else {
+          w = exp(-best) + 1e-7 / (1.0 + minD2);
+        }
       } else if (uType[i] > 2.5) {
         // line: a straight capsule between two explicit endpoints — distance to the nearest point on segment A -> B
         vec2 A = uNode[i].xy, B = uNode[i].zw;
@@ -61,10 +70,16 @@ export const FS = `
         vec2 AB = B - A; float len2 = dot(AB, AB);
         float t = len2 > 1e-8 ? clamp(dot(p - A, AB) / len2, 0.0, 1.0) : 0.0;
         float dist = length(p - (A + t * AB));
-        float rr = max(uOcc[i] > 0.5 ? sw + uOccSoft[i] : sw * uSoft, 1e-4);
-        float dnorm = dist / rr;
-        float d2 = dnorm * dnorm;
-        w = pow(1.0 / (1.0 + d2), kLine) + 1e-7 / (1.0 + d2);
+        if (uOcc[i] > 0.5) {
+          // hard-edged band of half-width sw, feathered by uOccSoft; ignores kLine
+          float excess = dist - sw;
+          w = 1.0 - smoothstep(-uOccSoft[i], uOccSoft[i], excess);
+        } else {
+          float rr = max(sw * uSoft, 1e-4);
+          float dnorm = dist / rr;
+          float d2 = dnorm * dnorm;
+          w = pow(1.0 / (1.0 + d2), kLine) + 1e-7 / (1.0 + d2);
+        }
       } else if (uType[i] > 1.5) {
         // unlinked circle: 4 independently angled/lengthed arms. The "radius" at a pixel's angle is an
         // inverse-angular-distance blend of the 4 arm lengths — exact at each arm's own angle, smooth between.
@@ -80,10 +95,15 @@ export const FS = `
         float dB = ap - angB; dB = atan(sin(dB), cos(dB)); float wB = 1.0 / (dB * dB + 0.015);
         float Rr = (wR * lenR + wT * lenT + wL * lenL + wB * lenB) / (wR + wT + wL + wB);
         float excess = dist - Rr;
-        float rr = max(uOcc[i] > 0.5 ? Rr + uOccSoft[i] : Rr * uSoft, 1e-4);
-        float dnorm = excess / rr;
-        float d2 = dnorm * dnorm;
-        w = pow(1.0 / (1.0 + d2), kUn) + 1e-7 / (1.0 + d2);
+        if (uOcc[i] > 0.5) {
+          // hard-edged disc of radius Rr, feathered by uOccSoft; ignores kUn
+          w = 1.0 - smoothstep(-uOccSoft[i], uOccSoft[i], excess);
+        } else {
+          float rr = max(Rr * uSoft, 1e-4);
+          float dnorm = excess / rr;
+          float d2 = dnorm * dnorm;
+          w = pow(1.0 / (1.0 + d2), kUn) + 1e-7 / (1.0 + d2);
+        }
       } else if (uType[i] > 0.5) {
         // arc: the circle is fit on the CPU each frame; inside the angular span measure radial distance to the
         // ring, outside it measure distance to the nearer endpoint
@@ -94,22 +114,35 @@ export const FS = `
         float dist = length(dv);
         float adiff = atan(dv.y, dv.x) - angleMid;
         adiff = atan(sin(adiff), cos(adiff));
-        float dnorm;
-        if (abs(adiff) <= halfSpan) {
-          float excess = dist - R;
-          float soSi = excess >= 0.0 ? so : si;
-          float rr = max(uOcc[i] > 0.5 ? soSi + uOccSoft[i] : soSi * uSoft, 1e-4);
-          dnorm = excess / rr;
+        if (uOcc[i] > 0.5) {
+          // hard-edged band around the ring (or endpoint caps beyond the span), feathered by uOccSoft; ignores kArc
+          float excess;
+          if (abs(adiff) <= halfSpan) {
+            float d0 = dist - R;
+            excess = abs(d0) - (d0 >= 0.0 ? so : si);
+          } else {
+            vec2 e1 = ctr + R * vec2(cos(angleMid - halfSpan), sin(angleMid - halfSpan));
+            vec2 e2 = ctr + R * vec2(cos(angleMid + halfSpan), sin(angleMid + halfSpan));
+            float de = min(length(p - e1), length(p - e2));
+            excess = de - (so + si) * 0.5;
+          }
+          w = 1.0 - smoothstep(-uOccSoft[i], uOccSoft[i], excess);
         } else {
-          vec2 e1 = ctr + R * vec2(cos(angleMid - halfSpan), sin(angleMid - halfSpan));
-          vec2 e2 = ctr + R * vec2(cos(angleMid + halfSpan), sin(angleMid + halfSpan));
-          float de = min(length(p - e1), length(p - e2));
-          float soSiAvg = (so + si) * 0.5;
-          float rr = max(uOcc[i] > 0.5 ? soSiAvg + uOccSoft[i] : soSiAvg * uSoft, 1e-4);
-          dnorm = de / rr;
+          float dnorm;
+          if (abs(adiff) <= halfSpan) {
+            float excess = dist - R;
+            float rr = max((excess >= 0.0 ? so : si) * uSoft, 1e-4);
+            dnorm = excess / rr;
+          } else {
+            vec2 e1 = ctr + R * vec2(cos(angleMid - halfSpan), sin(angleMid - halfSpan));
+            vec2 e2 = ctr + R * vec2(cos(angleMid + halfSpan), sin(angleMid + halfSpan));
+            float de = min(length(p - e1), length(p - e2));
+            float rr = max(((so + si) * 0.5) * uSoft, 1e-4);
+            dnorm = de / rr;
+          }
+          float d2 = dnorm * dnorm;
+          w = pow(1.0 / (1.0 + d2), kArc) + 1e-7 / (1.0 + d2);
         }
-        float d2 = dnorm * dnorm;
-        w = pow(1.0 / (1.0 + d2), kArc) + 1e-7 / (1.0 + d2);
       } else {
         // circle: two independent axes; express the offset in the (u1, u2) basis and pick the per-side spread
         vec2 q = uNode[i].xy * sc; vec2 dd = p - q;
@@ -117,9 +150,18 @@ export const FS = `
         float det = u1.x * u2.y - u1.y * u2.x; det = abs(det) < 0.05 ? (det < 0.0 ? -0.05 : 0.05) : det;
         vec2 ab = vec2(dd.x * u2.y - dd.y * u2.x, u1.x * dd.y - u1.y * dd.x) / det;
         vec2 rBase = vec2(ab.x < 0.0 ? uNode[i].z : uNode[i].w, ab.y < 0.0 ? uNode2[i].x : uNode2[i].y);
-        vec2 r = max(uOcc[i] > 0.5 ? rBase + uOccSoft[i] : rBase * uSoft, 1e-4);
-        vec2 d = abs(ab) / r; float d2 = dot(d, d);
-        w = pow(1.0 / (1.0 + d2), uNode2[i].z) + 1e-7 / (1.0 + d2);
+        if (uOcc[i] > 0.5) {
+          // hard-edged ellipse at its configured radii, feathered by uOccSoft; ignores its own hardness.
+          // The boundary distance is approximate (anisotropic radii aren't a true SDF) but close enough
+          // for a thin edge feather.
+          vec2 dNorm = abs(ab) / max(rBase, 1e-4);
+          float excess = (length(dNorm) - 1.0) * ((rBase.x + rBase.y) * 0.5);
+          w = 1.0 - smoothstep(-uOccSoft[i], uOccSoft[i], excess);
+        } else {
+          vec2 r = max(rBase * uSoft, 1e-4);
+          vec2 d = abs(ab) / r; float d2 = dot(d, d);
+          w = pow(1.0 / (1.0 + d2), uNode2[i].z) + 1e-7 / (1.0 + d2);
+        }
       }
       vec3 c = uColor[i].rgb;
       if (uOcc[i] > 0.5) {
