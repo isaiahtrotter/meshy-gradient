@@ -10,6 +10,9 @@
 // stroke:  pts (the drawn path), stops (hardness along it), sw; see stroke.js. No arms: no sl/sr, always linked,
 //          never converts to or from another type. th rotates the path about x, y.
 // unlinked: ar, al (and at, ab for circles) hold each arm's own angle. Linked nodes derive them from th/th2/phi.
+// occ: true if this node punches through (opaque, alpha-over) rather than blending into the averaged base layer.
+// Occluding nodes stack in array order (later = on top); non-occluding nodes always form the flattened floor
+// beneath the whole stack, regardless of where they sit in the array.
 
 import { wrapAngle, arcGeom, halfArcGeom } from './geometry.js';
 import { randomColor, HEX6 } from './color.js';
@@ -31,6 +34,7 @@ export function normalizeNode(raw) {
   if (!isNum(n.x)) n.x = 0.5;
   if (!isNum(n.y)) n.y = 0.5;
   n.a = isNum(n.a) ? n.a : 1;
+  n.occ = n.occ === true;
   n.k = isNum(n.k) && n.k > 0 ? n.k : DEFAULTS.k;
   n.th = isNum(n.th) ? n.th : 0;
   n.color = typeof n.color === 'string' && HEX6.test(n.color) ? n.color.toLowerCase() : randomColor();
@@ -106,7 +110,7 @@ export function arcCurves(n, C, scale, eps) {
 export function convertNodeType(n, to) {
   if (n.type === to || n.type === 'stroke' || to === 'stroke') return null;
   const len = (n.sl + n.sr) / 2;
-  const base = { id: n.id, type: to, x: n.x, y: n.y, a: n.a, k: n.k, color: n.color, th: n.th, sl: len, sr: len };
+  const base = { id: n.id, type: to, x: n.x, y: n.y, a: n.a, k: n.k, color: n.color, th: n.th, sl: len, sr: len, occ: n.occ };
   if (to === 'circle') { base.st = len; base.sb = len; }
   return normalizeNode(base);
 }

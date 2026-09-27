@@ -5,6 +5,8 @@
 //   uType 3 line:            uNode = (Ax, Ay, Bx, By)          uNode2 = (sw, k, 0, 0)
 //   uType 4 stroke:          uNode = (pointCount, sw, 0, 0)    points in row `slot` of uPts, one texel each: (x, y, k, 0)
 // Circle x/y are normalized canvas coords; arc, line and stroke coords are already in scaled render space (× sc).
+// uOcc[slot]: 1 if that slot's node occludes (composites over the averaged base via alpha-over, in slot order)
+// rather than joining the weighted-mean base layer. See the compositing step after the uBlendMode branch below.
 
 import { MAXN, MAX_STROKE_PTS as MAXP } from './constants.js';
 
@@ -13,7 +15,7 @@ export const VS = `attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }
 export const FS = `
   precision highp float;
   uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uBlendMode, uRefW, uGrainType, uDensity;
-  uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec4 uAdj; uniform vec2 uNode3[${MAXN}];
+  uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec4 uAdj; uniform vec2 uNode3[${MAXN}]; uniform float uOcc[${MAXN}];
   uniform sampler2D uPts;
   float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
   vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
@@ -23,6 +25,9 @@ export const FS = `
     vec2 sc = uRes / max(uRes.x, uRes.y);
     vec2 p = uv * sc;
     vec3 acc = vec3(0.0); vec3 accLin = vec3(0.0); vec3 accLogM = vec3(0.0); vec3 accLogS = vec3(0.0); float wsum = 0.0;
+    // occluding nodes composite with a running "over" op, back to front in array order, on top of the averaged
+    // base below (non-occluding nodes always flatten into that base regardless of array position)
+    vec3 stackPM = vec3(0.0); float stackA = 0.0;
     for (int i = 0; i < ${MAXN}; i++) {
       if (i >= uCount) break;
       float w;
@@ -110,11 +115,17 @@ export const FS = `
         vec2 d = abs(ab) / r; float d2 = dot(d, d);
         w = pow(1.0 / (1.0 + d2), uNode2[i].z) + 1e-7 / (1.0 + d2);
       }
-      w *= uColor[i].a;
       vec3 c = uColor[i].rgb;
-      acc += c * w; accLin += toLin(c) * w;
-      accLogM += log(max(c, 1e-4)) * w; accLogS += log(max(1.0 - c, 1e-4)) * w;
-      wsum += w;
+      if (uOcc[i] > 0.5) {
+        float ai = clamp(w * uColor[i].a, 0.0, 1.0);
+        stackPM = ai * c + (1.0 - ai) * stackPM;
+        stackA = ai + (1.0 - ai) * stackA;
+      } else {
+        float wA = w * uColor[i].a;
+        acc += c * wA; accLin += toLin(c) * wA;
+        accLogM += log(max(c, 1e-4)) * wA; accLogS += log(max(1.0 - c, 1e-4)) * wA;
+        wsum += wA;
+      }
     }
     vec3 normalCol = wsum > 0.0 ? acc / wsum : vec3(0.5);
     vec3 col;
@@ -134,6 +145,8 @@ export const FS = `
       vec3 b = normalCol;
       col = mix(2.0 * b * b, 1.0 - 2.0 * (1.0 - b) * (1.0 - b), step(0.5, b));
     }
+    // occluding nodes punch through the averaged base rather than blending into it
+    col = stackPM + (1.0 - stackA) * col;
     // global variation: hue rotate, saturation, brightness, temperature
     const vec3 kk = vec3(0.57735), luma = vec3(0.2126, 0.7152, 0.0722);
     float ca = cos(uAdj.x), sa = sin(uAdj.x);

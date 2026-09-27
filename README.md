@@ -36,10 +36,10 @@ composes handles + panel + draw, so most mutations end with `refreshAll()` from 
 | `view.js` | preview renderer + `draw()`, `layout()`, zoom/pan, reference image | renderer, handles, exporter, persistence |
 | `colorPanel.js` | Selected panel, hex input, HSV picker, `refreshSelectionPanel`, `setSelectedColor` | state, undo, handles, view |
 | `refresh.js` | `refreshAll`, `refreshSelection` | handles, colorPanel, view |
-| `actions.js` | `deleteSelected`, `selectAllNodes`, `clearSelection`, `nudgeSelected`, `flipSelected` | state, undo, nodes, refresh |
+| `actions.js` | `deleteSelected`, `selectAllNodes`, `clearSelection`, `nudgeSelected`, `flipSelected`, `moveOccludeLayer` | state, undo, nodes, refresh |
 | `modes.js` | preview toggle, arc/line placement, the brush, hint text | session, dom |
 | `sampling.js` | eyedropper, loupe, `colorAtCanvasPoint` | view, refresh, modes |
-| `nodeMenu.js` | right-click menu: type conversion, link/unlink, flip H/V (strokes: flip only) | nodes, state, undo, actions, refresh |
+| `nodeMenu.js` | right-click menu: type conversion, link/unlink, occluding toggle, flip H/V (strokes: occluding toggle + flip only) | nodes, state, undo, actions, refresh |
 | `interaction.js` | the pointer drag state machine (spread / hard / move / marquee / pan / draw / stopMove / stopHard) | most of the above |
 | `keyboard.js` | global shortcuts | actions, modes, sampling, view, undo |
 | `controls.js` | canvas size + scrubbers, sliders, palettes, align/shuffle/scatter, `syncControlsFromState`, `seedNodes` | state, undo, view, refresh, actions |
@@ -56,7 +56,8 @@ Every node in `state.nodes` has passed through `normalizeNode()` (on create, loa
 readers never apply fallbacks. Positions and lengths are normalized: `x`,`y` in 0..1 of the canvas.
 
 Common fields: `id`, `type` (`'circle'|'arc'|'line'|'stroke'`), `x`, `y`, `a` (alpha), `k` (hardness), `color`
-(`#rrggbb` lowercase), `th` (primary axis angle), `linked` (bool), `sl`, `sr` (left/right arm lengths; not on strokes).
+(`#rrggbb` lowercase), `th` (primary axis angle), `linked` (bool), `sl`, `sr` (left/right arm lengths; not on strokes),
+`occ` (bool, default false — occluding vs. averaging; see Render pipeline).
 
 | `type` | Extra fields | Length units |
 |---|---|---|
@@ -89,7 +90,15 @@ Legacy shapes still accepted by the normalizer: single `r`, `rx`/`ry`, absent `t
 3. The fragment shader loops over slots, computes a weight `(1 / (1 + d²))^k` per slot from a normalized
    distance, and blends colours by weight (`blendMode`: `normal`/`linear`/`multiply`/`screen`/`overlay` — the
    last four are order-independent generalizations of the usual two-layer blend modes, computed via weighted
-   arithmetic/geometric means since any number of nodes can overlap at a pixel). Then hue/sat/brightness/temperature (a luminance-neutral white-balance gain, skipped at 0), and
+   arithmetic/geometric means since any number of nodes can overlap at a pixel). Non-occluding nodes (`occ: false`,
+   the default) are the only ones that feed this weighted-mean base layer, regardless of their position in
+   `state.nodes`. Occluding nodes (`occ: true`) are excluded from it and instead composite over the finished base
+   with a standard back-to-front alpha-over (`stackPM`/`stackA` in `shader.js`), in `state.nodes` array order —
+   later in the array sits higher in the stack. There's no partial mixing between the two: an occluding node's own
+   alpha (its existing colour-panel opacity slider) is its true compositing opacity, so it can fully punch through
+   whatever's beneath it. Reordering the occluding stack (⌘/Ctrl+`[`/`]`, or the right-click menu's occluding
+   toggle) only ever swaps a node with its nearest occluding neighbour — non-occluding nodes are skipped since
+   they have no stacking order of their own. Then hue/sat/brightness/temperature (a luminance-neutral white-balance gain, skipped at 0), and
    seeded grain sized relative to the logical canvas width. Grain type (`mono`/`duo`/`multi`) picks how many independent
    noise channels feed R/G/B (mono: all three share one; duo: two share, one independent; multi: fully
    independent per-channel colour grain). Density masks a fraction of grain cells off entirely via a second

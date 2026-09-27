@@ -24,12 +24,14 @@ function openNodeMenu(n) {
   const item = (attrs, label, key) => `<button type="button" ${attrs}><span>${label}</span><span class="right">${key ? `<kbd>${key}</kbd>` : ''}</span></button>`;
   const sep = '<div class="sep"></div>';
   const flips = item('data-flip="x"', 'Flip horizontal', '⇧H') + item('data-flip="y"', 'Flip vertical', '⇧V');
-  nodeMenu.innerHTML = n.type === 'stroke' ? flips :
+  const occToggle = item('data-action="toggle-occ"', n.occ ? 'Make non-occluding' : 'Make occluding', '');
+  nodeMenu.innerHTML = n.type === 'stroke' ? (occToggle + sep + flips) :
     item('data-to="circle"', 'Circle node', 'C') +
     item('data-to="arc"', 'Arc node', 'A') +
     item('data-to="line"', 'Line node', 'L') +
     sep +
     item('data-action="toggle-link"', n.linked ? 'Unlink axes' : 'Link axes', '') +
+    occToggle +
     sep + flips;
   nodeMenu.hidden = false;
   // 8px to the right of the node's edge, vertically centred on the node
@@ -43,6 +45,7 @@ nodeMenu.addEventListener('click', e => {
   if (n) {
     if (b.dataset.to) convert(n, b.dataset.to);
     else if (b.dataset.action === 'toggle-link') { pushUndo(); toggleLinked(n); refreshAll(); }
+    else if (b.dataset.action === 'toggle-occ') { pushUndo(); n.occ = !n.occ; refreshAll(); }
     else if (b.dataset.flip) flipSelected(b.dataset.flip); // the right-clicked node is the whole selection
   }
   closeNodeMenu();
