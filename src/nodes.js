@@ -13,6 +13,8 @@
 // occ: true if this node punches through (opaque, alpha-over) rather than blending into the averaged base layer.
 // Occluding nodes stack in array order (later = on top); non-occluding nodes always form the flattened floor
 // beneath the whole stack, regardless of where they sit in the array.
+// os: occluding softness (0..1), only meaningful when occ is true. Blurs the shape's own edge (like a brush's
+// hardness), independent of the global softness slider, which never touches occluding nodes.
 
 import { wrapAngle, arcGeom, halfArcGeom } from './geometry.js';
 import { randomColor, HEX6 } from './color.js';
@@ -25,6 +27,7 @@ export const OPPOSITE_SIDE = { l: 'r', r: 'l', t: 'b', b: 't' };
 export const DEFAULTS = { k: 2.2, spread: 0.5, phi: 0.35, sw: 0.3, arcArm: 0.32, lineArm: 0.4 };
 
 const isNum = v => typeof v === 'number' && Number.isFinite(v);
+const clamp01 = v => Math.min(1, Math.max(0, v));
 
 // Accepts any historical node shape (single `r`, `rx/ry`, absent type, arc `thr/thl`) and returns a clean node.
 // Does not touch `id`; the caller owns ids.
@@ -35,6 +38,7 @@ export function normalizeNode(raw) {
   if (!isNum(n.y)) n.y = 0.5;
   n.a = isNum(n.a) ? n.a : 1;
   n.occ = n.occ === true;
+  n.os = isNum(n.os) ? clamp01(n.os) : 0;
   n.k = isNum(n.k) && n.k > 0 ? n.k : DEFAULTS.k;
   n.th = isNum(n.th) ? n.th : 0;
   n.color = typeof n.color === 'string' && HEX6.test(n.color) ? n.color.toLowerCase() : randomColor();

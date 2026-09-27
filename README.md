@@ -57,7 +57,8 @@ readers never apply fallbacks. Positions and lengths are normalized: `x`,`y` in 
 
 Common fields: `id`, `type` (`'circle'|'arc'|'line'|'stroke'`), `x`, `y`, `a` (alpha), `k` (hardness), `color`
 (`#rrggbb` lowercase), `th` (primary axis angle), `linked` (bool), `sl`, `sr` (left/right arm lengths; not on strokes),
-`occ` (bool, default false — occluding vs. averaging; see Render pipeline).
+`occ` (bool, default false — occluding vs. averaging; see Render pipeline), `os` (occluding softness, 0..1,
+default 0 — only meaningful when `occ` is true; see Render pipeline).
 
 | `type` | Extra fields | Length units |
 |---|---|---|
@@ -96,7 +97,11 @@ Legacy shapes still accepted by the normalizer: single `r`, `rx`/`ry`, absent `t
    with a standard back-to-front alpha-over (`stackPM`/`stackA` in `shader.js`), in `state.nodes` array order —
    later in the array sits higher in the stack. There's no partial mixing between the two: an occluding node's own
    alpha (its existing colour-panel opacity slider) is its true compositing opacity, so it can fully punch through
-   whatever's beneath it. Reordering the occluding stack (⌘/Ctrl+`[`/`]`, or the right-click menu's occluding
+   whatever's beneath it. An occluding node's edge softness (`os`, the sidebar's "Softness" slider shown only
+   when the selection has occluding nodes) works differently from the global softness slider: it adds a blur
+   radius (`OCC_SOFT_MIN_PX`..`OCC_SOFT_MAX_PX`, `constants.js`) to the node's own edge instead of the global
+   slider scaling it, so occluding nodes are never affected by `uSoft` and always carry at least a small blur.
+   Reordering the occluding stack (⌘/Ctrl+`[`/`]`, or the right-click menu's occluding
    toggle) only ever swaps a node with its nearest occluding neighbour — non-occluding nodes are skipped since
    they have no stacking order of their own. Then hue/sat/brightness/temperature (a luminance-neutral white-balance gain, skipped at 0), and
    seeded grain sized relative to the logical canvas width. Grain type (`mono`/`duo`/`multi`) picks how many independent

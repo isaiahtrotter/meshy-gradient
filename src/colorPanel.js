@@ -4,6 +4,7 @@
 import { state, selectedNodes } from './state.js';
 import { snapshot, pushUndo } from './undo.js';
 import { hexToHsv, hsvToHex, rgbaCss, hexWithAlpha, parseHexInput } from './color.js';
+import { OCC_SOFT_MIN_PX, OCC_SOFT_MAX_PX } from './constants.js';
 import { $ } from './dom.js';
 import { refreshHandles } from './handles.js';
 import { draw } from './view.js';
@@ -12,17 +13,40 @@ let colorSnap = null;
 function beginColorEdit() { if (!colorSnap) colorSnap = snapshot(); }
 function setSwatch(hex, a) { $('selSwatch').style.setProperty('--sw', rgbaCss(hex, a)); }
 
+// ---------- Occluded-node softness (edge blur; independent of the global softness slider) ----------
+const occSoftToPx = v => Math.round(OCC_SOFT_MIN_PX + v * (OCC_SOFT_MAX_PX - OCC_SOFT_MIN_PX));
+function fillOccSoft() {
+  const el = $('occSoft'), slider = el.closest('.slider');
+  slider.style.setProperty('--pct', ((+el.value - +el.min) / (+el.max - +el.min)) * 100 + '%');
+}
+let occSoftSnap = null;
+$('occSoft').addEventListener('pointerdown', () => { occSoftSnap = snapshot(); });
+$('occSoft').addEventListener('input', e => {
+  const v = +e.target.value;
+  for (const n of selectedNodes()) if (n.occ) n.os = v;
+  fillOccSoft(); $('occSoftVal').textContent = occSoftToPx(v) + 'px';
+  refreshHandles(); draw();
+});
+$('occSoft').addEventListener('change', () => { if (occSoftSnap) { pushUndo(occSoftSnap); occSoftSnap = null; } });
+
 export function refreshSelectionPanel() {
   const sel = selectedNodes(), has = sel.length > 0;
+  const occSel = sel.filter(n => n.occ);
   $('selSection').hidden = !has;
   $('delBtn').disabled = !has;
-  $('selTitle').textContent = has ? (sel.length === 1 ? 'Selected node' : `${sel.length} nodes selected`) : 'Selected (none)';
+  $('selTitle').textContent = !has ? 'Selected (none)'
+    : sel.every(n => n.occ) ? (sel.length === 1 ? 'Occluded node' : `${sel.length} occluded nodes selected`)
+    : (sel.length === 1 ? 'Selected node' : `${sel.length} nodes selected`);
   $('selSwatch').disabled = !has; $('selHex').disabled = !has;
   if (has) {
     setSwatch(sel[0].color, sel[0].a);
     if (document.activeElement !== $('selHex')) $('selHex').value = hexWithAlpha(sel[0].color, sel[0].a);
     if (!pickerDragging) syncPickerFromColor(sel[0].color, sel[0].a);
   } else { $('selHex').value = ''; closePicker(); }
+  $('occSoftRow').hidden = occSel.length === 0;
+  if (occSel.length && document.activeElement !== $('occSoft')) {
+    $('occSoft').value = occSel[0].os; fillOccSoft(); $('occSoftVal').textContent = occSoftToPx(occSel[0].os) + 'px';
+  }
 }
 
 // Applies a colour (and optional alpha) to the selection. `commit` closes the pending undo entry.

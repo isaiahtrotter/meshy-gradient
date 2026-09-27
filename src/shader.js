@@ -7,6 +7,8 @@
 // Circle x/y are normalized canvas coords; arc, line and stroke coords are already in scaled render space (× sc).
 // uOcc[slot]: 1 if that slot's node occludes (composites over the averaged base via alpha-over, in slot order)
 // rather than joining the weighted-mean base layer. See the compositing step after the uBlendMode branch below.
+// uOccSoft[slot]: an occluding node's own edge-softness radius (already normalized, pre-divided by the canvas's
+// reference long side in renderer.js), added to its own size instead of the global uSoft multiplying it.
 
 import { MAXN, MAX_STROKE_PTS as MAXP } from './constants.js';
 
@@ -15,7 +17,7 @@ export const VS = `attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }
 export const FS = `
   precision highp float;
   uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uBlendMode, uRefW, uGrainType, uDensity;
-  uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec4 uAdj; uniform vec2 uNode3[${MAXN}]; uniform float uOcc[${MAXN}];
+  uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec4 uAdj; uniform vec2 uNode3[${MAXN}]; uniform float uOcc[${MAXN}]; uniform float uOccSoft[${MAXN}];
   uniform sampler2D uPts;
   float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
   vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
@@ -35,7 +37,8 @@ export const FS = `
         // stroke: a polyline with a hardness per point. Each segment's weight is (1/(1+d²))^k with k interpolated
         // along it; keeping the strongest segment keeps the field continuous where the nearest segment switches.
         // Compared as k·log(1+d²) so each segment costs one log, and there's a single exp at the end.
-        float cnt = uNode[i].x, rr = max(uNode[i].y * uSoft, 1e-4);
+        float cnt = uNode[i].x;
+        float rr = max(uOcc[i] > 0.5 ? uNode[i].y + uOccSoft[i] : uNode[i].y * uSoft, 1e-4);
         float row = (float(i) + 0.5) / ${MAXN}.0;
         vec3 P0 = texture2D(uPts, vec2(0.5 / ${MAXP}.0, row)).xyz;
         float best = 1e9, minD2 = 1e9;
@@ -58,7 +61,7 @@ export const FS = `
         vec2 AB = B - A; float len2 = dot(AB, AB);
         float t = len2 > 1e-8 ? clamp(dot(p - A, AB) / len2, 0.0, 1.0) : 0.0;
         float dist = length(p - (A + t * AB));
-        float rr = max(sw * uSoft, 1e-4);
+        float rr = max(uOcc[i] > 0.5 ? sw + uOccSoft[i] : sw * uSoft, 1e-4);
         float dnorm = dist / rr;
         float d2 = dnorm * dnorm;
         w = pow(1.0 / (1.0 + d2), kLine) + 1e-7 / (1.0 + d2);
@@ -77,7 +80,7 @@ export const FS = `
         float dB = ap - angB; dB = atan(sin(dB), cos(dB)); float wB = 1.0 / (dB * dB + 0.015);
         float Rr = (wR * lenR + wT * lenT + wL * lenL + wB * lenB) / (wR + wT + wL + wB);
         float excess = dist - Rr;
-        float rr = max(Rr * uSoft, 1e-4);
+        float rr = max(uOcc[i] > 0.5 ? Rr + uOccSoft[i] : Rr * uSoft, 1e-4);
         float dnorm = excess / rr;
         float d2 = dnorm * dnorm;
         w = pow(1.0 / (1.0 + d2), kUn) + 1e-7 / (1.0 + d2);
@@ -94,13 +97,15 @@ export const FS = `
         float dnorm;
         if (abs(adiff) <= halfSpan) {
           float excess = dist - R;
-          float rr = max((excess >= 0.0 ? so : si) * uSoft, 1e-4);
+          float soSi = excess >= 0.0 ? so : si;
+          float rr = max(uOcc[i] > 0.5 ? soSi + uOccSoft[i] : soSi * uSoft, 1e-4);
           dnorm = excess / rr;
         } else {
           vec2 e1 = ctr + R * vec2(cos(angleMid - halfSpan), sin(angleMid - halfSpan));
           vec2 e2 = ctr + R * vec2(cos(angleMid + halfSpan), sin(angleMid + halfSpan));
           float de = min(length(p - e1), length(p - e2));
-          float rr = max(((so + si) * 0.5) * uSoft, 1e-4);
+          float soSiAvg = (so + si) * 0.5;
+          float rr = max(uOcc[i] > 0.5 ? soSiAvg + uOccSoft[i] : soSiAvg * uSoft, 1e-4);
           dnorm = de / rr;
         }
         float d2 = dnorm * dnorm;
@@ -111,7 +116,8 @@ export const FS = `
         vec2 u1 = vec2(cos(uNode2[i].w), sin(uNode2[i].w)), u2 = vec2(cos(uTh2[i]), sin(uTh2[i]));
         float det = u1.x * u2.y - u1.y * u2.x; det = abs(det) < 0.05 ? (det < 0.0 ? -0.05 : 0.05) : det;
         vec2 ab = vec2(dd.x * u2.y - dd.y * u2.x, u1.x * dd.y - u1.y * dd.x) / det;
-        vec2 r = max(vec2(ab.x < 0.0 ? uNode[i].z : uNode[i].w, ab.y < 0.0 ? uNode2[i].x : uNode2[i].y) * uSoft, 1e-4);
+        vec2 rBase = vec2(ab.x < 0.0 ? uNode[i].z : uNode[i].w, ab.y < 0.0 ? uNode2[i].x : uNode2[i].y);
+        vec2 r = max(uOcc[i] > 0.5 ? rBase + uOccSoft[i] : rBase * uSoft, 1e-4);
         vec2 d = abs(ab) / r; float d2 = dot(d, d);
         w = pow(1.0 / (1.0 + d2), uNode2[i].z) + 1e-7 / (1.0 + d2);
       }
