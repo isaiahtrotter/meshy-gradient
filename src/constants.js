@@ -8,9 +8,11 @@ export const CANVAS_MIN = 16, CANVAS_MAX = 8192, EXPORT_MAX = 16384;
 export const ZOOM_MIN = 0.25, ZOOM_MAX = 8;
 export const PX_PER_SPREAD = 100, ARM_MIN = 12; // a circle spread of 0.5 draws a 50px arm
 export const UNDO_LIMIT = 60;
-// An occluding node's own softness slider (0..1) maps onto this px range, added to its edge (not scaled by
-// the global softness slider). The floor keeps an occluding node's edge always a little blurred, even at 0.
-export const OCC_SOFT_MIN_PX = 3, OCC_SOFT_MAX_PX = 60;
+// An occluding node's edge feather is a linear blend between two user-set px amounts (os1, the side facing
+// away from its blur angle; os2, the side facing it) — not scaled by the global softness slider. Both are
+// clamped to this range; OCC_SOFT_DEFAULT_PX seeds a freshly-toggled node's os1 and os2 (equal, so there's no
+// directional variation until the user spreads them apart).
+export const OCC_SOFT_MAX_PX = 120, OCC_SOFT_DEFAULT_PX = 3;
 // An occluding node's hard edge sits at half its configured size — matching how the same size value reads
 // on a non-occluding node, whose soft core sits around size × the global softness slider's default (~0.5).
 export const OCC_SIZE_SCALE = 0.5;

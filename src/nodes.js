@@ -13,14 +13,16 @@
 // occ: true if this node punches through (opaque, alpha-over) rather than blending into the averaged base layer.
 // Occluding nodes stack in array order (later = on top); non-occluding nodes always form the flattened floor
 // beneath the whole stack, regardless of where they sit in the array.
-// os: occluding softness (0..1), only meaningful when occ is true. Blurs the shape's own edge (like a brush's
-// hardness), independent of the global softness slider, which never touches occluding nodes.
-// oa: occluding blur angle in degrees, only meaningful when occ is true. The edge feather varies from a hard
-// minimum on the side facing away from this angle to the full `os` amount on the side facing it.
+// os1, os2: occluding edge feather widths in real px, only meaningful when occ is true, independent of the
+// global softness slider (which never touches occluding nodes). os1 is the width on the side facing away
+// from `oa`; os2 is the side facing it — a linear (cosine) blend runs between them around the shape, so
+// os1 === os2 reads as uniform softness and spreading them apart makes the blur directional.
+// oa: occluding blur angle in degrees, only meaningful when occ is true; see os1/os2.
 
 import { wrapAngle, arcGeom, halfArcGeom } from './geometry.js';
 import { randomColor, HEX6 } from './color.js';
 import { sanitizePts, sanitizeStops } from './stroke.js';
+import { OCC_SOFT_MAX_PX, OCC_SOFT_DEFAULT_PX, clamp } from './constants.js';
 
 export const NODE_TYPES = ['circle', 'arc', 'line', 'stroke'];
 export const SIDE_KEY = { l: 'sl', r: 'sr', t: 'st', b: 'sb' };
@@ -40,7 +42,13 @@ export function normalizeNode(raw) {
   if (!isNum(n.y)) n.y = 0.5;
   n.a = isNum(n.a) ? n.a : 1;
   n.occ = n.occ === true;
-  n.os = isNum(n.os) ? clamp01(n.os) : 0;
+  if (!isNum(n.os1) && !isNum(n.os2) && isNum(n.os)) {
+    // legacy: a single 0..1 slider over a fixed 3..60px range, with a fixed 3px floor on the other side
+    n.os1 = 3; n.os2 = 3 + clamp01(n.os) * (60 - 3);
+  }
+  n.os1 = isNum(n.os1) ? clamp(n.os1, 0, OCC_SOFT_MAX_PX) : OCC_SOFT_DEFAULT_PX;
+  n.os2 = isNum(n.os2) ? clamp(n.os2, 0, OCC_SOFT_MAX_PX) : OCC_SOFT_DEFAULT_PX;
+  delete n.os;
   n.oa = isNum(n.oa) ? n.oa : 0;
   n.k = isNum(n.k) && n.k > 0 ? n.k : DEFAULTS.k;
   n.th = isNum(n.th) ? n.th : 0;

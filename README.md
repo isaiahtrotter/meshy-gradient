@@ -57,9 +57,10 @@ readers never apply fallbacks. Positions and lengths are normalized: `x`,`y` in 
 
 Common fields: `id`, `type` (`'circle'|'arc'|'line'|'stroke'`), `x`, `y`, `a` (alpha), `k` (hardness), `color`
 (`#rrggbb` lowercase), `th` (primary axis angle), `linked` (bool), `sl`, `sr` (left/right arm lengths; not on strokes),
-`occ` (bool, default false — occluding vs. averaging; see Render pipeline), `os` (occluding softness, 0..1,
-default 0 — only meaningful when `occ` is true; see Render pipeline), `oa` (occluding blur angle in degrees,
-default 0 — only meaningful when `occ` is true; see Render pipeline).
+`occ` (bool, default false — occluding vs. averaging; see Render pipeline), `os1`, `os2` (occluding edge
+feather widths in real px, default `OCC_SOFT_DEFAULT_PX` each — only meaningful when `occ` is true; see Render
+pipeline), `oa` (occluding blur angle in degrees, default 0 — only meaningful when `occ` is true; see Render
+pipeline).
 
 | `type` | Extra fields | Length units |
 |---|---|---|
@@ -101,11 +102,12 @@ Legacy shapes still accepted by the normalizer: single `r`, `rx`/`ry`, absent `t
    whatever's beneath it. Occluding nodes ignore both the global softness slider and their own hardness (`k`):
    they're rendered as a hard-edged shape at half its configured size (`OCC_SIZE_SCALE` in `constants.js` — so
    a size value reads the same whether or not a node occludes), smoothstep-feathered at that edge instead of
-   the continuous power-law falloff non-occluding shapes use. The sidebar's "Softness" slider (shown only when
-   the selection has occluding nodes) sets that feather's half-width in real px (`os`, mapped through
-   `OCC_SOFT_MIN_PX`..`OCC_SOFT_MAX_PX`), and "Blur angle" (`oa`, degrees) rotates a linear gradient between
-   that width and a fixed hard-edge floor (`uOccFloor`) around the shape, so one side can stay crisp while the
-   opposite side carries the full blur. Reordering the occluding stack (⌘/Ctrl+`[`/`]`, or the right-click menu's occluding
+   the continuous power-law falloff non-occluding shapes use. That feather's half-width is a linear (cosine)
+   blend between two independent, user-set px amounts — `os1` on the side facing away from the blur angle,
+   `os2` on the side facing it, both clamped to `OCC_SOFT_MAX_PX` — driven by the sidebar's "Blur start"/"Blur
+   end" sliders and rotated by "Blur angle" (`oa`, degrees), shown only when the selection has occluding
+   nodes. Equal `os1`/`os2` reads as uniform softness; spreading them apart makes the blur directional, one
+   side crisp and the other fully blurred. Reordering the occluding stack (⌘/Ctrl+`[`/`]`, or the right-click menu's occluding
    toggle) only ever swaps a node with its nearest occluding neighbour — non-occluding nodes are skipped since
    they have no stacking order of their own. Then hue/sat/brightness/temperature (a luminance-neutral white-balance gain, skipped at 0), and
    seeded grain sized relative to the logical canvas width. Grain type (`mono`/`duo`/`multi`) picks how many independent

@@ -4,7 +4,6 @@
 import { state, selectedNodes } from './state.js';
 import { snapshot, pushUndo } from './undo.js';
 import { hexToHsv, hsvToHex, rgbaCss, hexWithAlpha, parseHexInput } from './color.js';
-import { OCC_SOFT_MIN_PX, OCC_SOFT_MAX_PX } from './constants.js';
 import { $ } from './dom.js';
 import { refreshHandles } from './handles.js';
 import { draw } from './view.js';
@@ -13,33 +12,34 @@ let colorSnap = null;
 function beginColorEdit() { if (!colorSnap) colorSnap = snapshot(); }
 function setSwatch(hex, a) { $('selSwatch').style.setProperty('--sw', rgbaCss(hex, a)); }
 
-// ---------- Occluded-node softness (edge blur; independent of the global softness slider) ----------
-const occSoftToPx = v => Math.round(OCC_SOFT_MIN_PX + v * (OCC_SOFT_MAX_PX - OCC_SOFT_MIN_PX));
-function fillOccSoft() {
-  const el = $('occSoft'), slider = el.closest('.slider');
+function fillSlider(el) {
+  const slider = el.closest('.slider');
   slider.style.setProperty('--pct', ((+el.value - +el.min) / (+el.max - +el.min)) * 100 + '%');
 }
-let occSoftSnap = null;
-$('occSoft').addEventListener('pointerdown', () => { occSoftSnap = snapshot(); });
-$('occSoft').addEventListener('input', e => {
-  const v = +e.target.value;
-  for (const n of selectedNodes()) if (n.occ) n.os = v;
-  fillOccSoft(); $('occSoftVal').textContent = occSoftToPx(v) + 'px';
-  refreshHandles(); draw();
-});
-$('occSoft').addEventListener('change', () => { if (occSoftSnap) { pushUndo(occSoftSnap); occSoftSnap = null; } });
 
-// ---------- Occluded-node blur angle (which side gets the full softness vs. the hard-edge floor) ----------
-function fillOccAngle() {
-  const el = $('occAngle'), slider = el.closest('.slider');
-  slider.style.setProperty('--pct', ((+el.value - +el.min) / (+el.max - +el.min)) * 100 + '%');
+// ---------- Occluded-node blur range (os1: side facing away from the blur angle, os2: side facing it) ----------
+function wireOccSoft(id, field) {
+  const el = $(id);
+  let snap = null;
+  el.addEventListener('pointerdown', () => { snap = snapshot(); });
+  el.addEventListener('input', e => {
+    const v = +e.target.value;
+    for (const n of selectedNodes()) if (n.occ) n[field] = v;
+    fillSlider(el); $(id + 'Val').textContent = Math.round(v) + 'px';
+    refreshHandles(); draw();
+  });
+  el.addEventListener('change', () => { if (snap) { pushUndo(snap); snap = null; } });
 }
+wireOccSoft('occSoft1', 'os1');
+wireOccSoft('occSoft2', 'os2');
+
+// ---------- Occluded-node blur angle (which side gets os2 vs. os1) ----------
 let occAngleSnap = null;
 $('occAngle').addEventListener('pointerdown', () => { occAngleSnap = snapshot(); });
 $('occAngle').addEventListener('input', e => {
   const v = +e.target.value;
   for (const n of selectedNodes()) if (n.occ) n.oa = v;
-  fillOccAngle(); $('occAngleVal').textContent = Math.round(v) + '°';
+  fillSlider($('occAngle')); $('occAngleVal').textContent = Math.round(v) + '°';
   refreshHandles(); draw();
 });
 $('occAngle').addEventListener('change', () => { if (occAngleSnap) { pushUndo(occAngleSnap); occAngleSnap = null; } });
@@ -58,13 +58,16 @@ export function refreshSelectionPanel() {
     if (document.activeElement !== $('selHex')) $('selHex').value = hexWithAlpha(sel[0].color, sel[0].a);
     if (!pickerDragging) syncPickerFromColor(sel[0].color, sel[0].a);
   } else { $('selHex').value = ''; closePicker(); }
-  $('occSoftRow').hidden = occSel.length === 0;
+  $('occSoft1Row').hidden = occSel.length === 0;
+  $('occSoft2Row').hidden = occSel.length === 0;
   $('occAngleRow').hidden = occSel.length === 0;
-  if (occSel.length && document.activeElement !== $('occSoft')) {
-    $('occSoft').value = occSel[0].os; fillOccSoft(); $('occSoftVal').textContent = occSoftToPx(occSel[0].os) + 'px';
-  }
-  if (occSel.length && document.activeElement !== $('occAngle')) {
-    $('occAngle').value = occSel[0].oa; fillOccAngle(); $('occAngleVal').textContent = Math.round(occSel[0].oa) + '°';
+  if (occSel.length) {
+    for (const [id, field] of [['occSoft1', 'os1'], ['occSoft2', 'os2'], ['occAngle', 'oa']]) {
+      if (document.activeElement === $(id)) continue;
+      const v = occSel[0][field];
+      $(id).value = v; fillSlider($(id));
+      $(id + 'Val').textContent = Math.round(v) + (field === 'oa' ? '°' : 'px');
+    }
   }
 }
 
