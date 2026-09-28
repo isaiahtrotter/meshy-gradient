@@ -81,40 +81,52 @@ window.addEventListener('error', function () {
   </div>
 </div>
 <div id="settingsModal" class="modal-overlay" hidden>
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
     <div class="modal-head">
       <h2 id="settingsTitle">Settings</h2>
       <button id="settingsClose" class="icon-btn" title="Close">
         <svg width="14" height="14" viewBox="0 0 14 14"><line x1="1.5" y1="1.5" x2="12.5" y2="12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="12.5" y1="1.5" x2="1.5" y2="12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       </button>
     </div>
-    <div class="settings-tabs" role="tablist">
-      <button class="chip stab" data-tab="shortcuts" type="button" role="tab" aria-selected="true" aria-pressed="true">Shortcuts</button>
-    </div>
-    <div class="modal-body">
-      <div class="stab-panel" data-tab="shortcuts" role="tabpanel">
-        <div class="shortcut-row"><span>Undo</span><span class="keys"><kbd>⌘</kbd><kbd>Z</kbd></span></div>
-        <div class="shortcut-row"><span>Redo</span><span class="keys"><kbd>⌘</kbd><kbd>⇧</kbd><kbd>Z</kbd></span></div>
-        <div class="shortcut-row"><span>Select all</span><span class="keys"><kbd>⌘</kbd><kbd>A</kbd></span></div>
-        <div class="shortcut-row"><span>Delete selected</span><span class="keys"><kbd>Delete</kbd></span></div>
-        <div class="shortcut-row"><span>Deselect / cancel / exit</span><span class="keys"><kbd>Esc</kbd></span></div>
-        <div class="shortcut-row"><span>Toggle preview</span><span class="keys"><kbd>H</kbd></span></div>
-        <div class="shortcut-row"><span>Hold to preview</span><span class="keys"><kbd>Space</kbd></span></div>
-        <div class="shortcut-row"><span>Sample a colour</span><span class="keys"><kbd>I</kbd></span></div>
-        <div class="shortcut-row"><span>Line tool</span><span class="keys"><kbd>L</kbd></span></div>
-        <div class="shortcut-row"><span>Arc tool</span><span class="keys"><kbd>A</kbd></span></div>
-        <div class="shortcut-row"><span>Circle tool</span><span class="keys"><kbd>C</kbd></span></div>
-        <div class="shortcut-row"><span>Pencil (draw a stroke)</span><span class="keys"><kbd>P</kbd></span></div>
-        <div class="shortcut-row"><span>Add a hardness stop</span><span class="keys">Click a stroke’s path</span></div>
-        <div class="shortcut-row"><span>Remove a hardness stop</span><span class="keys"><kbd>⌥</kbd> + click</span></div>
-        <div class="shortcut-row"><span>Flip horizontal / vertical</span><span class="keys"><kbd>⇧</kbd><kbd>H</kbd> / <kbd>⇧</kbd><kbd>V</kbd></span></div>
-        <div class="shortcut-row"><span>Nudge selection</span><span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></span></div>
-        <div class="shortcut-row"><span>Nudge further</span><span class="keys"><kbd>⇧</kbd><kbd>Arrow</kbd></span></div>
-        <div class="shortcut-row"><span>Zoom in / out</span><span class="keys"><kbd>⌘</kbd><kbd>+</kbd> / <kbd>⌘</kbd><kbd>−</kbd></span></div>
-        <div class="shortcut-row"><span>Reset zoom</span><span class="keys"><kbd>⌘</kbd><kbd>0</kbd></span></div>
-        <div class="shortcut-row"><span>Constrain drag to an axis</span><span class="keys"><kbd>⇧</kbd> + drag</span></div>
-        <div class="shortcut-row"><span>Duplicate while dragging</span><span class="keys"><kbd>⌥</kbd> + drag</span></div>
-        <div class="shortcut-row"><span>Node options (convert, link, flip)</span><span class="keys">Right-click a node</span></div>
+    <div class="settings-layout">
+      <nav class="settings-nav" role="tablist" aria-label="Settings sections">
+        <button class="snav" data-tab="appearance" type="button" role="tab" aria-selected="true" aria-pressed="true">Appearance</button>
+        <button class="snav" data-tab="shortcuts" type="button" role="tab" aria-selected="false" aria-pressed="false">Shortcuts</button>
+      </nav>
+      <div class="settings-panels">
+        <section class="stab-panel" data-tab="appearance" role="tabpanel">
+          <h2>Theme</h2>
+          <div class="row" id="themeSeg" role="radiogroup" aria-label="Theme">
+            <button type="button" class="chip grow" data-theme-opt="light" aria-pressed="false">Light</button>
+            <button type="button" class="chip grow" data-theme-opt="dark" aria-pressed="false">Dark</button>
+            <button type="button" class="chip grow" data-theme-opt="system" aria-pressed="true">System</button>
+          </div>
+          <div class="help">System follows your OS's light/dark setting.</div>
+        </section>
+        <section class="stab-panel" data-tab="shortcuts" role="tabpanel" hidden>
+          <div class="shortcut-row"><span>Undo</span><span class="keys"><kbd>⌘</kbd><kbd>Z</kbd></span></div>
+          <div class="shortcut-row"><span>Redo</span><span class="keys"><kbd>⌘</kbd><kbd>⇧</kbd><kbd>Z</kbd></span></div>
+          <div class="shortcut-row"><span>Select all</span><span class="keys"><kbd>⌘</kbd><kbd>A</kbd></span></div>
+          <div class="shortcut-row"><span>Delete selected</span><span class="keys"><kbd>Delete</kbd></span></div>
+          <div class="shortcut-row"><span>Deselect / cancel / exit</span><span class="keys"><kbd>Esc</kbd></span></div>
+          <div class="shortcut-row"><span>Toggle preview</span><span class="keys"><kbd>H</kbd></span></div>
+          <div class="shortcut-row"><span>Hold to preview</span><span class="keys"><kbd>Space</kbd></span></div>
+          <div class="shortcut-row"><span>Sample a colour</span><span class="keys"><kbd>I</kbd></span></div>
+          <div class="shortcut-row"><span>Line tool</span><span class="keys"><kbd>L</kbd></span></div>
+          <div class="shortcut-row"><span>Arc tool</span><span class="keys"><kbd>A</kbd></span></div>
+          <div class="shortcut-row"><span>Circle tool</span><span class="keys"><kbd>C</kbd></span></div>
+          <div class="shortcut-row"><span>Pencil (draw a stroke)</span><span class="keys"><kbd>P</kbd></span></div>
+          <div class="shortcut-row"><span>Add a hardness stop</span><span class="keys">Click a stroke’s path</span></div>
+          <div class="shortcut-row"><span>Remove a hardness stop</span><span class="keys"><kbd>⌥</kbd> + click</span></div>
+          <div class="shortcut-row"><span>Flip horizontal / vertical</span><span class="keys"><kbd>⇧</kbd><kbd>H</kbd> / <kbd>⇧</kbd><kbd>V</kbd></span></div>
+          <div class="shortcut-row"><span>Nudge selection</span><span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></span></div>
+          <div class="shortcut-row"><span>Nudge further</span><span class="keys"><kbd>⇧</kbd><kbd>Arrow</kbd></span></div>
+          <div class="shortcut-row"><span>Zoom in / out</span><span class="keys"><kbd>⌘</kbd><kbd>+</kbd> / <kbd>⌘</kbd><kbd>−</kbd></span></div>
+          <div class="shortcut-row"><span>Reset zoom</span><span class="keys"><kbd>⌘</kbd><kbd>0</kbd></span></div>
+          <div class="shortcut-row"><span>Constrain drag to an axis</span><span class="keys"><kbd>⇧</kbd> + drag</span></div>
+          <div class="shortcut-row"><span>Duplicate while dragging</span><span class="keys"><kbd>⌥</kbd> + drag</span></div>
+          <div class="shortcut-row"><span>Node options (convert, link, flip)</span><span class="keys">Right-click a node</span></div>
+        </section>
       </div>
     </div>
   </div>

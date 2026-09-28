@@ -1,26 +1,42 @@
-// UI theme toggle (light/dark), opened from the top bar. Persisted separately from the document/prefs
-// state in `meshyTheme` (`'light'|'dark'`); no saved value falls back to the OS `prefers-color-scheme`,
-// same as the CSS media query does for anyone who's never touched the toggle.
+// UI theme: light / dark / system. The header icon is a quick light<->dark toggle; the Settings >
+// Appearance segmented control adds the explicit "System" option back. Persisted in `meshyTheme`
+// (`'light'|'dark'`, absent means "system" — never written for that case, so a plain `prefers-color-scheme`
+// change keeps tracking live with zero JS, exactly like the CSS media query already does on its own).
 import { $ } from './dom.js';
 
 const STORAGE_KEY = 'meshyTheme';
+const media = window.matchMedia('(prefers-color-scheme: dark)');
 
-function systemTheme() {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+const systemTheme = () => (media.matches ? 'dark' : 'light');
+const effectiveTheme = () => (theme === 'system' ? systemTheme() : theme);
+
+let theme = localStorage.getItem(STORAGE_KEY) || 'system';
+
+function applyTheme() {
+  if (theme === 'system') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+
+  const effective = effectiveTheme();
+  $('themeBtn').setAttribute('aria-pressed', String(effective === 'dark'));
+  $('themeBtn').querySelector('.theme-icon-light').toggleAttribute('hidden', effective === 'dark');
+  $('themeBtn').querySelector('.theme-icon-dark').toggleAttribute('hidden', effective !== 'dark');
+
+  for (const b of $('themeSeg').querySelectorAll('[data-theme-opt]')) {
+    b.setAttribute('aria-pressed', String(b.dataset.themeOpt === theme));
+  }
 }
 
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  $('themeBtn').setAttribute('aria-pressed', String(theme === 'dark'));
-  $('themeBtn').querySelector('.theme-icon-light').toggleAttribute('hidden', theme === 'dark');
-  $('themeBtn').querySelector('.theme-icon-dark').toggleAttribute('hidden', theme !== 'dark');
+function setTheme(next) {
+  theme = next;
+  if (theme === 'system') localStorage.removeItem(STORAGE_KEY); else localStorage.setItem(STORAGE_KEY, theme);
+  applyTheme();
 }
 
-let theme = localStorage.getItem(STORAGE_KEY) || systemTheme();
-applyTheme(theme);
+applyTheme();
 
-$('themeBtn').addEventListener('click', () => {
-  theme = theme === 'dark' ? 'light' : 'dark';
-  localStorage.setItem(STORAGE_KEY, theme);
-  applyTheme(theme);
+$('themeBtn').addEventListener('click', () => setTheme(effectiveTheme() === 'dark' ? 'light' : 'dark'));
+$('themeSeg').addEventListener('click', e => {
+  const b = e.target.closest('[data-theme-opt]'); if (!b) return;
+  setTheme(b.dataset.themeOpt);
 });
+media.addEventListener('change', () => { if (theme === 'system') applyTheme(); });

@@ -207,8 +207,23 @@ body {
 }
 .modal-head h2 { margin: 0; font: 500 14px/1 var(--font-ui); color: var(--ink); text-transform: none; letter-spacing: 0; }
 .modal-body { padding: 8px 20px 20px; display: flex; flex-direction: column; gap: 2px; }
-.settings-tabs { display: flex; gap: 8px; padding: 14px 20px 0; }
-.stab-panel[hidden] { display: none; }
+
+/* Settings modal: a sidebar of sections next to the active section's body. */
+.settings-modal { width: min(560px, calc(100vw - 40px)); }
+.settings-layout { display: flex; align-items: stretch; }
+.settings-nav {
+  flex: none; width: 150px; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px;
+  border-right: 1px solid var(--line);
+}
+.settings-nav .snav {
+  height: 32px; padding: 0 10px; border: none; border-radius: var(--radius); background: none;
+  color: var(--ink-2); font: 400 13px/1 var(--font-ui); text-align: left; justify-content: flex-start;
+}
+.settings-nav .snav:hover { color: var(--ink); background: var(--ctrl-bg); filter: none; }
+.settings-nav .snav[aria-selected="true"] { background: var(--ctrl-grad); color: var(--ink); }
+.settings-panels { flex: 1; min-width: 0; padding: 16px 20px 20px; }
+.settings-panels .chip { height: 32px; font-size: 13px; }
+.settings-panels [data-tab="shortcuts"] { gap: 2px; }
 .shortcut-row {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink);

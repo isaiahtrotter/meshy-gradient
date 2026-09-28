@@ -15,10 +15,10 @@ $('settingsClose').addEventListener('click', () => setOpen(false));
 $('settingsModal').addEventListener('pointerdown', e => { if (e.target === $('settingsModal')) setOpen(false); });
 document.addEventListener('keydown', e => { if (open && e.key === 'Escape') { e.stopPropagation(); setOpen(false); } }, true);
 
-$('settingsModal').querySelector('.settings-tabs').addEventListener('click', e => {
-  const tab = e.target.closest('.stab'); if (!tab) return;
+$('settingsModal').querySelector('.settings-nav').addEventListener('click', e => {
+  const tab = e.target.closest('.snav'); if (!tab) return;
   const name = tab.dataset.tab;
-  for (const b of document.querySelectorAll('.stab')) {
+  for (const b of document.querySelectorAll('.snav')) {
     const on = b === tab;
     b.setAttribute('aria-selected', String(on)); b.setAttribute('aria-pressed', String(on));
   }

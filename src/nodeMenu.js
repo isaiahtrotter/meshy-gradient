@@ -12,6 +12,9 @@ const nodeMenu = $('nodeMenu');
 let nodeMenuId = null;
 const TYPE_KEYS = { c: 'circle', a: 'arc', l: 'line' };
 const FLIP_KEYS = { h: 'x', v: 'y' }; // with shift, same as the global shortcuts
+// Occluding still needs more work before it's user-facing; keep toggle-occ wired below so this is a
+// one-line flip to bring back, just don't offer it from the menu for now.
+const SHOW_OCC_TOGGLE = false;
 
 function convert(n, to) {
   const next = convertNodeType(n, to);
@@ -24,8 +27,8 @@ function openNodeMenu(n) {
   const item = (attrs, label, key) => `<button type="button" ${attrs}><span>${label}</span><span class="right">${key ? `<kbd>${key}</kbd>` : ''}</span></button>`;
   const sep = '<div class="sep"></div>';
   const flips = item('data-flip="x"', 'Flip horizontal', '⇧H') + item('data-flip="y"', 'Flip vertical', '⇧V');
-  const occToggle = item('data-action="toggle-occ"', n.occ ? 'Make non-occluding' : 'Make occluding', '');
-  nodeMenu.innerHTML = n.type === 'stroke' ? (occToggle + sep + flips) :
+  const occToggle = SHOW_OCC_TOGGLE ? item('data-action="toggle-occ"', n.occ ? 'Make non-occluding' : 'Make occluding', '') : '';
+  nodeMenu.innerHTML = n.type === 'stroke' ? ((occToggle ? occToggle + sep : '') + flips) :
     item('data-to="circle"', 'Circle node', 'C') +
     item('data-to="arc"', 'Arc node', 'A') +
     item('data-to="line"', 'Line node', 'L') +
