@@ -108,7 +108,7 @@ export function panBy(dx, dy) { view.panX += dx; view.panY += dy; applyPan(); re
 stage.addEventListener('wheel', e => {
   e.preventDefault();
   if (e.ctrlKey || e.metaKey) { // pinch on a trackpad arrives as ctrl+wheel
-    const factor = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025) * 1.875); // 1.5x * 1.25: 25% more sensitive
+    const factor = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025) * 3.75); // 1.5x * 1.25 * 2: 2x more sensitive
     setZoom(view.zoom * factor, e.clientX, e.clientY);
   } else { // plain wheel (mouse wheel or trackpad two-finger scroll) always pans
     const k = e.deltaMode === 1 ? 16 : 1;
