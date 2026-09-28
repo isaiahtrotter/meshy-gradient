@@ -611,8 +611,6 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 .sv-square { position: relative; width: 100%; aspect-ratio: 1; border-radius: 6px; cursor: crosshair; touch-action: none; overflow: hidden; }
 .sv-bgfade { position: absolute; inset: 0; pointer-events: none; z-index: 5; animation: svBgFade 100ms ease forwards; }
 @keyframes svBgFade { from { opacity: 1; } to { opacity: 0; } }
-.sv-tint { position: absolute; inset: 0; pointer-events: none; background: rgba(0,0,0,.025); opacity: 0; transition: opacity 150ms ease; z-index: 6; }
-.sv-square:hover .sv-tint { opacity: 1; }
 .sv-thumb {
   position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
   border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.4); pointer-events: none; z-index: 30;
