@@ -655,7 +655,7 @@ button:hover { border-color: var(--ink-3); }
 .panel button { transition: filter .15s ease-out; }
 .panel button:hover:not(:disabled):not([aria-pressed="true"]) { filter: brightness(1.15); }
 button.primary {
-  background: linear-gradient(180deg, #2E3F8B 0%, #394DA9 100%);
+  background: linear-gradient(180deg, #394DA9 0%, #2E3F8B 100%);
   border: 1px solid #4E64C5; color: #ffffff;
 }
 button.primary:hover { filter: brightness(1.1); }
