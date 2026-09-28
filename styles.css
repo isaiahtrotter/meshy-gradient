@@ -621,7 +621,7 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 .sv-handle[data-mode="sw"] { left: 0; top: 100%; cursor: nesw-resize; }
 .sv-handle[data-mode="se"] { left: 100%; top: 100%; cursor: nwse-resize; }
 .sv-clear-crop {
-  position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; border-radius: 50%;
+  position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; border-radius: 50%;
   background: var(--panel); color: var(--ink); border: none; box-shadow: 0 1px 3px rgba(0,0,0,.35);
   display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; z-index: 21;
 }
