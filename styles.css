@@ -403,6 +403,19 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
     0 0 90px 16px rgba(255,255,255,.08),
     0 0 160px 24px rgba(255,255,255,.04);
 }
+/* Softness slider: an actual blur, not just a glow, sitting right on the handle — a real frosted patch over
+   everything beneath it (label text, the fill/track boundary, the .slider-edge inner border), so the slider
+   itself visibly demonstrates what the value it controls does. A sibling on top rather than a filter on the
+   slider itself, since only this one small region should blur, not the whole control; the radial mask fades
+   the backdrop-filter out on both sides instead of cutting off in a hard-edged box, and the ellipse's 100%
+   vertical radius keeps it full-height so it also blurs .slider-edge's box-shadow "border" at top and bottom. */
+.slider-blur-fx {
+  position: absolute; top: 0; bottom: 0; width: 64px; z-index: 3; pointer-events: none;
+  left: calc(var(--pct) + var(--handle-shift)); transform: translateX(-50%);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  -webkit-mask-image: radial-gradient(ellipse 55% 100% at center, #000 0%, #000 15%, transparent 100%);
+  mask-image: radial-gradient(ellipse 55% 100% at center, #000 0%, #000 15%, transparent 100%);
+}
 .checker { background-color: #fff; background-image: linear-gradient(45deg, #c8c8c8 25%, transparent 25%), linear-gradient(-45deg, #c8c8c8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c8c8c8 75%), linear-gradient(-45deg, transparent 75%, #c8c8c8 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; }
 .swatch { position: relative; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; flex: none; overflow: hidden; }
 .swatch::after { content: ''; position: absolute; inset: 0; background: var(--sw, #888); }
