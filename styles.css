@@ -538,8 +538,8 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 .swatch::after { content: ''; position: absolute; inset: 0; background: var(--sw, #888); }
 .swatch:disabled { cursor: default; opacity: .45; }
 .sv-wrap { position: relative; }
-.alpha-track { position: relative; height: 40px; border-radius: 12px; overflow: visible; touch-action: none; cursor: pointer; }
-.alpha-fill { position: absolute; inset: 0; border-radius: 12px; }
+.alpha-track { position: relative; height: 20px; border-radius: 10px; overflow: visible; touch-action: none; cursor: pointer; }
+.alpha-fill { position: absolute; inset: 0; border-radius: 10px; }
 .picker {
   position: fixed; top: 0; left: -9999px; z-index: 50; padding: 12px; width: 246px; display: flex; flex-direction: column; gap: 10px;
   background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 36px -10px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.15);
@@ -626,11 +626,11 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
   display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; z-index: 21;
 }
 .hue-track {
-  position: relative; height: 40px; border-radius: 12px; touch-action: none; cursor: pointer;
+  position: relative; height: 20px; border-radius: 10px; touch-action: none; cursor: pointer;
   background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
 }
 .hue-thumb {
-  position: absolute; top: 50%; width: 14px; height: 56px; margin: -28px 0 0 -7px; border-radius: 7px;
+  position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 7px;
   background: transparent; border: 3px solid #fff;
   box-shadow: 0 0 6px rgba(0,0,0,.35), 0 0 10px rgba(255,255,255,.5); pointer-events: none;
 }
