@@ -105,14 +105,20 @@ export function setZoom(z, cx, cy) {
 export function resetZoom() { view.zoom = session.zoom = 1; view.panX = view.panY = 0; layout(); }
 export function panBy(dx, dy) { view.panX += dx; view.panY += dy; applyPan(); refreshHandles(); draw(); }
 
-// A real mouse wheel's "notch" is vertical-only and, because it's one discrete physical click rather than a
-// continuous finger motion, jumps a relatively large distance in a single event (~100px/notch is standard on
-// both Mac and Windows). A trackpad's two-finger scroll (which should still pan, same as before) is often ALSO
-// deltaX===0 and integer-valued when panning straight up/down — that alone isn't enough to tell them apart —
-// but it arrives as many small per-frame deltas, rarely this big in one event even during a fast flick.
-const WHEEL_NOTCH_MIN_PX = 80;
-const isMouseWheelNotch = e =>
-  e.deltaX === 0 && e.deltaMode === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= WHEEL_NOTCH_MIN_PX;
+// A real mouse wheel's "notch" is vertical-only, because it's one discrete physical click rather than a
+// continuous finger motion. Some browsers/mice report that notch as deltaMode 1 ("line", tiny deltaY like
+// ±3) instead of the pixel mode (0) used everywhere else — trackpads never use line mode (they need
+// continuous fine-grained values), so deltaMode 1 alone is actually a reliable "this is a real wheel" signal.
+// In pixel mode, a notch also jumps a relatively large distance in one event (~100px is standard); a
+// trackpad's two-finger scroll is often ALSO deltaX===0 and integer-valued when panning straight up/down —
+// that alone isn't enough to tell them apart — but it arrives as many small per-frame deltas, rarely this
+// big in one event even during a fast flick.
+const WHEEL_NOTCH_MIN_PX = 60;
+const isMouseWheelNotch = e => {
+  if (e.deltaX !== 0 || e.deltaY === 0) return false;
+  if (e.deltaMode === 1) return true;
+  return e.deltaMode === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= WHEEL_NOTCH_MIN_PX;
+};
 
 stage.addEventListener('wheel', e => {
   e.preventDefault();
