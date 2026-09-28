@@ -411,9 +411,12 @@ input[type=number]:focus-visible, input[type=text]:focus-visible, select:focus-v
 .color-field { padding: 0; gap: 0; overflow: hidden; }
 .color-field .swatch { flex: none; width: 36px; height: 36px; border-radius: 0; }
 .color-field input[type=text] { height: 100%; padding: 0 12px; background: transparent; border-radius: 0; box-shadow: none; }
-.op-field { flex: 1; }
-.op-field .dim-prefix { display: flex; align-items: center; }
-.dim-suffix { font: 400 14px/1 var(--font-ui); color: var(--ink-2); pointer-events: none; flex: none; }
+/* Zero the field's own padding and push it onto the first/last child instead — with box-sizing: border-box, a
+   flex item's basis floors at its own padding, so a padded .op-field and a padding:0 .color-field never end up
+   the same width under equal flex:1 no matter how their content differs. */
+.op-field { flex: 1; padding: 0; }
+.op-field .dim-prefix { display: flex; align-items: center; padding-left: 12px; }
+.dim-suffix { font: 400 14px/1 var(--font-ui); color: var(--ink-2); pointer-events: none; flex: none; padding-right: 12px; }
 #selOpacity:focus-visible { outline: none; }
 #selOpacity::-webkit-outer-spin-button, #selOpacity::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 #selOpacity { -moz-appearance: textfield; appearance: textfield; }
