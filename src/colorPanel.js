@@ -176,8 +176,8 @@ $('selOpacity').addEventListener('input', () => applyOpacityTyped(false));
 $('selOpacity').addEventListener('change', () => applyOpacityTyped(true));
 $('selOpacity').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
 const scrubOpacity = v => setSelectedColor(currentColorHex(), false, v / 100, activeStopIdx());
-attachScrub($('selOpacityScrub'), $('selOpacity'), { onInput: scrubOpacity });
-attachScrub($('selOpacity'), $('selOpacity'), { onInput: scrubOpacity, threshold: 6, mobileOnly: true });
+attachScrub($('selOpacityScrub'), $('selOpacity'), { onInput: scrubOpacity, sensitivity: 0.5 });
+attachScrub($('selOpacity'), $('selOpacity'), { onInput: scrubOpacity, threshold: 6, mobileOnly: true, sensitivity: 0.5 });
 
 // ---------- Solid / Gradient tabs ----------
 function setGradMode(grad) {
