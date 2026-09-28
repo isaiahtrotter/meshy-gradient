@@ -48,7 +48,7 @@ function applyPreset(p) {
   if (!isNum(p.seed)) state.seed = Math.random() * 1000;
   applyConfig(p, { reassignIds: true });
   state.selected.clear();
-  syncControlsFromState({ animate: true });
+  syncControlsFromState({ animate: 'ripple' });
   layout(); refreshAll(); scheduleSave();
   setStatus('Applied preset.');
 }

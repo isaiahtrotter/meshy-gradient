@@ -185,17 +185,22 @@ function setGrainTypeButtons() {
   }
 }
 
+// animate: false (snap instantly — boot/restore-from-storage), 'ripple' (a preset landing: every slider
+// glides in a staggered wave), or 'settle' (undo/redo: only the sliders whose value actually changed glide to
+// it on their own, the same 100ms ease-out glow-preview a right-click reset uses — nothing ripples).
 export function syncControlsFromState({ animate = false } = {}) {
   $('cw').value = state.w; $('ch').value = state.h;
   clearTimeout(grainTypeTimer);
   // Mono/Duo/Multi sit right above the "Opacity" (grain) slider, so they should flip at the same point in the
   // ripple as that slider does instead of snapping immediately, ahead of the animation reaching them.
   const grainDelay = SLIDERS.findIndex(s => s.id === 'grain') * 25;
-  if (animate) grainTypeTimer = setTimeout(setGrainTypeButtons, grainDelay); else setGrainTypeButtons();
+  if (animate === 'ripple') grainTypeTimer = setTimeout(setGrainTypeButtons, grainDelay); else setGrainTypeButtons();
   SLIDERS.forEach((s, i) => {
     const el = $(s.id), target = s.get();
-    if (animate) animateSliderTo(el, target, { delay: i * 25, onFrame: v => { setOut(s.out, s.fmt(v)); } });
-    else { el.value = target; sliderFill(el); setOut(s.out, s.fmt(+el.value)); }
+    if (animate === 'ripple') animateSliderTo(el, target, { delay: i * 25, onFrame: v => { setOut(s.out, s.fmt(v)); } });
+    else if (animate === 'settle' && Math.abs(+el.value - target) > 1e-6) {
+      animateSliderTo(el, target, { duration: 100, onFrame: v => { setOut(s.out, s.fmt(v)); } });
+    } else { el.value = target; sliderFill(el); setOut(s.out, s.fmt(+el.value)); }
   });
 }
 

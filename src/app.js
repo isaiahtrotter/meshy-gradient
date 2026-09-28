@@ -30,7 +30,7 @@ onUndoChange((canUndo, canRedo) => {
   $('mobileUndoBtn').disabled = !canUndo;
   $('mobileRedoBtn').disabled = !canRedo;
 });
-onRestore(() => { syncControlsFromState(); layout(); refreshAll(); });
+onRestore(() => { syncControlsFromState({ animate: 'settle' }); layout(); refreshAll(); });
 
 // handy for poking at the document from the console
 window.__meshy = { state, view };
