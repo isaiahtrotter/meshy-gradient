@@ -10,22 +10,32 @@ for (const input of document.querySelectorAll('.slider input[type=range]')) {
   const wrap = input.closest('.slider');
   let dragging = false;
 
-  input.addEventListener('pointerdown', () => { dragging = true; wrap.style.transition = 'none'; });
-
-  input.addEventListener('pointermove', e => {
-    if (!dragging) return;
-    const rect = input.getBoundingClientRect();
-    const overdrag = e.clientX < rect.left ? e.clientX - rect.left : e.clientX > rect.right ? e.clientX - rect.right : 0;
-    const shift = Math.sign(overdrag) * Math.min(MAX_SHIFT, Math.abs(overdrag) / OVERDRAG_FOR_MAX_SHIFT * MAX_SHIFT);
-    wrap.style.transform = shift ? `translateX(${shift}px)` : '';
-  });
-
   function release() {
     if (!dragging) return;
     dragging = false;
     wrap.style.transition = 'transform 150ms ease-out';
     wrap.style.transform = '';
   }
+
+  input.addEventListener('pointerdown', () => { dragging = true; wrap.style.transition = 'none'; });
+
+  input.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    // The real pointerup can be missed entirely (capture lost mid-drag, or the button came up while the
+    // cursor was outside the window) — a stray move with no button held means the drag is already over.
+    if (e.buttons === 0) { release(); return; }
+    const rect = input.getBoundingClientRect();
+    const overdrag = e.clientX < rect.left ? e.clientX - rect.left : e.clientX > rect.right ? e.clientX - rect.right : 0;
+    const shift = Math.sign(overdrag) * Math.min(MAX_SHIFT, Math.abs(overdrag) / OVERDRAG_FOR_MAX_SHIFT * MAX_SHIFT);
+    wrap.style.transform = shift ? `translateX(${shift}px)` : '';
+  });
+
   input.addEventListener('pointerup', release);
   input.addEventListener('pointercancel', release);
+  // Belt and suspenders: if the up/cancel event lands somewhere other than the input (capture lost,
+  // or release happened past the track edge on a browser that doesn't keep it captured there), a
+  // window-level catch-all still snaps the slider back instead of leaving it stuck offset.
+  window.addEventListener('pointerup', release);
+  window.addEventListener('pointercancel', release);
+  window.addEventListener('blur', release);
 }

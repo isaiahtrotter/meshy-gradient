@@ -13,7 +13,7 @@ import './nodeMenu.js';
 import './interaction.js';
 import './keyboard.js';
 import './exporter.js';
-import './shortcuts.js';
+import './settingsPanel.js';
 import './theme.js';
 import './tooltip.js';
 import './sliderRubberband.js';
