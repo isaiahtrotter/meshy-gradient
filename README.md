@@ -9,7 +9,7 @@ A WebGL mesh-gradient editor. Static ES modules, no build step, deployed on Verc
 |---|---|
 | `meshygradient.html` | Markup only. Loads `styles.css` and `src/app.js` (type=module) |
 | `styles.css` | All styling. Mobile breakpoint is 820px (mirrored in `src/constants.js`) |
-| `presets.json` | Array of gradient configs shown in the Presets grid. Paste a "Copy gradient" payload in to add one. The entry with `"default": true` also seeds a first-time visit (no saved state); move the flag to change it, or none/an empty list falls back to seeding the first built-in palette |
+| `presets.json` | Array of gradient configs shown in the Presets grid. Paste a "Copy gradient" payload in to add one. The entry with `"default": true` also seeds a first-time visit (no saved state); move the flag to change it, or none/an empty list falls back to seeding a few built-in colours (`FALLBACK_COLOURS` in `app.js`) |
 | `src/` | The app, one concern per module (below) |
 
 ## Module map
@@ -24,7 +24,7 @@ composes handles + panel + draw, so most mutations end with `refreshAll()` from 
 | `geometry.js` | pure arc maths: `arcGeom`, `halfArcGeom`, `wrapAngle` | — |
 | `stroke.js` | pure brush-stroke maths: `smoothStroke` (raw pointer samples → path), `strokeFromPath`, `strokeWorld`, `pointAt`/`nearestT`, hardness stops (`stopFactor`, `strokeK`), the stroke normalizer helpers | constants |
 | `nodes.js` | the node model: `normalizeNode`, `createNode`, `armAngle`, `armEnds`, `arcCurves`, `convertNodeType`, `toggleLinked`, `flipNode` | geometry, color, stroke |
-| `state.js` | `state`, `PALETTES`, ids, selection helpers, `targetNodes`, `addNode`/`setNodes`, `serializeConfig`/`applyConfig` | constants, nodes |
+| `state.js` | `state`, ids, selection helpers, `targetNodes`, `addNode`/`setNodes`, `serializeConfig`/`applyConfig` | constants, nodes |
 | `undo.js` | undo/redo stacks, `snapshot`, `pushUndo`, `onRestore`/`onUndoChange` hooks | state |
 | `persistence.js` | localStorage save/load (`meshGradientState.v1`), debounced + flushed on pagehide | state |
 | `session.js` | transient UI state: `drag`, `previewing`, `placing` (null / arc / line / stroke), `sampling`, `spaceHeld` | — |
@@ -42,10 +42,10 @@ composes handles + panel + draw, so most mutations end with `refreshAll()` from 
 | `nodeMenu.js` | right-click menu: type conversion, link/unlink, occluding toggle, flip H/V (strokes: occluding toggle + flip only) | nodes, state, undo, actions, refresh |
 | `interaction.js` | the pointer drag state machine (spread / hard / move / marquee / pan / draw / stopMove / stopHard) | most of the above |
 | `keyboard.js` | global shortcuts | actions, modes, sampling, view, undo |
-| `controls.js` | canvas size + scrubbers, sliders, palettes, align/shuffle/scatter, `syncControlsFromState`, `seedNodes` | state, undo, view, refresh, actions |
+| `controls.js` | canvas size + scrubbers, sliders, align/shuffle/scatter, `syncControlsFromState`, `seedNodes` | state, undo, view, refresh, actions |
 | `presets.js` | fetches `presets.json` (cached), applies presets, picks the default preset, Copy gradient | state, undo, view, refresh, controls |
 | `tooltip.js` | the bottom toolbar's shared hover tooltip (1s delay, then slides between icons); reads `data-tip`/`data-key` off each button | dom (via `document.querySelector`, no imports) |
-| `app.js` | entry: `boot()` fetches presets once, seeds a first-time visit from the default preset (or the first palette if none), wires undo hooks, first layout | everything |
+| `app.js` | entry: `boot()` fetches presets once, seeds a first-time visit from the default preset (or a few fallback colours if none), wires undo hooks, first layout | everything |
 
 Listener registration order matters in one place: `sampling.js` must evaluate before `interaction.js` (its
 capture-phase pointerdown swallows clicks while sampling). `interaction.js` imports `sampling.js`, so this holds.
@@ -140,7 +140,7 @@ npm test                            # runs everything, ~40s
 Run `npm test` before every push to prod. It starts its own static server, so nothing needs to be running.
 
 - `tests/app.spec.js` drives the real page: add, drag, undo/redo, arc/line placement, spread handles, the
-  context menu, colour picker, palettes, presets, canvas size, sliders, zoom, preview, copy, reload
+  context menu, colour picker, presets, canvas size, sliders, zoom, preview, copy, reload
   persistence, legacy saved shapes, export.
 - `tests/render.spec.js` renders every preset and compares it pixel-for-pixel with the baselines in
   `tests/render.spec.js-snapshots/`. When a rendering change is intended, regenerate them with

@@ -1,7 +1,7 @@
 // Entry point: wires the undo hooks, restores the last session, and kicks off the first layout.
 // Module import order matters for event listener registration (sampling before interaction, see sampling.js).
 
-import { state, PALETTES, applyConfig } from './state.js';
+import { state, applyConfig } from './state.js';
 import { onUndoChange, onRestore } from './undo.js';
 import { loadState } from './persistence.js';
 import { $ } from './dom.js';
@@ -15,8 +15,11 @@ import './keyboard.js';
 import './exporter.js';
 import './shortcuts.js';
 import './tooltip.js';
-import { syncControlsFromState, seedNodes, renderPalettes } from './controls.js';
+import { syncControlsFromState, seedNodes } from './controls.js';
 import { fetchPresets, pickDefaultPreset, renderPresets } from './presets.js';
+
+// a first-time visit with no presets at all (or none flagged default) still gets something to look at
+const FALLBACK_COLOURS = ['#ff7a59', '#ffd166', '#6a4c93', '#1982c4'];
 
 onUndoChange((canUndo, canRedo) => {
   $('undoBtn').disabled = !canUndo;
@@ -33,10 +36,9 @@ async function boot() {
   const presets = await fetchPresets();
   if (!loadState()) {
     const def = pickDefaultPreset(presets);
-    if (def) applyConfig(def, { reassignIds: true }); else seedNodes(PALETTES[0]);
+    if (def) applyConfig(def, { reassignIds: true }); else seedNodes(FALLBACK_COLOURS);
   }
   restoreReference();
-  renderPalettes(PALETTES);
   renderPresets(presets);
   syncControlsFromState();
   layout(); refreshAll();

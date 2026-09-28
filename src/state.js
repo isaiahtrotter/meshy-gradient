@@ -3,17 +3,6 @@
 import { MAXN, CANVAS_MIN, CANVAS_MAX, clamp, isNum } from './constants.js';
 import { normalizeNode, createNode } from './nodes.js';
 
-export const PALETTES = [
-  ['#ff7a59', '#ffd166', '#6a4c93', '#1982c4'],
-  ['#f9c5d1', '#f2a7c0', '#9d8df1', '#3d5af1'],
-  ['#0f2027', '#2c5364', '#3ca55c', '#b5ac49'],
-  ['#ff9a9e', '#fad0c4', '#fbc2eb', '#a18cd1'],
-  ['#001219', '#005f73', '#0a9396', '#ee9b00'],
-  ['#f6d365', '#fda085', '#f5576c', '#4facfe'],
-  ['#e8e1d9', '#c9b79c', '#8a9a5b', '#3e5641'],
-  ['#12c2e9', '#c471ed', '#f64f59', '#ffe259'],
-];
-
 export const state = {
   w: 1600, h: 1000,
   nodes: [],

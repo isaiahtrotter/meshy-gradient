@@ -1,4 +1,4 @@
-// Right-hand panel controls: canvas size (typed or scrubbed), blend/variation sliders, palettes, align, shuffle,
+// Right-hand panel controls: canvas size (typed or scrubbed), blend/variation sliders, align, shuffle,
 // scatter, and the selection buttons. syncControlsFromState() pushes state back into the inputs.
 
 import { MOBILE_BREAKPOINT, CANVAS_MIN, CANVAS_MAX, clamp } from './constants.js';
@@ -197,24 +197,10 @@ export function syncControlsFromState({ animate = false } = {}) {
   });
 }
 
-// ---------- Palettes, shuffle + scatter (bottom toolbar), align ----------
-export function seedNodes(p) {
+// ---------- Seeding, shuffle + scatter (bottom toolbar), align ----------
+export function seedNodes(colours) {
   const spots = [[0.15, 0.2], [0.8, 0.15], [0.25, 0.85], [0.85, 0.8], [0.5, 0.5]];
-  p.forEach((c, i) => addNode('circle', spots[i % spots.length][0] + (Math.random() - .5) * .1, spots[i % spots.length][1] + (Math.random() - .5) * .1, c, 0.45 + Math.random() * 0.15));
-}
-export function renderPalettes(palettes) {
-  const wrap = $('palettes');
-  palettes.forEach((p, i) => {
-    const b = document.createElement('button'); b.className = 'pal'; b.title = `Palette ${i + 1}`; b.setAttribute('aria-label', `Apply palette ${i + 1}`);
-    b.innerHTML = p.map(c => `<span style="background:${c}"></span>`).join('');
-    b.addEventListener('click', () => {
-      pushUndo();
-      if (!state.nodes.length) seedNodes(p);
-      else targetNodes().forEach((n, i) => { n.color = p[i % p.length]; });
-      refreshAll();
-    });
-    wrap.appendChild(b);
-  });
+  colours.forEach((c, i) => addNode('circle', spots[i % spots.length][0] + (Math.random() - .5) * .1, spots[i % spots.length][1] + (Math.random() - .5) * .1, c, 0.45 + Math.random() * 0.15));
 }
 $('shuffle').addEventListener('click', () => {
   pushUndo();
@@ -252,7 +238,7 @@ for (const inp of document.querySelectorAll('input[type=number], input[type=text
 
 // Fade the panel's own scrollbar-less top/bottom edges in only while there's more content to scroll that
 // way. A MutationObserver (not just scroll/resize) because content height changes without scrolling too —
-// presets/palettes rendering in, a section showing or hiding.
+// presets rendering in, a section showing or hiding.
 {
   const panelScroll = $('panelScroll');
   const fadeTop = document.querySelector('.panel-fade-top'), fadeBottom = document.querySelector('.panel-fade-bottom');

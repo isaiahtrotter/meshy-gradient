@@ -4,14 +4,13 @@ import { test, expect } from '@playwright/test';
 import { openApp, loadConfig, getState, selectedNode, frameBox, clickCanvas, dragFrom, visibleSpreadHandle, presets, defaultPreset } from './helpers.js';
 
 test.describe('boot', () => {
-  test('seeds the default preset, renders palettes and presets, no errors', async ({ page }) => {
+  test('seeds the default preset, renders presets, no errors', async ({ page }) => {
     const errors = await openApp(page);
     const s = await getState(page);
     expect(s.n).toBe(defaultPreset.nodes.length);
     expect(s.types).toEqual(defaultPreset.nodes.map(n => n.type || 'circle'));
     expect([s.w, s.h]).toEqual([defaultPreset.w, defaultPreset.h]);
     await expect(page.locator('.handle')).toHaveCount(defaultPreset.nodes.length);
-    await expect(page.locator('#palettes .pal')).toHaveCount(8);
     await expect(page.locator('#presets .preset')).toHaveCount(presets.length);
     await expect(page.locator('#status')).toHaveText('');
     expect(errors).toEqual([]);
@@ -241,11 +240,6 @@ test.describe('colour', () => {
     expect((await selectedNode(page)).color).not.toBe('#123456');
     await page.keyboard.press('Escape');
     await expect(page.locator('#colorPicker')).toBeHidden();
-  });
-
-  test('palette applies to the selection', async ({ page }) => {
-    await page.locator('#palettes .pal').nth(2).click();
-    expect((await selectedNode(page)).color).toBe('#0f2027');
   });
 });
 
