@@ -107,7 +107,7 @@ export function refreshSelectionPanel() {
     activeStop = first.grad ? Math.min(Math.max(activeStop, 0), first.gradStops.length - 1) : 0;
     setSwatch(first);
     const curHex = first.grad ? first.gradStops[activeStop].color : first.color;
-    if (document.activeElement !== $('selHex')) $('selHex').value = curHex.toUpperCase();
+    if (document.activeElement !== $('selHex')) $('selHex').value = curHex.slice(1).toUpperCase();
     if (document.activeElement !== $('selOpacity')) $('selOpacity').value = Math.round(first.a * 100);
     $('pickerTabSolid').setAttribute('aria-pressed', String(!first.grad));
     $('pickerTabGradient').setAttribute('aria-pressed', String(first.grad));
@@ -149,7 +149,7 @@ export function setSelectedColor(hex, commit, alpha, stopIdx) {
     setSwatch(first);
     if (first.grad) { renderRamp(first); renderStopList(first); }
   }
-  if (stopIdx == null && document.activeElement !== $('selHex')) $('selHex').value = hex.toUpperCase();
+  if (stopIdx == null && document.activeElement !== $('selHex')) $('selHex').value = hex.slice(1).toUpperCase();
   if (document.activeElement !== $('selOpacity')) $('selOpacity').value = Math.round(a * 100);
   refreshHandles(); draw();
   if (commit && colorSnap) { pushUndo(colorSnap); colorSnap = null; }
