@@ -393,7 +393,6 @@ input[type=number], input[type=text], select {
   background: var(--ctrl-bg); color: var(--ink); font: 400 14px/1 var(--font-ui); font-variant-numeric: tabular-nums;
 }
 input[type=number], #selHex { font-family: var(--font-mono); }
-#selHex { box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
 .dim-field input[type=number] {
   flex: 1; min-width: 0; height: auto; padding: 0; background: transparent; border-radius: 0; box-shadow: none;
 }
@@ -409,7 +408,10 @@ input[type=number]:focus-visible, input[type=text]:focus-visible, select:focus-v
 #cw::-webkit-outer-spin-button, #cw::-webkit-inner-spin-button,
 #ch::-webkit-outer-spin-button, #ch::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 #cw, #ch { -moz-appearance: textfield; appearance: textfield; }
-.op-field { flex: 0 0 96px; }
+.color-field { padding: 0; gap: 0; overflow: hidden; }
+.color-field .swatch { flex: none; width: 36px; height: 36px; border-radius: 0; }
+.color-field input[type=text] { height: 100%; padding: 0 12px; background: transparent; border-radius: 0; box-shadow: none; }
+.op-field { flex: 1; }
 .op-field .dim-prefix { display: flex; align-items: center; }
 .dim-suffix { font: 400 14px/1 var(--font-ui); color: var(--ink-2); pointer-events: none; flex: none; }
 #selOpacity:focus-visible { outline: none; }

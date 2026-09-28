@@ -226,8 +226,10 @@ window.addEventListener('error', function () {
     <section id="selSection">
       <h2 id="selTitle">Selected</h2>
       <div class="row" style="position:relative">
-        <button id="selSwatch" class="swatch checker" style="--sw:#ff7a59" title="Edit color" aria-haspopup="true" aria-expanded="false"></button>
-        <input type="text" id="selHex" class="grow" value="FF7A59" spellcheck="false" maxlength="6" placeholder="RRGGBB" title="Hex color">
+        <div class="dim-field color-field">
+          <button id="selSwatch" class="swatch checker" style="--sw:#ff7a59" title="Edit color" aria-haspopup="true" aria-expanded="false"></button>
+          <input type="text" id="selHex" class="grow" value="FF7A59" spellcheck="false" maxlength="6" placeholder="RRGGBB" title="Hex color">
+        </div>
         <div class="dim-field op-field">
           <span class="dim-prefix scrub" id="selOpacityScrub" title="Opacity">
             <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
