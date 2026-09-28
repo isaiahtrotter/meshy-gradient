@@ -282,7 +282,18 @@ window.addEventListener('error', function () {
 
     <section id="presetSection">
       <h2>Presets</h2>
-      <div class="presets" id="presets"></div>
+      <!-- Placeholder squares reserving the grid's footprint until fetchPresets() (src/presets.js) resolves and
+           renderPresets() replaces them with real thumbnails in place, so that swap can't shift the sections below. -->
+      <div class="presets" id="presets">
+        <div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div>
+      </div>
       <div class="empty" id="presetsEmpty" hidden>No presets yet — copy a gradient (top right) and send it to Claude to add one.</div>
     </section>
 

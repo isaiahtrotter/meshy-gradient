@@ -648,6 +648,7 @@ button.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--acc
 }
 /* Overrides the generic button:hover border-color below — presets shouldn't highlight their border on hover. */
 .preset:hover { border-color: var(--line); }
+.preset-skel { background-color: var(--ctrl-bg); animation: skeleton-pulse 1.4s ease-in-out infinite; cursor: default; pointer-events: none; }
 
 .status { display: none; }
 /* Looks like a physical keycap: slightly rounded corners, and a solid (no-blur) shadow a couple of pixels down
