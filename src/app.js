@@ -16,6 +16,7 @@ import './exporter.js';
 import './shortcuts.js';
 import './theme.js';
 import './tooltip.js';
+import './sliderRubberband.js';
 import { syncControlsFromState, seedNodes } from './controls.js';
 import { fetchPresets, pickDefaultPreset, renderPresets } from './presets.js';
 
