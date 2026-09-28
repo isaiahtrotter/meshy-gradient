@@ -23,18 +23,64 @@ window.addEventListener('error', function () {
 </div>
 <div class="topbar">
   <div class="topbar-right">
+    <button id="undoTopBtn" class="icon-btn" title="Undo" disabled>
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3.75 6.66699C7.08333 6.66699 9.16667 6.66699 12.5 6.66699C12.5 6.66699 16.6667 6.66699 16.6667 10.5886C16.6667 15.0003 12.5 15.0003 12.5 15.0003C9.64283 15.0003 8.09524 15.0003 5.23809 15.0003" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M6.25065 9.58333C5.11163 8.44433 4.47301 7.80569 3.33398 6.66667C4.47301 5.52764 5.11163 4.88903 6.25065 3.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button id="redoTopBtn" class="icon-btn" title="Redo" disabled>
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16.2507 6.66699C12.9173 6.66699 10.834 6.66699 7.50065 6.66699C7.50065 6.66699 3.33398 6.66699 3.33398 10.5886C3.33398 15.0003 7.50065 15.0003 7.50065 15.0003C10.3578 15.0003 11.9054 15.0003 14.7626 15.0003" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M13.75 9.58333C14.889 8.44433 15.5277 7.80569 16.6667 6.66667C15.5277 5.52764 14.889 4.88903 13.75 3.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="topbar-sep" role="separator" aria-orientation="vertical"></div>
+    <button id="copyGradientBtn" class="icon-btn" title="Copy gradient">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16.1667 16.6667H8C7.72386 16.6667 7.5 16.4428 7.5 16.1667V8C7.5 7.72386 7.72386 7.5 8 7.5H16.1667C16.4428 7.5 16.6667 7.72386 16.6667 8V16.1667C16.6667 16.4428 16.4428 16.6667 16.1667 16.6667Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12.5007 7.49967V3.83301C12.5007 3.55687 12.2768 3.33301 12.0007 3.33301H3.83398C3.55784 3.33301 3.33398 3.55687 3.33398 3.83301V11.9997C3.33398 12.2758 3.55784 12.4997 3.83398 12.4997H7.50065" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <div class="topbar-sep" role="separator" aria-orientation="vertical"></div>
+    <button id="themeBtn" class="icon-btn" title="Toggle theme" aria-pressed="false">
+      <svg class="theme-icon-light" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g clip-path="url(#themeClipLight)">
+          <path d="M10 15C12.7614 15 15 12.7614 15 10C15 7.23857 12.7614 5 10 5C7.23857 5 5 7.23857 5 10C5 12.7614 7.23857 15 10 15Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M18.334 10H19.1673" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 1.66634V0.833008" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M10 19.1663V18.333" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16.6673 16.6663L15.834 15.833" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M16.6673 3.33301L15.834 4.16634" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3.33398 16.6663L4.16732 15.833" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M3.33398 3.33301L4.16732 4.16634" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M0.833984 10H1.66732" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <defs>
+          <clipPath id="themeClipLight"><rect width="20" height="20" fill="white"/></clipPath>
+        </defs>
+      </svg>
+      <svg class="theme-icon-dark" width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" hidden>
+        <path d="M2 7.67107C2 11.1665 4.83356 14 8.32893 14C10.8139 14 12.9644 12.5679 14 10.4839C8.32893 10.4839 5.51607 7.67107 5.51607 2C3.43214 3.03563 2 5.1861 2 7.67107Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button id="settingsBtn" class="icon-btn" title="Settings">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g clip-path="url(#settingsClip)">
+          <path d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61925 11.3807 7.5 10 7.5C8.61925 7.5 7.5 8.61925 7.5 10C7.5 11.3807 8.61925 12.5 10 12.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M19.083 10.8145C19.083 11.1559 18.8519 11.454 18.5215 11.54L16.8936 11.9629L16.2969 13.4053L17.2383 14.5156C17.4904 14.8133 17.4721 15.2543 17.1963 15.5303L15.5293 17.1973C15.2477 17.4787 14.7956 17.4912 14.499 17.2256H14.498V17.2246C14.4976 17.2242 14.497 17.2235 14.4961 17.2227C14.4942 17.2209 14.4911 17.2183 14.4873 17.2148C14.4795 17.2078 14.4671 17.1979 14.4521 17.1846C14.4222 17.1579 14.3793 17.1184 14.3262 17.0713C14.2198 16.9769 14.0743 16.849 13.918 16.7129C13.7461 16.5632 13.5718 16.4143 13.4238 16.291L11.9707 16.8926L11.5596 18.5176C11.4753 18.8503 11.1762 19.0838 10.833 19.084H9.16602C8.82259 19.084 8.52264 18.8505 8.43848 18.5176L8.02832 16.8936L6.61914 16.3135L5.47363 17.248C5.17538 17.4911 4.74081 17.4693 4.46875 17.1973L2.80273 15.5303C2.52166 15.2492 2.50797 14.7977 2.77246 14.501L3.71973 13.4375L3.11719 12.0068L1.46875 11.5576C1.14265 11.4686 0.916161 11.172 0.916016 10.834V9.16699C0.916016 8.81858 1.1559 8.51588 1.49512 8.43652L3.09375 8.06348L3.68066 6.61816L2.75098 5.47363C2.50863 5.17535 2.53097 4.74149 2.80273 4.46973L4.46875 2.80371L4.58203 2.71094C4.86058 2.52392 5.23838 2.54248 5.49805 2.77344L6.56445 3.72168L7.99219 3.11914L8.4248 1.47656C8.51151 1.14708 8.80969 0.916992 9.15039 0.916992H10.7783C11.1191 0.916992 11.4173 1.14692 11.5039 1.47656L11.9268 3.08984L13.4141 3.70117L14.5117 2.76367L14.6299 2.68066C14.9179 2.51742 15.2871 2.56151 15.5293 2.80371L17.1963 4.46973C17.472 4.74547 17.4901 5.18659 17.2383 5.48438L16.3037 6.58887L16.9004 8.02832L18.5176 8.44043C18.85 8.52501 19.083 8.82402 19.083 9.16699V10.8145Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <defs>
+          <clipPath id="settingsClip"><rect width="20" height="20" fill="white"/></clipPath>
+        </defs>
+      </svg>
+    </button>
     <button id="shortcutsBtn" class="icon-btn" title="Keyboard shortcuts" aria-haspopup="dialog" aria-expanded="false">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M7.5 5V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M12.5 5V15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M7.5 5C7.5 3.61929 6.38071 2.5 5 2.5C3.61929 2.5 2.5 3.61929 2.5 5C2.5 6.38071 3.61929 7.5 5 7.5H15C16.3807 7.5 17.5 6.38071 17.5 5C17.5 3.61929 16.3807 2.5 15 2.5C13.6192 2.5 12.5 3.61929 12.5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M7.5 15C7.5 16.3807 6.38071 17.5 5 17.5C3.61929 17.5 2.5 16.3807 2.5 15C2.5 13.6192 3.61929 12.5 5 12.5H15C16.3807 12.5 17.5 13.6192 17.5 15C17.5 16.3807 16.3807 17.5 15 17.5C13.6192 17.5 12.5 16.3807 12.5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-    <button id="copyGradientBtn" class="icon-btn" title="Copy gradient">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M16.1667 16.6667H8C7.72386 16.6667 7.5 16.4428 7.5 16.1667V8C7.5 7.72386 7.72386 7.5 8 7.5H16.1667C16.4428 7.5 16.6667 7.72386 16.6667 8V16.1667C16.6667 16.4428 16.4428 16.6667 16.1667 16.6667Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M12.5007 7.49967V3.83301C12.5007 3.55687 12.2768 3.33301 12.0007 3.33301H3.83398C3.55784 3.33301 3.33398 3.55687 3.33398 3.83301V11.9997C3.33398 12.2758 3.55784 12.4997 3.83398 12.4997H7.50065" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
   </div>
@@ -75,9 +121,6 @@ window.addEventListener('error', function () {
 </div>
 <div class="app">
   <div class="stage" id="stage">
-    <div class="preview-wrap">
-      <button class="chip preview-btn" id="previewBtn" aria-pressed="false" title="Toggle preview (hold Space)">Preview</button>
-    </div>
     <div class="work" id="work">
     <div class="ref" id="ref" hidden>
       <img id="refImg" alt="Reference image" draggable="false">
@@ -162,6 +205,12 @@ window.addEventListener('error', function () {
       </div>
     </section>
 
+    <section id="presetSection">
+      <h2>Presets</h2>
+      <div class="presets" id="presets"></div>
+      <div class="empty" id="presetsEmpty" hidden>No presets yet — copy a gradient (top right) and send it to Claude to add one.</div>
+    </section>
+
     <section>
       <h2>Blend</h2>
       <div class="slider slider--blur"><span class="slider-label">Softness</span><span class="slider-value" id="softVal">0.33</span><input type="range" id="soft" min="0" max="1" step="0.001" value="0.33333" data-min="0.05" data-max="0.2"><div class="slider-edge"></div>
@@ -201,13 +250,6 @@ window.addEventListener('error', function () {
       <div class="slider"><span class="slider-label">Saturation</span><span class="slider-value" id="adjSatVal">1.00</span><input type="range" id="adjSat" min="0" max="2" step="0.01" value="1"><div class="adj-glow" data-for="sat"></div><div class="slider-edge"></div></div>
       <div class="slider"><span class="slider-label">Brightness</span><span class="slider-value" id="adjBriVal">1.00</span><input type="range" id="adjBri" min="0.2" max="1.8" step="0.01" value="1"><div class="adj-glow" data-for="bri"></div><div class="slider-edge"></div></div>
       <div class="slider"><span class="slider-label">Temperature</span><span class="slider-value" id="adjTempVal">0</span><input type="range" id="adjTemp" min="-100" max="100" step="1" value="0"><div class="adj-glow" data-for="temp"></div><div class="slider-edge"></div></div>
-    </section>
-
-
-    <section id="presetSection">
-      <h2>Presets</h2>
-      <div class="presets" id="presets"></div>
-      <div class="empty" id="presetsEmpty" hidden>No presets yet — copy a gradient (top right) and send it to Claude to add one.</div>
     </section>
 
     <section>

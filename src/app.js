@@ -14,6 +14,7 @@ import './interaction.js';
 import './keyboard.js';
 import './exporter.js';
 import './shortcuts.js';
+import './theme.js';
 import './tooltip.js';
 import { syncControlsFromState, seedNodes } from './controls.js';
 import { fetchPresets, pickDefaultPreset, renderPresets } from './presets.js';
@@ -23,6 +24,8 @@ const FALLBACK_COLOURS = ['#ff7a59', '#ffd166', '#6a4c93', '#1982c4'];
 
 onUndoChange((canUndo, canRedo) => {
   $('undoBtn').disabled = !canUndo;
+  $('undoTopBtn').disabled = !canUndo;
+  $('redoTopBtn').disabled = !canRedo;
   $('mobileUndoBtn').disabled = !canUndo;
   $('mobileRedoBtn').disabled = !canRedo;
 });

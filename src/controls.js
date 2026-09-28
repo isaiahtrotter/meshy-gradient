@@ -82,6 +82,8 @@ attachScrub($('ch'), $('ch'), { onInput: scrubH, threshold: 6, mobileOnly: true 
 $('delBtn').addEventListener('click', deleteSelected);
 $('selAll').addEventListener('click', selectAllNodes);
 $('undoBtn').addEventListener('click', undo);
+$('undoTopBtn').addEventListener('click', undo);
+$('redoTopBtn').addEventListener('click', redo);
 $('mobileUndoBtn').addEventListener('click', undo);
 $('mobileRedoBtn').addEventListener('click', redo);
 
@@ -188,11 +190,11 @@ export function syncControlsFromState({ animate = false } = {}) {
   clearTimeout(grainTypeTimer);
   // Mono/Duo/Multi sit right above the "Opacity" (grain) slider, so they should flip at the same point in the
   // ripple as that slider does instead of snapping immediately, ahead of the animation reaching them.
-  const grainDelay = (SLIDERS.length - 1 - SLIDERS.findIndex(s => s.id === 'grain')) * 25;
+  const grainDelay = SLIDERS.findIndex(s => s.id === 'grain') * 25;
   if (animate) grainTypeTimer = setTimeout(setGrainTypeButtons, grainDelay); else setGrainTypeButtons();
   SLIDERS.forEach((s, i) => {
     const el = $(s.id), target = s.get();
-    if (animate) animateSliderTo(el, target, { delay: (SLIDERS.length - 1 - i) * 25, onFrame: v => { setOut(s.out, s.fmt(v)); } });
+    if (animate) animateSliderTo(el, target, { delay: i * 25, onFrame: v => { setOut(s.out, s.fmt(v)); } });
     else { el.value = target; sliderFill(el); setOut(s.out, s.fmt(+el.value)); }
   });
 }
