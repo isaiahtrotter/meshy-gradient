@@ -406,33 +406,32 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
    everything beneath it (label text, the fill/track boundary, the .slider-edge inner border), so the slider
    itself visibly demonstrates what the value it controls does. A sibling on top rather than a filter on the
    slider itself, since only this one region should blur, not the whole control. Only shown on hover/drag
-   (same opacity + ease-out transition every other slider's handle effect uses), and wider than the slider
-   itself so it's still reaching the rounded corner/border even with the handle at either extreme.
-   Progressive, not a single blur cut off by an opacity mask: five layers, each a bigger blur radius inside a
-   narrower radial mask, so the blur amount itself falls off gradually from the handle outward instead of a
-   uniform blur cross-fading with sharpness. */
+   (same opacity + ease-out transition every other slider's handle effect uses), wider than the slider itself
+   so it's still reaching the rounded corner/border even with the handle at either extreme, and 4px taller on
+   top and bottom so the full height blurs right up to (and past) the slider's own edge with no unblurred
+   sliver at the very top/bottom row.
+   Progressive, not a single blur cut off by an opacity mask: three layers, each a bigger blur radius inside a
+   narrower mask, so the blur amount itself falls off gradually from the handle outward instead of a uniform
+   blur cross-fading with sharpness. Linear, not radial: the fade is purely left-to-right (every layer already
+   covers the full height on its own), so a radial gradient bought nothing but the extra cost of computing a
+   2D distance per pixel instead of a 1D one — across three backdrop-filter layers that's the difference this
+   slider's hover lag came from. */
 .slider-blur-fx {
-  position: absolute; top: 0; bottom: 0; width: 220px; z-index: 3; pointer-events: none;
+  position: absolute; top: -4px; bottom: -4px; width: 220px; z-index: 3; pointer-events: none;
   left: calc(var(--pct) + var(--handle-shift)); transform: translateX(-50%);
-  opacity: 0; transition: opacity .15s ease-out;
+  opacity: 0; transition: opacity .15s ease-out; will-change: opacity;
 }
 #soft:hover ~ .slider-blur-fx, #soft:active ~ .slider-blur-fx, #soft.glow-active ~ .slider-blur-fx { opacity: 1; }
 .slider-blur-fx .blur-layer { position: absolute; inset: 0; }
-.slider-blur-fx .l1 { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
-  -webkit-mask-image: radial-gradient(ellipse 50% 100% at center, #000 0%, transparent 100%);
-  mask-image: radial-gradient(ellipse 50% 100% at center, #000 0%, transparent 100%); }
-.slider-blur-fx .l2 { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-  -webkit-mask-image: radial-gradient(ellipse 38% 100% at center, #000 0%, transparent 100%);
-  mask-image: radial-gradient(ellipse 38% 100% at center, #000 0%, transparent 100%); }
-.slider-blur-fx .l3 { backdrop-filter: blur(11px); -webkit-backdrop-filter: blur(11px);
-  -webkit-mask-image: radial-gradient(ellipse 27% 100% at center, #000 0%, transparent 100%);
-  mask-image: radial-gradient(ellipse 27% 100% at center, #000 0%, transparent 100%); }
-.slider-blur-fx .l4 { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-  -webkit-mask-image: radial-gradient(ellipse 17% 100% at center, #000 0%, transparent 100%);
-  mask-image: radial-gradient(ellipse 17% 100% at center, #000 0%, transparent 100%); }
-.slider-blur-fx .l5 { backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
-  -webkit-mask-image: radial-gradient(ellipse 9% 100% at center, #000 0%, transparent 100%);
-  mask-image: radial-gradient(ellipse 9% 100% at center, #000 0%, transparent 100%); }
+.slider-blur-fx .l1 { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 25%, #000 75%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 25%, #000 75%, transparent 100%); }
+.slider-blur-fx .l2 { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 35%, #000 65%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 35%, #000 65%, transparent 100%); }
+.slider-blur-fx .l3 { backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 44%, #000 56%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 44%, #000 56%, transparent 100%); }
 .checker { background-color: #fff; background-image: linear-gradient(45deg, #c8c8c8 25%, transparent 25%), linear-gradient(-45deg, #c8c8c8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c8c8c8 75%), linear-gradient(-45deg, transparent 75%, #c8c8c8 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; }
 .swatch { position: relative; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; flex: none; overflow: hidden; }
 .swatch::after { content: ''; position: absolute; inset: 0; background: var(--sw, #888); }
