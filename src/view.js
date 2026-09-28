@@ -105,9 +105,14 @@ export function setZoom(z, cx, cy) {
 export function resetZoom() { view.zoom = session.zoom = 1; view.panX = view.panY = 0; layout(); }
 export function panBy(dx, dy) { view.panX += dx; view.panY += dy; applyPan(); refreshHandles(); draw(); }
 
-// A real mouse wheel reports whole-number, vertical-only "notch" deltas; a trackpad's two-finger scroll
-// (which should still pan, same as before) reports fractional deltas and usually moves on both axes at once.
-const isMouseWheelNotch = e => e.deltaX === 0 && e.deltaMode === 0 && Number.isInteger(e.deltaY) && e.deltaY !== 0;
+// A real mouse wheel's "notch" is vertical-only and, because it's one discrete physical click rather than a
+// continuous finger motion, jumps a relatively large distance in a single event (~100px/notch is standard on
+// both Mac and Windows). A trackpad's two-finger scroll (which should still pan, same as before) is often ALSO
+// deltaX===0 and integer-valued when panning straight up/down — that alone isn't enough to tell them apart —
+// but it arrives as many small per-frame deltas, rarely this big in one event even during a fast flick.
+const WHEEL_NOTCH_MIN_PX = 80;
+const isMouseWheelNotch = e =>
+  e.deltaX === 0 && e.deltaMode === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= WHEEL_NOTCH_MIN_PX;
 
 stage.addEventListener('wheel', e => {
   e.preventDefault();
