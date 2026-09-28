@@ -204,11 +204,19 @@ export function seedNodes(colours) {
   const spots = [[0.15, 0.2], [0.8, 0.15], [0.25, 0.85], [0.85, 0.8], [0.5, 0.5]];
   colours.forEach((c, i) => addNode('circle', spots[i % spots.length][0] + (Math.random() - .5) * .1, spots[i % spots.length][1] + (Math.random() - .5) * .1, c, 0.45 + Math.random() * 0.15));
 }
+const shuffleArr = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } };
 $('shuffle').addEventListener('click', () => {
   pushUndo();
   const target = targetNodes(), cols = target.map(n => n.color);
-  for (let i = cols.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [cols[i], cols[j]] = [cols[j], cols[i]]; }
+  shuffleArr(cols);
   target.forEach((n, i) => { n.color = cols[i]; });
+  // Gradient nodes' fill comes from gradStops, not `color` — shuffle each stop's colour among all stops
+  // across every gradient node in the target too, so a gradient's ramp doesn't stay frozen.
+  const gradNodes = target.filter(n => n.grad);
+  const stopCols = gradNodes.flatMap(n => n.gradStops.map(s => s.color));
+  shuffleArr(stopCols);
+  let k = 0;
+  for (const n of gradNodes) for (const s of n.gradStops) s.color = stopCols[k++];
   state.seed = Math.random() * 1000; refreshAll();
 });
 $('scatter').addEventListener('click', () => {

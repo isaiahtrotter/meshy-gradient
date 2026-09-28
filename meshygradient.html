@@ -218,9 +218,44 @@ window.addEventListener('error', function () {
         <input type="text" id="selHex" class="grow" value="#FF7A59" spellcheck="false" maxlength="7" placeholder="#RRGGBB" title="Hex color">
         <button id="delBtn" class="danger desktop-hide" disabled>Delete</button>
         <div class="picker" id="colorPicker" hidden>
-          <div class="sv-wrap"><canvas id="svCanvas" width="220" height="140"></canvas><div class="sv-thumb" id="svThumb"></div></div>
+          <div class="picker-tabs" id="pickerTabs">
+            <button type="button" class="picker-tab" id="pickerTabSolid" aria-pressed="true" title="Solid color">
+              <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="currentColor"/></svg>
+            </button>
+            <button type="button" class="picker-tab" id="pickerTabGradient" aria-pressed="false" title="Linear gradient">
+              <svg width="16" height="16" viewBox="0 0 16 16"><defs><linearGradient id="pickerTabGradIcon" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="currentColor" stop-opacity="1"/><stop offset="1" stop-color="currentColor" stop-opacity=".15"/>
+              </linearGradient></defs><circle cx="8" cy="8" r="6.5" fill="url(#pickerTabGradIcon)"/></svg>
+            </button>
+          </div>
+          <div class="grad-ramp-wrap" id="gradRampWrap" hidden>
+            <div class="grad-ramp" id="gradRamp"></div>
+          </div>
+          <div class="stop-head" id="stopHead" hidden>
+            <span>Stops</span>
+            <button type="button" class="icon-btn-sm" id="addStopBtn" title="Add stop">
+              <svg width="12" height="12" viewBox="0 0 12 12"><path d="M6 1V11M1 6H11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+          <div class="stop-list" id="stopList" hidden></div>
+          <div class="sv-wrap"><canvas id="svCanvas" width="222" height="140"></canvas><div class="sv-thumb" id="svThumb"></div></div>
           <div class="hue-track" id="hueTrack"><div class="hue-thumb" id="hueThumb"></div></div>
           <div class="alpha-track checker" id="alphaTrack"><div class="alpha-fill" id="alphaFill"></div><div class="hue-thumb" id="alphaThumb"></div></div>
+          <div class="slider" id="gradAngleRow" hidden><span class="slider-label">Angle</span><span class="slider-value" id="gradAngleVal">0°</span><input type="range" id="gradAngle" min="-180" max="180" step="1" value="0"><div class="slider-edge"></div></div>
+          <div class="ease-tabs" id="gradEaseRow" hidden>
+            <button type="button" class="ease-tab" data-ease="linear" aria-pressed="true" title="Linear">
+              <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 13L13 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+            </button>
+            <button type="button" class="ease-tab" data-ease="in" aria-pressed="false" title="Ease in">
+              <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 13Q3 3 13 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+            </button>
+            <button type="button" class="ease-tab" data-ease="out" aria-pressed="false" title="Ease out">
+              <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 13Q13 13 13 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+            </button>
+            <button type="button" class="ease-tab" data-ease="inout" aria-pressed="false" title="Ease in-out">
+              <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 13C3 8 13 8 13 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+            </button>
+          </div>
           <div class="picker-foot"><span>Opacity</span><output id="alphaOut">100%</output></div>
         </div>
       </div>

@@ -5,6 +5,14 @@
 //   uType 3 line:            uNode = (Ax, Ay, Bx, By)          uNode2 = (sw, k, 0, 0)
 //   uType 4 stroke:          uNode = (pointCount, sw, 0, 0)    points in row `slot` of uPts, one texel each: (x, y, k, 0)
 // Circle x/y are normalized canvas coords; arc, line and stroke coords are already in scaled render space (× sc).
+// uGrad[slot]: 1 if that slot fills with a screen-space linear gradient across its own `gradStops` instead of a
+// flat uColor. uGradInfo[slot]: (pivotX, pivotY, halfSize, angleRad) in the same render-space units as `p` in
+// main() below — t=0 sits at pivot - halfSize·dir, t=1 at pivot + halfSize·dir, dir = (cos, sin)(angleRad).
+// uGradCount[slot]: number of stops (>= 2, <= MAX_GRAD_STOPS). uGradStopT[slot*MAX_GRAD_STOPS + j]: stop j's
+// t. uGradStops: a MAX_GRAD_STOPS × MAXN float texture, one column per stop, one row per slot — texel
+// (j, slot) is that stop's (r, g, b, a). A pixel's colour/alpha is interpolated between the two stops
+// bracketing its t (flat beyond the first/last stop), after easing the 0..1 segment factor per uGradEase[slot]
+// (0 linear, 1 ease-in, 2 ease-out, 3 ease-in-out — see gradEase() below and nodes.js's GRAD_EASE_TYPES).
 // uOcc[slot]: 1 if that slot's node occludes (composites over the averaged base via alpha-over, in slot order)
 // rather than joining the weighted-mean base layer. See the compositing step after the uBlendMode branch below.
 // uOccSoft1[slot]/uOccSoft2[slot]: an occluding node's two user-set edge feather half-widths (already
@@ -15,7 +23,7 @@
 // node), smoothstep-feathered by this per-direction width, instead of the continuous (1/(1+d²))^k falloff
 // every non-occluding shape uses.
 
-import { MAXN, MAX_STROKE_PTS as MAXP } from './constants.js';
+import { MAXN, MAX_STROKE_PTS as MAXP, MAX_GRAD_STOPS as MAXG } from './constants.js';
 
 export const VS = `attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }`;
 
@@ -23,11 +31,21 @@ export const FS = `
   precision highp float;
   uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uBlendMode, uRefW, uGrainType, uDensity;
   uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec4 uAdj; uniform vec2 uNode3[${MAXN}]; uniform float uOcc[${MAXN}]; uniform float uOccSoft1[${MAXN}]; uniform float uOccSoft2[${MAXN}]; uniform float uOccAngle[${MAXN}];
+  uniform float uGrad[${MAXN}]; uniform vec4 uGradInfo[${MAXN}]; uniform float uGradCount[${MAXN}]; uniform float uGradEase[${MAXN}];
+  uniform float uGradStopT[${MAXN * MAXG}]; uniform sampler2D uGradStops;
   uniform sampler2D uPts;
   const float OCC_SIZE_SCALE = 0.5;
   float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
   vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
   vec3 toSrgb(vec3 c){ return pow(max(c, 0.0), vec3(1.0/2.2)); }
+  // Eases a 0..1 factor within one gradient stop-to-stop segment. Quadratic, not cubic — cheap and plenty
+  // smooth at the size these ramps render.
+  float gradEase(float f, float mode) {
+    if (mode < 0.5) return f;
+    if (mode < 1.5) return f * f;
+    if (mode < 2.5) return f * (2.0 - f);
+    return f < 0.5 ? 2.0 * f * f : -1.0 + (4.0 - 2.0 * f) * f;
+  }
   // Feather half-width for an occluding shape at a boundary point offset dv from its centre: soft1 on the
   // side facing away from that node's blur angle, blending up to soft2 on the side facing it.
   float occFeather(vec2 dv, float angle, float soft1, float soft2){
@@ -188,13 +206,35 @@ export const FS = `
           w = pow(1.0 / (1.0 + d2), uNode2[i].z) + 1e-7 / (1.0 + d2);
         }
       }
-      vec3 c = uColor[i].rgb;
+      vec3 c = uColor[i].rgb; float effA = uColor[i].a;
+      if (uGrad[i] > 0.5) {
+        // screen-space linear gradient across the shape's own extent, independent of the weight mask above
+        vec2 piv = uGradInfo[i].xy, dirv = vec2(cos(uGradInfo[i].w), sin(uGradInfo[i].w));
+        float t = clamp(0.5 + dot(p - piv, dirv) / (2.0 * max(uGradInfo[i].z, 1e-4)), 0.0, 1.0);
+        int cnt = int(uGradCount[i]);
+        float row = (float(i) + 0.5) / ${MAXN}.0;
+        vec4 s0 = texture2D(uGradStops, vec2(0.5 / ${MAXG}.0, row));
+        float t0 = uGradStopT[i * ${MAXG}];
+        vec3 gc = s0.rgb; float ga = s0.a;
+        for (int j = 1; j < ${MAXG}; j++) {
+          if (j >= cnt) break;
+          vec4 s1 = texture2D(uGradStops, vec2((float(j) + 0.5) / ${MAXG}.0, row));
+          float t1 = uGradStopT[i * ${MAXG} + j];
+          if (t <= t1 || j == cnt - 1) {
+            float f = gradEase(clamp((t - t0) / max(t1 - t0, 1e-5), 0.0, 1.0), uGradEase[i]);
+            gc = mix(s0.rgb, s1.rgb, f); ga = mix(s0.a, s1.a, f);
+            break;
+          }
+          s0 = s1; t0 = t1;
+        }
+        c = gc; effA *= ga;
+      }
       if (uOcc[i] > 0.5) {
-        float ai = clamp(w * uColor[i].a, 0.0, 1.0);
+        float ai = clamp(w * effA, 0.0, 1.0);
         stackPM = ai * c + (1.0 - ai) * stackPM;
         stackA = ai + (1.0 - ai) * stackA;
       } else {
-        float wA = w * uColor[i].a;
+        float wA = w * effA;
         acc += c * wA; accLin += toLin(c) * wA;
         accLogM += log(max(c, 1e-4)) * wA; accLogS += log(max(1.0 - c, 1e-4)) * wA;
         wsum += wA;

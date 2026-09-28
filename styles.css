@@ -4,7 +4,7 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
   --bg: #ecedef;
   --stage: #e2e3e6;
-  --panel: #f7f7f8;
+  --panel: #e2e3e6;
   --line: #d3d5da;
   --ink: #17181c;
   --ink-2: #5d616b;
@@ -24,7 +24,7 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #17181b; --stage: #242424; --panel: #242424; --line: #33353b;
+    --bg: #17181b; --stage: #242424; --panel: #242424; --line: #333333;
     --ink: #eceef2; --ink-2: #a2a6b0; --ink-3: #6f737d; --accent: #5b8cff;
     --field: #2a2b31; --handle-ring: rgba(255,255,255,.9); --handle-shadow: rgba(0,0,0,.6);
     --danger: #ff6b6b; color-scheme: dark;
@@ -33,7 +33,7 @@
   }
 }
 :root[data-theme="dark"] {
-  --bg: #17181b; --stage: #242424; --panel: #242424; --line: #33353b;
+  --bg: #17181b; --stage: #242424; --panel: #242424; --line: #333333;
   --ink: #eceef2; --ink-2: #a2a6b0; --ink-3: #6f737d; --accent: #5b8cff;
   --field: #2a2b31; --handle-ring: rgba(255,255,255,.9); --handle-shadow: rgba(0,0,0,.6);
   --danger: #ff6b6b; color-scheme: dark;
@@ -61,7 +61,7 @@ body {
 
 .topbar {
   flex: none; display: flex; align-items: center; justify-content: flex-end;
-  padding: 20px; background: var(--stage); border-bottom: 1px solid rgba(255,255,255,.07);
+  padding: 20px; background: var(--panel); border-bottom: 1px solid var(--line);
 }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 .topbar .icon-btn { width: 20px; height: 20px; padding: 0; border: none; background: none; }
@@ -507,21 +507,74 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 .swatch::after { content: ''; position: absolute; inset: 0; background: var(--sw, #888); }
 .swatch:disabled { cursor: default; opacity: .45; }
 .sv-wrap { position: relative; }
-.picker-foot { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--ink-2); }
+.picker-foot { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); }
 .picker-foot output { color: var(--ink); font-variant-numeric: tabular-nums; }
-.alpha-track { position: relative; height: 14px; margin-top: 10px; border-radius: 7px; overflow: visible; touch-action: none; cursor: pointer; }
+.alpha-track { position: relative; height: 14px; border-radius: 7px; overflow: visible; touch-action: none; cursor: pointer; }
 .alpha-fill { position: absolute; inset: 0; border-radius: 7px; }
 .picker {
-  position: absolute; top: calc(100% + 8px); left: 0; z-index: 5; padding: 10px; width: 220px;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 28px -8px rgba(0,0,0,.4);
+  position: fixed; top: 0; left: -9999px; z-index: 50; padding: 12px; width: 246px; display: flex; flex-direction: column; gap: 10px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 36px -10px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.15);
 }
-#svCanvas { display: block; width: 220px; height: 140px; border-radius: 4px; cursor: crosshair; touch-action: none; }
+.picker[hidden] { display: none; }
+.picker-tabs { display: flex; gap: 2px; padding: 2px; background: var(--ctrl-bg); border-radius: var(--radius); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+.picker-tab {
+  flex: 1; height: 28px; padding: 0; border: none; border-radius: calc(var(--radius) - 3px); background: transparent;
+  color: var(--ink-2); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s ease-out, color .15s ease-out;
+}
+.picker-tab:hover { color: var(--ink); }
+.picker-tab[aria-pressed="true"] { background: var(--ctrl-grad); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+
+.ease-tabs { display: flex; gap: 2px; padding: 2px; background: var(--ctrl-bg); border-radius: var(--radius); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+.ease-tabs[hidden] { display: none; }
+.ease-tab {
+  flex: 1; height: 26px; padding: 0; border: none; border-radius: calc(var(--radius) - 3px); background: transparent;
+  color: var(--ink-2); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s ease-out, color .15s ease-out;
+}
+.ease-tab:hover { color: var(--ink); }
+.ease-tab[aria-pressed="true"] { background: var(--ctrl-grad); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+
+/* Gradient ramp: the fill preview doubles as the drag surface; clicking empty track adds a stop, each existing
+   stop gets a thumb (styled like the SV/hue thumbs elsewhere in this picker) riding on top at its own t. */
+.grad-ramp-wrap { padding-top: 8px; }
+.grad-ramp-wrap[hidden] { display: none; }
+.grad-ramp { position: relative; height: 20px; border-radius: 6px; touch-action: none; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,.15); }
+.grad-stop-handle {
+  position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
+  border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.4); cursor: grab; touch-action: none;
+}
+.grad-stop-handle.active { box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 0 0 3px var(--accent), 0 1px 3px rgba(0,0,0,.4); z-index: 1; }
+
+.stop-head { display: flex; align-items: center; justify-content: space-between; font: 500 12px/1.2 var(--font-ui); color: var(--ink-2); }
+.stop-head[hidden] { display: none; }
+.icon-btn-sm { width: 20px; height: 20px; padding: 0; border: none; border-radius: 5px; background: var(--ctrl-bg); color: var(--ink); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.icon-btn-sm:hover:not(:disabled) { filter: brightness(1.15); }
+.icon-btn-sm:disabled { opacity: .4; cursor: default; }
+.stop-list { display: flex; flex-direction: column; gap: 4px; max-height: 148px; overflow-y: auto; scrollbar-width: none; }
+.stop-list[hidden] { display: none; }
+.stop-list::-webkit-scrollbar { display: none; }
+.stop-row {
+  display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 6px; border-radius: var(--radius);
+  background: var(--ctrl-bg); cursor: pointer; box-shadow: inset 0 0 0 1px transparent; transition: box-shadow .1s ease-out;
+}
+.stop-row.active { box-shadow: inset 0 0 0 1px var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--ctrl-bg)); }
+.stop-row input[type=number] {
+  width: 34px; flex: none; height: 22px; padding: 0 4px; border-radius: 4px; background: rgba(255,255,255,.06);
+  font: 400 11px/1 var(--font-mono); text-align: right; -moz-appearance: textfield;
+}
+.stop-row input[type=number]::-webkit-outer-spin-button, .stop-row input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stop-sw { position: relative; width: 18px; height: 18px; border-radius: 50%; overflow: hidden; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
+.stop-sw span { position: absolute; inset: 0; background: var(--sw, #888); }
+.stop-hex { flex: 1; min-width: 0; font: 400 11px/1 var(--font-mono); color: var(--ink-2); text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stop-remove { flex: none; width: 20px; height: 20px; padding: 0; border: none; background: transparent; color: var(--ink-3); border-radius: 4px; cursor: pointer; }
+.stop-remove:hover:not(:disabled) { color: var(--danger); background: rgba(0,0,0,.06); }
+.stop-remove:disabled { opacity: .3; cursor: default; }
+#svCanvas { display: block; width: 100%; height: 140px; border-radius: 6px; cursor: crosshair; touch-action: none; }
 .sv-thumb {
   position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
   border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.4); pointer-events: none;
 }
 .hue-track {
-  position: relative; height: 14px; margin-top: 10px; border-radius: 7px; touch-action: none; cursor: pointer;
+  position: relative; height: 14px; border-radius: 7px; touch-action: none; cursor: pointer;
   background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
 }
 .hue-thumb {
@@ -570,7 +623,8 @@ button.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--acc
   border: 1px solid var(--line); cursor: pointer; padding: 0; background-color: #000;
   background-size: cover; background-position: center; background-repeat: no-repeat;
 }
-.preset:hover { border-color: var(--ink-3); }
+/* Overrides the generic button:hover border-color below — presets shouldn't highlight their border on hover. */
+.preset:hover { border-color: var(--line); }
 
 .status { display: none; }
 /* Looks like a physical keycap: slightly rounded corners, and a solid (no-blur) shadow a couple of pixels down
