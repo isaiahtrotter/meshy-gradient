@@ -10,15 +10,21 @@ import { cumLengths, pointAt, strokeWorld, strokeK } from './stroke.js';
 import { rgbaCss } from './color.js';
 import { overlay, maxDim, normPos, setStyle } from './dom.js';
 
-export const hardToRadius = k => 15 + 400 / (k + 2); // k=1 → 148px, k=2.2 → 110px, k=40 → 24px
-export const radiusToHard = R => clamp(400 / Math.max(1, R - 15) - 2, HARD_K_MIN, HARD_K_MAX);
-// the same idea at a smaller size for a stroke's stop rings: k=1 → 40px, k=2.2 → 31px, k=40 → 10px
-export const stopHardToRadius = k => 8 + 96 / (k + 2);
-export const stopRadiusToHard = R => clamp(96 / Math.max(1, R - 8) - 2, HARD_K_MIN, HARD_K_MAX);
+// Screen-px sizing at 100% zoom (k=1 → 148px, k=2.2 → 110px, k=40 → 24px); scaled live by session.zoom so the
+// dotted ring grows/shrinks with the view instead of staying a fixed screen size. radiusToHard un-scales a
+// screen-px radius back to the same reference space before inverting, so a live drag (real on-screen px,
+// which already vary with zoom on their own) stays consistent with whatever's currently rendered.
+export const hardToRadius = k => (15 + 400 / (k + 2)) * session.zoom;
+export const radiusToHard = R => clamp(400 / Math.max(1, R / session.zoom - 15) - 2, HARD_K_MIN, HARD_K_MAX);
+// the same idea at a smaller size for a stroke's stop rings: k=1 → 40px, k=2.2 → 31px, k=40 → 10px (at 100% zoom)
+export const stopHardToRadius = k => (8 + 96 / (k + 2)) * session.zoom;
+export const stopRadiusToHard = R => clamp(96 / Math.max(1, R / session.zoom - 8) - 2, HARD_K_MIN, HARD_K_MAX);
 
 export const handleEls = new Map(), ctlEls = new Map();
-// Arc/line arms are drawn at true length (a fraction of the frame's long side); circle arms use PX_PER_SPREAD.
-export const armScale = (n, d) => (n.type === 'circle' ? PX_PER_SPREAD : d.m);
+// Arc/line arms are drawn at true length (a fraction of the frame's long side, which already scales with zoom
+// since the frame itself resizes); circle arms use PX_PER_SPREAD, a fixed screen-px scale that needs its own
+// explicit zoom factor to grow/shrink the same way.
+export const armScale = (n, d) => (n.type === 'circle' ? PX_PER_SPREAD * session.zoom : d.m);
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const UNLINK_ICON = '<path d="M7.84082 1.08105C8.38231 0.63967 9.16366 0.639559 9.70508 1.08105L9.81738 1.18262L9.91895 1.29492C10.392 1.87508 10.358 2.73066 9.81738 3.27148L7.58887 5.5L9.81738 7.72852C10.3941 8.30545 10.3942 9.24053 9.81738 9.81738C9.24053 10.3942 8.30544 10.3941 7.72852 9.81738L5.5 7.58887L3.27148 9.81738C2.69456 10.3941 1.75947 10.3942 1.18262 9.81738C0.605767 9.24053 0.605878 8.30545 1.18262 7.72852L3.41113 5.5L1.18262 3.27148C0.60588 2.69456 0.605761 1.75947 1.18262 1.18262L1.29492 1.08105C1.83635 0.639556 2.61769 0.639671 3.15918 1.08105L3.27148 1.18262L5.5 3.41113L7.72852 1.18262L7.84082 1.08105Z" fill="black" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>';

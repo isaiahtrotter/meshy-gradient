@@ -6,4 +6,6 @@ export const session = {
   placing: null,     // null (a click adds a circle), 'arc' or 'line' (the next click places one), 'stroke' (the brush)
   sampling: false,
   spaceHeld: false,
+  zoom: 1,           // mirrors view.zoom; read by handles.js so its screen-px sizing (hardness rings, circle
+                      // arm scale) grows/shrinks with zoom without handles.js importing view.js (layering)
 };

@@ -3,6 +3,7 @@
 
 import { ZOOM_MIN, ZOOM_MAX } from './constants.js';
 import { state } from './state.js';
+import { session } from './session.js';
 import { $, stage, frame, work, frameRect, setStatus } from './dom.js';
 import { makeRenderer } from './renderer.js';
 import { scheduleSave } from './persistence.js';
@@ -96,12 +97,12 @@ export function setZoom(z, cx, cy) {
   if (cx == null) { cx = sr.left + sr.width / 2; cy = sr.top + sr.height / 2; }
   const r = frameRect();
   const ux = (cx - r.left) / r.width, uy = (cy - r.top) / r.height;
-  view.zoom = z; layout();
+  view.zoom = session.zoom = z; layout();
   const r2 = frameRect();
   view.panX += cx - (r2.left + ux * r2.width); view.panY += cy - (r2.top + uy * r2.height);
   applyPan(); refreshHandles(); draw();
 }
-export function resetZoom() { view.zoom = 1; view.panX = view.panY = 0; layout(); }
+export function resetZoom() { view.zoom = session.zoom = 1; view.panX = view.panY = 0; layout(); }
 export function panBy(dx, dy) { view.panX += dx; view.panY += dy; applyPan(); refreshHandles(); draw(); }
 
 // A real mouse wheel reports whole-number, vertical-only "notch" deltas; a trackpad's two-finger scroll
