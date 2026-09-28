@@ -92,9 +92,16 @@ function sliderFill(el) {
   const slider = el.closest('.slider');
   const pct = ((+el.value - +el.min) / (+el.max - +el.min)) * 100;
   slider.style.setProperty('--pct', pct + '%');
+  slider.style.setProperty('--pct-frac', String(pct / 100)); // unitless twin of --pct, for calc() maths in px
+
   // At the exact ends, push the glow-bar handle a little further out so it tucks fully behind the rounded
   // corner (clipped by .slider's overflow: hidden) instead of a thin line sitting right on the edge.
   slider.style.setProperty('--handle-shift', pct <= 0 ? '-4px' : pct >= 100 ? '4px' : '0px');
+}
+// A slider's readout, plus any [data-mirror] copies of it (the Softness slider's blurred replica has one).
+function setOut(id, text) {
+  $(id).textContent = text;
+  for (const m of document.querySelectorAll(`[data-mirror="${id}"]`)) m.textContent = text;
 }
 function mappedValue(el) { const min = +el.dataset.min, max = +el.dataset.max; return min + (+el.value) * (max - min); }
 function reverseMapped(el, val) { const min = +el.dataset.min, max = +el.dataset.max; return (val - min) / (max - min); }
@@ -124,7 +131,7 @@ for (const s of SLIDERS) {
     // a manual drag interrupting a right-click reset's animation would otherwise fight it for el.value each frame
     if (sliderAnims.has(el)) { cancelAnimationFrame(sliderAnims.get(el)); sliderAnims.delete(el); el.classList.remove('glow-active'); }
   });
-  el.addEventListener('input', e => { s.set(e.target); sliderFill(e.target); $(s.out).textContent = s.fmt(+e.target.value); draw(); });
+  el.addEventListener('input', e => { s.set(e.target); sliderFill(e.target); setOut(s.out, s.fmt(+e.target.value)); draw(); });
   el.addEventListener('change', () => { if (dragSnap) { pushUndo(dragSnap); dragSnap = null; } });
   // Right-click resets it to its built-in default (the input's own initial `value` attribute, i.e. defaultValue),
   // animating there over 100ms with the same hover-preview glow a real drag shows.
@@ -135,7 +142,7 @@ for (const s of SLIDERS) {
     const snap = snapshot();
     animateSliderTo(el, def, {
       duration: 100,
-      onFrame: v => { s.set(el); $(s.out).textContent = s.fmt(v); draw(); },
+      onFrame: v => { s.set(el); setOut(s.out, s.fmt(v)); draw(); },
       onDone: () => pushUndo(snap),
     });
   });
@@ -184,9 +191,9 @@ export function syncControlsFromState({ animate = false } = {}) {
   const grainDelay = (SLIDERS.length - 1 - SLIDERS.findIndex(s => s.id === 'grain')) * 25;
   if (animate) grainTypeTimer = setTimeout(setGrainTypeButtons, grainDelay); else setGrainTypeButtons();
   SLIDERS.forEach((s, i) => {
-    const el = $(s.id), target = s.get(), out = $(s.out);
-    if (animate) animateSliderTo(el, target, { delay: (SLIDERS.length - 1 - i) * 25, onFrame: v => { out.textContent = s.fmt(v); } });
-    else { el.value = target; sliderFill(el); out.textContent = s.fmt(+el.value); }
+    const el = $(s.id), target = s.get();
+    if (animate) animateSliderTo(el, target, { delay: (SLIDERS.length - 1 - i) * 25, onFrame: v => { setOut(s.out, s.fmt(v)); } });
+    else { el.value = target; sliderFill(el); setOut(s.out, s.fmt(+el.value)); }
   });
 }
 
