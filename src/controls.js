@@ -31,7 +31,7 @@ function stationaryCursor() {
 // Drag-to-scrub a numeric input. With threshold 0 the drag engages immediately (desktop prefix letter, pointer
 // locked for mice so the drag isn't bounded by the real cursor hitting the screen edge). With a threshold it
 // engages only after that much movement, so a plain tap still focuses the input (mobile, dragging on the input).
-function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly = false } = {}) {
+export function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly = false } = {}) {
   trigger.addEventListener('pointerdown', e => {
     if (input.disabled) return;
     if (mobileOnly && window.innerWidth > MOBILE_BREAKPOINT) return;

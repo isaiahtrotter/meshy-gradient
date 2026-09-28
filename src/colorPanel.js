@@ -3,11 +3,12 @@
 
 import { state, selectedNodes } from './state.js';
 import { snapshot, pushUndo } from './undo.js';
-import { hexToHsv, hsvToHex, hexToRgb, rgbToHex, rgbaCss, hexWithAlpha, parseHexInput } from './color.js';
-import { MAX_GRAD_STOPS } from './constants.js';
+import { hexToHsv, hsvToHex, hexToRgb, rgbToHex, rgbaCss, parseHexInput } from './color.js';
+import { MAX_GRAD_STOPS, clamp } from './constants.js';
 import { $ } from './dom.js';
 import { refreshHandles } from './handles.js';
 import { draw } from './view.js';
+import { attachScrub } from './controls.js';
 
 let colorSnap = null;
 function beginColorEdit() { if (!colorSnap) colorSnap = snapshot(); }
@@ -100,12 +101,14 @@ export function refreshSelectionPanel() {
   $('selTitle').textContent = !has ? 'Selected (none)'
     : sel.every(n => n.occ) ? (sel.length === 1 ? 'Occluded node' : `${sel.length} occluded nodes selected`)
     : (sel.length === 1 ? 'Selected node' : `${sel.length} nodes selected`);
-  $('selSwatch').disabled = !has; $('selHex').disabled = !has;
+  $('selSwatch').disabled = !has; $('selHex').disabled = !has; $('selOpacity').disabled = !has;
   if (has) {
     const first = sel[0];
     activeStop = first.grad ? Math.min(Math.max(activeStop, 0), first.gradStops.length - 1) : 0;
     setSwatch(first);
-    if (document.activeElement !== $('selHex')) $('selHex').value = hexWithAlpha(first.color, first.a);
+    const curHex = first.grad ? first.gradStops[activeStop].color : first.color;
+    if (document.activeElement !== $('selHex')) $('selHex').value = curHex.toUpperCase();
+    if (document.activeElement !== $('selOpacity')) $('selOpacity').value = Math.round(first.a * 100);
     $('pickerTabSolid').setAttribute('aria-pressed', String(!first.grad));
     $('pickerTabGradient').setAttribute('aria-pressed', String(first.grad));
     $('gradRampWrap').hidden = !first.grad;
@@ -146,7 +149,8 @@ export function setSelectedColor(hex, commit, alpha, stopIdx) {
     setSwatch(first);
     if (first.grad) { renderRamp(first); renderStopList(first); }
   }
-  if (stopIdx == null && document.activeElement !== $('selHex')) $('selHex').value = hexWithAlpha(hex, a);
+  if (stopIdx == null && document.activeElement !== $('selHex')) $('selHex').value = hex.toUpperCase();
+  if (document.activeElement !== $('selOpacity')) $('selOpacity').value = Math.round(a * 100);
   refreshHandles(); draw();
   if (commit && colorSnap) { pushUndo(colorSnap); colorSnap = null; }
 }
@@ -160,6 +164,20 @@ function applyHex(commit) {
 $('selHex').addEventListener('input', () => applyHex(false));
 $('selHex').addEventListener('change', () => applyHex(true));
 $('selHex').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
+
+// ---------- Opacity (separate from the hex field — never folded into it) ----------
+function activeStopIdx() { const f = curNode(); return f && f.grad ? activeStop : null; }
+function currentColorHex() { const f = curNode(); if (!f) return '#000000'; return f.grad ? f.gradStops[Math.min(activeStop, f.gradStops.length - 1)].color : f.color; }
+function applyOpacityTyped(commit) {
+  const v = clamp(Math.round(+$('selOpacity').value) || 0, 0, 100);
+  beginColorEdit(); setSelectedColor(currentColorHex(), commit, v / 100, activeStopIdx());
+}
+$('selOpacity').addEventListener('input', () => applyOpacityTyped(false));
+$('selOpacity').addEventListener('change', () => applyOpacityTyped(true));
+$('selOpacity').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
+const scrubOpacity = v => setSelectedColor(currentColorHex(), false, v / 100, activeStopIdx());
+attachScrub($('selOpacityScrub'), $('selOpacity'), { onInput: scrubOpacity });
+attachScrub($('selOpacity'), $('selOpacity'), { onInput: scrubOpacity, threshold: 6, mobileOnly: true });
 
 // ---------- Solid / Gradient tabs ----------
 function setGradMode(grad) {
@@ -308,29 +326,190 @@ $('gradAngle').addEventListener('input', e => {
 $('gradAngle').addEventListener('change', () => { if (gradAngleSnap) { pushUndo(gradAngleSnap); gradAngleSnap = null; } });
 
 // ---------- Picker (HSV square + hue strip + alpha strip) ----------
-const svCanvas = $('svCanvas'), svCtx = svCanvas.getContext('2d');
+const svSquare = $('svSquare');
 let pickerHue = 16, pickerS = 0.68, pickerV = 1, pickerA = 1, pickerOpen = false, pickerDragging = false;
 
-function drawSV() {
-  const w = svCanvas.width, h = svCanvas.height;
-  svCtx.fillStyle = hsvToHex(pickerHue, 1, 1); svCtx.fillRect(0, 0, w, h);
-  let g = svCtx.createLinearGradient(0, 0, w, 0); g.addColorStop(0, '#fff'); g.addColorStop(1, 'rgba(255,255,255,0)');
-  svCtx.fillStyle = g; svCtx.fillRect(0, 0, w, h);
-  g = svCtx.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, '#000');
-  svCtx.fillStyle = g; svCtx.fillRect(0, 0, w, h);
+// Shift+drag a rectangle on the square (or drag/resize the minimap window that appears once zoomed) to work in
+// a cropped region of saturation/value space — mirrors a design reference's crop-to-zoom colour picker. All
+// zoom fractions are 0..1, in the same s/v units as pickerS/pickerV.
+const SV_FULL_ZOOM = { sMin: 0, sMax: 1, vMin: 0, vMax: 1 };
+const SV_MIN_SPAN = 0.04;
+const SV_MAP = 48;       // minimap square size, px
+const SV_MAP_INSET = 8;  // minimap inset from the square's top-right corner, px
+const SV_ANIM_MS = 380;
+const SV_EASE = 'cubic-bezier(0.22,1,0.36,1)';
+let svZoom = SV_FULL_ZOOM;
+let svAnim = null;      // { phase: 'start'|'end', oldBg } — entrance the first time a crop is applied
+let svClosing = null;   // 'start' | 'end' — the "clear crop" zoom-out
+let svSelecting = false, svSelRect = null; // shift-drag select-to-zoom, in square-local px
+let svDragMode = null;  // minimap window drag/resize: 'move' | 'nw' | 'ne' | 'sw' | 'se'
+let svDragStart = { x: 0, y: 0, zoom: SV_FULL_ZOOM };
+let svMorphing = false; // true briefly so the minimap's little rect glides instead of snapping
+
+const svIsZoomed = z => z.sMin !== 0 || z.sMax !== 1 || z.vMin !== 0 || z.vMax !== 1;
+function computeSquareBg(z, hue) {
+  const hc = hsvToHex(hue, 1, 1);
+  const cA = mixHex('#ffffff', hc, z.sMin), cB = mixHex('#ffffff', hc, z.sMax);
+  const aTop = clamp(1 - z.vMax, 0, 1), aBottom = clamp(1 - z.vMin, 0, 1);
+  return `linear-gradient(to top, rgba(0,0,0,${aBottom}), rgba(0,0,0,${aTop})), linear-gradient(to right, ${cA}, ${cB})`;
 }
+const svLocalPos = (clientX, clientY, rect) => ({
+  x: clamp(clientX - rect.left, 0, rect.width), y: clamp(clientY - rect.top, 0, rect.height),
+});
+function svPixelToSV(px, py, rect) {
+  const s = svZoom.sMin + (px / rect.width) * (svZoom.sMax - svZoom.sMin);
+  const v = svZoom.vMax - (py / rect.height) * (svZoom.vMax - svZoom.vMin);
+  return [clamp(s, 0, 1), clamp(v, 0, 1)];
+}
+function svToPixel(s, v, rect) {
+  const x = ((s - svZoom.sMin) / (svZoom.sMax - svZoom.sMin)) * rect.width;
+  const y = (1 - (v - svZoom.vMin) / (svZoom.vMax - svZoom.vMin)) * rect.height;
+  return [clamp(x, 0, rect.width), clamp(y, 0, rect.height)];
+}
+
+function renderSVSquare() {
+  const rect = svSquare.getBoundingClientRect();
+  svSquare.style.background = computeSquareBg(svZoom, pickerHue);
+
+  const [hx, hy] = svToPixel(pickerS, pickerV, rect);
+  const dotFullX = pickerS * rect.width, dotFullY = (1 - pickerV) * rect.height;
+  const thumb = $('svThumb');
+  thumb.style.left = (svClosing === 'end' ? dotFullX : hx) + 'px';
+  thumb.style.top = (svClosing === 'end' ? dotFullY : hy) + 'px';
+  thumb.style.background = hsvToHex(pickerHue, pickerS, pickerV);
+  thumb.style.transition = svClosing
+    ? `left ${SV_ANIM_MS}ms ${SV_EASE}, top ${SV_ANIM_MS}ms ${SV_EASE}, background-color 150ms ease`
+    : 'background-color 150ms ease';
+
+  const selEl = $('svSelRect');
+  if (svSelecting && svSelRect) {
+    selEl.hidden = false;
+    selEl.style.left = Math.min(svSelRect.x1, svSelRect.x2) + 'px';
+    selEl.style.top = Math.min(svSelRect.y1, svSelRect.y2) + 'px';
+    selEl.style.width = Math.abs(svSelRect.x2 - svSelRect.x1) + 'px';
+    selEl.style.height = Math.abs(svSelRect.y2 - svSelRect.y1) + 'px';
+  } else selEl.hidden = true;
+
+  renderSVZoomOverlay(rect);
+  renderSVMinimap(rect);
+}
+
+function renderSVZoomOverlay(rect) {
+  const el = $('svZoomOverlay');
+  if (!svClosing) { el.hidden = true; return; }
+  el.hidden = false;
+  const cropX = svZoom.sMin * rect.width, cropY = (1 - svZoom.vMax) * rect.height;
+  const cropW = (svZoom.sMax - svZoom.sMin) * rect.width, cropH = (svZoom.vMax - svZoom.vMin) * rect.height;
+  el.style.background = computeSquareBg(SV_FULL_ZOOM, pickerHue);
+  el.style.transform = svClosing === 'start'
+    ? `scale(${rect.width / cropW}, ${rect.height / cropH}) translate(${-cropX}px, ${-cropY}px)`
+    : 'none';
+  el.style.transition = svClosing === 'start' ? 'none' : `transform ${SV_ANIM_MS}ms ${SV_EASE}`;
+}
+
+function renderSVMinimap(rect) {
+  const mini = $('svMinimap');
+  if (!svIsZoomed(svZoom) && !svAnim && !svClosing) { mini.hidden = true; return; }
+  mini.hidden = false;
+  const restLeft = rect.width - SV_MAP - SV_MAP_INSET, restTop = SV_MAP_INSET;
+  const mapBg = computeSquareBg(SV_FULL_ZOOM, pickerHue);
+  mini.style.left = '0px'; mini.style.top = '0px';
+
+  if (svAnim) {
+    const start = svAnim.phase === 'start';
+    mini.style.transform = start ? 'translate(0px, 0px)' : `translate(${restLeft}px, ${restTop}px)`;
+    mini.style.width = (start ? rect.width : SV_MAP) + 'px';
+    mini.style.height = (start ? rect.height : SV_MAP) + 'px';
+    mini.style.background = svAnim.oldBg;
+    mini.style.boxShadow = start ? 'none' : '0 2px 6px rgba(0,0,0,.35)';
+    mini.style.opacity = 1;
+    mini.style.transition = `transform ${SV_ANIM_MS}ms ${SV_EASE}, width ${SV_ANIM_MS}ms ${SV_EASE}, height ${SV_ANIM_MS}ms ${SV_EASE}, box-shadow ${SV_ANIM_MS}ms ${SV_EASE}`;
+  } else if (svClosing) {
+    mini.style.transform = `translate(${restLeft}px, ${restTop}px)`;
+    mini.style.width = SV_MAP + 'px'; mini.style.height = SV_MAP + 'px';
+    mini.style.background = mapBg;
+    mini.style.boxShadow = '0 2px 6px rgba(0,0,0,.35)';
+    mini.style.opacity = svClosing === 'start' ? 1 : 0;
+    mini.style.transition = svClosing === 'start' ? 'none' : `opacity ${SV_ANIM_MS}ms ${SV_EASE}`;
+  } else {
+    mini.style.transform = `translate(${restLeft}px, ${restTop}px)`;
+    mini.style.width = SV_MAP + 'px'; mini.style.height = SV_MAP + 'px';
+    mini.style.background = mapBg;
+    mini.style.boxShadow = '0 2px 6px rgba(0,0,0,.35)';
+    mini.style.opacity = 1;
+    mini.style.transition = 'none';
+  }
+
+  const overlayVisible = svClosing ? svClosing === 'start' : (svAnim ? svAnim.phase === 'end' : true);
+  const overlayAnimated = Boolean(svClosing || svAnim);
+  const win = $('svMiniWin'), clearBtn = $('svClearCrop');
+  win.style.left = (svZoom.sMin * SV_MAP) + 'px';
+  win.style.top = ((1 - svZoom.vMax) * SV_MAP) + 'px';
+  win.style.width = ((svZoom.sMax - svZoom.sMin) * SV_MAP) + 'px';
+  win.style.height = ((svZoom.vMax - svZoom.vMin) * SV_MAP) + 'px';
+  win.style.opacity = clearBtn.style.opacity = overlayVisible ? 1 : 0;
+  win.style.pointerEvents = clearBtn.style.pointerEvents = (svAnim || svClosing) ? 'none' : 'auto';
+  const winTransition = overlayAnimated
+    ? `opacity ${SV_ANIM_MS}ms ${SV_EASE}`
+    : (svMorphing ? `left ${SV_ANIM_MS}ms ${SV_EASE}, top ${SV_ANIM_MS}ms ${SV_EASE}, width ${SV_ANIM_MS}ms ${SV_EASE}, height ${SV_ANIM_MS}ms ${SV_EASE}` : 'none');
+  win.style.transition = winTransition;
+  clearBtn.style.transition = overlayAnimated ? `opacity ${SV_ANIM_MS}ms ${SV_EASE}` : 'none';
+}
+
+// Triggers the square's 100ms cross-dissolve from `bg` to whatever renderSVSquare() sets next — used when the
+// crop changes while already zoomed (a gray preset, or a shift-drag reselect), where there's no shrink/grow
+// minimap animation to carry the transition instead.
+function triggerSVBgFade(bg) {
+  const el = $('svBgFade');
+  el.hidden = false;
+  el.style.background = bg;
+  el.style.animation = 'none';
+  void el.offsetWidth;
+  el.style.animation = '';
+}
+$('svBgFade').addEventListener('animationend', () => { $('svBgFade').hidden = true; });
+
+function applySVZoom(newZoom) {
+  if (svIsZoomed(svZoom)) {
+    triggerSVBgFade(computeSquareBg(svZoom, pickerHue));
+    svZoom = newZoom;
+    svMorphing = true;
+    renderSVSquare();
+    setTimeout(() => { svMorphing = false; }, SV_ANIM_MS + 50);
+  } else {
+    const oldBg = computeSquareBg(svZoom, pickerHue);
+    svZoom = newZoom;
+    svAnim = { phase: 'start', oldBg };
+    renderSVSquare();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (svAnim && svAnim.phase === 'start') { svAnim = { ...svAnim, phase: 'end' }; renderSVSquare(); }
+    }));
+  }
+}
+$('svMinimap').addEventListener('transitionend', e => {
+  if (e.propertyName === 'transform' && svAnim && svAnim.phase === 'end') { svAnim = null; renderSVSquare(); }
+});
+$('svZoomOverlay').addEventListener('transitionend', e => {
+  if (e.propertyName === 'transform' && svClosing === 'end') { svZoom = SV_FULL_ZOOM; svClosing = null; renderSVSquare(); }
+});
+$('svClearCrop').addEventListener('click', e => {
+  e.stopPropagation();
+  svMorphing = false;
+  svClosing = 'start';
+  renderSVSquare();
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (svClosing === 'start') { svClosing = 'end'; renderSVSquare(); }
+  }));
+});
 function positionPickerThumbs() {
-  const w = svCanvas.clientWidth || svCanvas.width, h = svCanvas.clientHeight || svCanvas.height;
   const hex = hsvToHex(pickerHue, pickerS, pickerV);
-  $('svThumb').style.left = (pickerS * w) + 'px'; $('svThumb').style.top = ((1 - pickerV) * h) + 'px'; $('svThumb').style.background = hex;
   $('hueThumb').style.left = (pickerHue / 360 * $('hueTrack').clientWidth) + 'px';
   $('alphaThumb').style.left = (pickerA * $('alphaTrack').clientWidth) + 'px';
   $('alphaFill').style.background = `linear-gradient(to right, ${rgbaCss(hex, 0)}, ${hex})`;
-  $('alphaOut').textContent = Math.round(pickerA * 100) + '%';
 }
 function syncPickerFromColor(hex, a) {
   const { h, s, v } = hexToHsv(hex); pickerHue = h; pickerS = s; pickerV = v; if (a != null) pickerA = a;
-  drawSV(); positionPickerThumbs();
+  renderSVSquare(); positionPickerThumbs();
 }
 // Floats the picker over the canvas, anchored to the sidebar's left edge (8px gap) and vertically aligned
 // with the swatch button — it no longer lives inside the panel's own scroll flow, so it can't clip against or
@@ -347,15 +526,16 @@ function positionPicker() {
 }
 function openPicker() {
   if ($('selSwatch').disabled) return;
+  svZoom = SV_FULL_ZOOM; svAnim = null; svClosing = null; svMorphing = false;
   $('colorPicker').hidden = false; pickerOpen = true; $('selSwatch').setAttribute('aria-expanded', 'true');
   refreshSelectionPanel();
-  drawSV(); positionPickerThumbs(); positionPicker();
+  renderSVSquare(); positionPickerThumbs(); positionPicker();
 }
 function closePicker() { $('colorPicker').hidden = true; pickerOpen = false; $('selSwatch').setAttribute('aria-expanded', 'false'); }
 $('selSwatch').addEventListener('click', e => { e.stopPropagation(); pickerOpen ? closePicker() : openPicker(); });
 document.addEventListener('pointerdown', e => { if (pickerOpen && !e.target.closest('.picker') && !e.target.closest('#selSwatch')) closePicker(); });
 document.addEventListener('keydown', e => { if (pickerOpen && e.key === 'Escape') { e.stopPropagation(); closePicker(); } }, true);
-window.addEventListener('resize', () => { if (pickerOpen) positionPicker(); });
+window.addEventListener('resize', () => { if (pickerOpen) { renderSVSquare(); positionPicker(); } });
 
 const frac = (clientX, el) => { const r = el.getBoundingClientRect(); return Math.min(1, Math.max(0, (clientX - r.left) / r.width)); };
 function pickerDrag(kind) {
@@ -363,12 +543,9 @@ function pickerDrag(kind) {
     e.preventDefault(); pickerDragging = true; beginColorEdit();
     const first = curNode(), stopIdx = first && first.grad ? activeStop : null;
     const move = ev => {
-      if (kind === 'sv') {
-        const r = svCanvas.getBoundingClientRect();
-        pickerS = frac(ev.clientX, svCanvas); pickerV = Math.min(1, Math.max(0, 1 - (ev.clientY - r.top) / r.height));
-      } else if (kind === 'hue') pickerHue = Math.min(359.99, frac(ev.clientX, $('hueTrack')) * 360);
+      if (kind === 'hue') pickerHue = Math.min(359.99, frac(ev.clientX, $('hueTrack')) * 360);
       else pickerA = frac(ev.clientX, $('alphaTrack'));
-      drawSV(); positionPickerThumbs(); setSelectedColor(hsvToHex(pickerHue, pickerS, pickerV), false, pickerA, stopIdx);
+      renderSVSquare(); positionPickerThumbs(); setSelectedColor(hsvToHex(pickerHue, pickerS, pickerV), false, pickerA, stopIdx);
     };
     const up = () => {
       pickerDragging = false; setSelectedColor(hsvToHex(pickerHue, pickerS, pickerV), true, pickerA, stopIdx);
@@ -377,6 +554,91 @@ function pickerDrag(kind) {
     move(e); window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
   };
 }
-svCanvas.addEventListener('pointerdown', pickerDrag('sv'));
 $('hueTrack').addEventListener('pointerdown', pickerDrag('hue'));
 $('alphaTrack').addEventListener('pointerdown', pickerDrag('alpha'));
+
+// SV square: a plain drag picks a colour within the current crop; a shift+drag selects a rectangle to zoom
+// (crop) into, and dragging/resizing the minimap window (once zoomed) re-crops directly.
+svSquare.addEventListener('pointerdown', e => {
+  if (svAnim || svClosing) return;
+  e.preventDefault();
+  const rect = svSquare.getBoundingClientRect();
+  if (e.shiftKey) {
+    const { x, y } = svLocalPos(e.clientX, e.clientY, rect);
+    svSelRect = { x1: x, y1: y, x2: x, y2: y };
+    svSelecting = true;
+    renderSVSquare();
+    const move = ev => {
+      const p = svLocalPos(ev.clientX, ev.clientY, rect);
+      svSelRect = { ...svSelRect, x2: p.x, y2: p.y };
+      renderSVSquare();
+    };
+    const up = () => {
+      const r = svSelRect;
+      const x1 = Math.min(r.x1, r.x2), x2 = Math.max(r.x1, r.x2);
+      const y1 = Math.min(r.y1, r.y2), y2 = Math.max(r.y1, r.y2);
+      if (x2 - x1 > 8 && y2 - y1 > 8) {
+        const [sA, vA] = svPixelToSV(x1, y1, rect);
+        const [sB, vB] = svPixelToSV(x2, y2, rect);
+        applySVZoom({ sMin: Math.min(sA, sB), sMax: Math.max(sA, sB), vMin: Math.min(vA, vB), vMax: Math.max(vA, vB) });
+      }
+      svSelRect = null; svSelecting = false; renderSVSquare();
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  } else {
+    const first = curNode(), stopIdx = first && first.grad ? activeStop : null;
+    beginColorEdit(); pickerDragging = true;
+    const move = ev => {
+      const r = svSquare.getBoundingClientRect();
+      const p = svLocalPos(ev.clientX, ev.clientY, r);
+      const [s, v] = svPixelToSV(p.x, p.y, r);
+      pickerS = s; pickerV = v;
+      renderSVSquare(); setSelectedColor(hsvToHex(pickerHue, pickerS, pickerV), false, pickerA, stopIdx);
+    };
+    const up = () => {
+      pickerDragging = false;
+      setSelectedColor(hsvToHex(pickerHue, pickerS, pickerV), true, pickerA, stopIdx);
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+    };
+    move(e); window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  }
+});
+
+function startSVDrag(mode, e) {
+  e.preventDefault(); e.stopPropagation();
+  svMorphing = false;
+  svDragMode = mode;
+  svDragStart = { x: e.clientX, y: e.clientY, zoom: svZoom };
+}
+$('svMiniWin').addEventListener('pointerdown', e => { if (!svAnim && !svClosing) startSVDrag('move', e); });
+$('svMinimap').querySelectorAll('.sv-handle').forEach(h => {
+  h.addEventListener('pointerdown', e => { if (!svAnim && !svClosing) startSVDrag(h.dataset.mode, e); });
+});
+window.addEventListener('pointermove', e => {
+  const mode = svDragMode;
+  if (!mode) return;
+  const start = svDragStart.zoom;
+  if (mode === 'move') {
+    const dxPct = (e.clientX - svDragStart.x) / SV_MAP, dyPct = -(e.clientY - svDragStart.y) / SV_MAP;
+    const width = start.sMax - start.sMin, height = start.vMax - start.vMin;
+    let sMin = start.sMin + dxPct, sMax = sMin + width;
+    if (sMin < 0) { sMin = 0; sMax = width; }
+    if (sMax > 1) { sMax = 1; sMin = 1 - width; }
+    let vMin = start.vMin + dyPct, vMax = vMin + height;
+    if (vMin < 0) { vMin = 0; vMax = height; }
+    if (vMax > 1) { vMax = 1; vMin = 1 - height; }
+    svZoom = { sMin, sMax, vMin, vMax };
+  } else {
+    const rect = $('svMinimap').getBoundingClientRect();
+    const s = clamp((e.clientX - rect.left) / SV_MAP, 0, 1), v = clamp(1 - (e.clientY - rect.top) / SV_MAP, 0, 1);
+    let { sMin, sMax, vMin, vMax } = start;
+    if (mode === 'nw') { sMin = clamp(s, 0, start.sMax - SV_MIN_SPAN); vMax = clamp(v, start.vMin + SV_MIN_SPAN, 1); }
+    if (mode === 'ne') { sMax = clamp(s, start.sMin + SV_MIN_SPAN, 1); vMax = clamp(v, start.vMin + SV_MIN_SPAN, 1); }
+    if (mode === 'sw') { sMin = clamp(s, 0, start.sMax - SV_MIN_SPAN); vMin = clamp(v, 0, start.vMax - SV_MIN_SPAN); }
+    if (mode === 'se') { sMax = clamp(s, start.sMin + SV_MIN_SPAN, 1); vMin = clamp(v, 0, start.vMax - SV_MIN_SPAN); }
+    svZoom = { sMin, sMax, vMin, vMax };
+  }
+  renderSVSquare();
+});
+window.addEventListener('pointerup', () => { svDragMode = null; });

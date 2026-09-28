@@ -228,6 +228,16 @@ window.addEventListener('error', function () {
       <div class="row" style="position:relative">
         <button id="selSwatch" class="swatch checker" style="--sw:#ff7a59" title="Edit color" aria-haspopup="true" aria-expanded="false"></button>
         <input type="text" id="selHex" class="grow" value="#FF7A59" spellcheck="false" maxlength="7" placeholder="#RRGGBB" title="Hex color">
+        <div class="dim-field op-field">
+          <span class="dim-prefix scrub" id="selOpacityScrub" title="Opacity">
+            <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+              <circle cx="6" cy="6" r="5" fill="none" stroke="currentColor" stroke-width="1.2"/>
+              <path d="M6 1A5 5 0 0 0 6 11Z" fill="currentColor"/>
+            </svg>
+          </span>
+          <input type="number" id="selOpacity" min="0" max="100" step="1" value="100" title="Opacity">
+          <span class="dim-suffix">%</span>
+        </div>
         <button id="delBtn" class="danger desktop-hide" disabled>Delete</button>
         <div class="picker" id="colorPicker" hidden>
           <div class="picker-tabs" id="pickerTabs">
@@ -250,7 +260,26 @@ window.addEventListener('error', function () {
             </button>
           </div>
           <div class="stop-list" id="stopList" hidden></div>
-          <div class="sv-wrap"><canvas id="svCanvas" width="222" height="140"></canvas><div class="sv-thumb" id="svThumb"></div></div>
+          <div class="sv-wrap">
+            <div class="sv-square" id="svSquare">
+              <div class="sv-bgfade" id="svBgFade" hidden></div>
+              <div class="sv-tint"></div>
+              <div class="sv-thumb" id="svThumb"></div>
+              <div class="sv-selrect" id="svSelRect" hidden></div>
+              <div class="sv-zoomout" id="svZoomOverlay" hidden></div>
+              <div class="sv-minimap" id="svMinimap" hidden>
+                <div class="sv-miniwin" id="svMiniWin">
+                  <div class="sv-handle" data-mode="nw"></div>
+                  <div class="sv-handle" data-mode="ne"></div>
+                  <div class="sv-handle" data-mode="sw"></div>
+                  <div class="sv-handle" data-mode="se"></div>
+                </div>
+                <button type="button" class="sv-clear-crop" id="svClearCrop" title="Clear crop">
+                  <svg width="8" height="8" viewBox="0 0 8 8"><path d="M1 1L7 7M7 1L1 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
           <div class="hue-track" id="hueTrack"><div class="hue-thumb" id="hueThumb"></div></div>
           <div class="alpha-track checker" id="alphaTrack"><div class="alpha-fill" id="alphaFill"></div><div class="hue-thumb" id="alphaThumb"></div></div>
           <div class="slider" id="gradAngleRow" hidden><span class="slider-label">Angle</span><span class="slider-value" id="gradAngleVal">0°</span><input type="range" id="gradAngle" min="-180" max="180" step="1" value="0"><div class="slider-edge"></div></div>
@@ -268,7 +297,6 @@ window.addEventListener('error', function () {
               <svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 13C3 8 13 8 13 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
             </button>
           </div>
-          <div class="picker-foot"><span>Opacity</span><output id="alphaOut">100%</output></div>
         </div>
       </div>
       <div class="slider" id="occSoft1Row" hidden><span class="slider-label">Blur start</span><span class="slider-value" id="occSoft1Val">3px</span><input type="range" id="occSoft1" min="0" max="120" step="1" value="3"><div class="slider-edge"></div></div>

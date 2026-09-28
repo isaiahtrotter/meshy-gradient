@@ -393,6 +393,7 @@ input[type=number], input[type=text], select {
   background: var(--ctrl-bg); color: var(--ink); font: 400 14px/1 var(--font-ui); font-variant-numeric: tabular-nums;
 }
 input[type=number], #selHex { font-family: var(--font-mono); }
+#selHex { box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
 .dim-field input[type=number] {
   flex: 1; min-width: 0; height: auto; padding: 0; background: transparent; border-radius: 0; box-shadow: none;
 }
@@ -408,6 +409,12 @@ input[type=number]:focus-visible, input[type=text]:focus-visible, select:focus-v
 #cw::-webkit-outer-spin-button, #cw::-webkit-inner-spin-button,
 #ch::-webkit-outer-spin-button, #ch::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 #cw, #ch { -moz-appearance: textfield; appearance: textfield; }
+.op-field { flex: 0 0 96px; }
+.op-field .dim-prefix { display: flex; align-items: center; }
+.dim-suffix { font: 400 14px/1 var(--font-ui); color: var(--ink-2); pointer-events: none; flex: none; }
+#selOpacity:focus-visible { outline: none; }
+#selOpacity::-webkit-outer-spin-button, #selOpacity::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+#selOpacity { -moz-appearance: textfield; appearance: textfield; }
 .slider { position: relative; --pct: 0%; --handle-shift: 0px; overflow: hidden; border-radius: var(--radius); }
 .slider-label { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font: 400 14px/1 var(--font-ui); color: var(--ink); pointer-events: none; z-index: 1; }
 .slider-value { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font: 400 14px/1 var(--font-mono); color: var(--ink); pointer-events: none; z-index: 1; font-variant-numeric: tabular-nums; }
@@ -531,8 +538,6 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 .swatch::after { content: ''; position: absolute; inset: 0; background: var(--sw, #888); }
 .swatch:disabled { cursor: default; opacity: .45; }
 .sv-wrap { position: relative; }
-.picker-foot { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); }
-.picker-foot output { color: var(--ink); font-variant-numeric: tabular-nums; }
 .alpha-track { position: relative; height: 40px; border-radius: 12px; overflow: visible; touch-action: none; cursor: pointer; }
 .alpha-fill { position: absolute; inset: 0; border-radius: 12px; }
 .picker {
@@ -592,10 +597,33 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 .stop-remove { flex: none; width: 20px; height: 20px; padding: 0; border: none; background: transparent; color: var(--ink-3); border-radius: 4px; cursor: pointer; }
 .stop-remove:hover:not(:disabled) { color: var(--danger); background: rgba(0,0,0,.06); }
 .stop-remove:disabled { opacity: .3; cursor: default; }
-#svCanvas { display: block; width: 100%; height: 140px; border-radius: 6px; cursor: crosshair; touch-action: none; }
+.sv-square { position: relative; width: 100%; aspect-ratio: 1; border-radius: 6px; cursor: crosshair; touch-action: none; overflow: hidden; }
+.sv-bgfade { position: absolute; inset: 0; pointer-events: none; z-index: 5; animation: svBgFade 100ms ease forwards; }
+@keyframes svBgFade { from { opacity: 1; } to { opacity: 0; } }
+.sv-tint { position: absolute; inset: 0; pointer-events: none; background: rgba(0,0,0,.025); opacity: 0; transition: opacity 150ms ease; z-index: 6; }
+.sv-square:hover .sv-tint { opacity: 1; }
 .sv-thumb {
   position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
-  border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.4); pointer-events: none;
+  border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.4); pointer-events: none; z-index: 30;
+}
+.sv-selrect { position: absolute; pointer-events: none; border: 1px solid #fff; box-shadow: 0 0 0 9999px rgba(0,0,0,.5); box-sizing: border-box; z-index: 15; }
+.sv-zoomout { position: absolute; inset: 0; pointer-events: none; transform-origin: 0 0; z-index: 10; }
+.sv-minimap { position: absolute; border-radius: 4px; }
+.sv-miniwin {
+  position: absolute; border: 1px solid #fff; box-sizing: border-box; background: rgba(255,255,255,.12); cursor: move;
+}
+.sv-handle {
+  position: absolute; width: 8px; height: 8px; background: #fff; border: 1px solid rgba(0,0,0,.4);
+  border-radius: 50%; transform: translate(-50%,-50%);
+}
+.sv-handle[data-mode="nw"] { left: 0; top: 0; cursor: nwse-resize; }
+.sv-handle[data-mode="ne"] { left: 100%; top: 0; cursor: nesw-resize; }
+.sv-handle[data-mode="sw"] { left: 0; top: 100%; cursor: nesw-resize; }
+.sv-handle[data-mode="se"] { left: 100%; top: 100%; cursor: nwse-resize; }
+.sv-clear-crop {
+  position: absolute; top: -8px; right: -8px; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--panel); color: var(--ink); border: none; box-shadow: 0 1px 3px rgba(0,0,0,.35);
+  display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; z-index: 21;
 }
 .hue-track {
   position: relative; height: 40px; border-radius: 12px; touch-action: none; cursor: pointer;
