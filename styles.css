@@ -409,7 +409,10 @@ input[type=number]:focus-visible, input[type=text]:focus-visible, select:focus-v
 #ch::-webkit-outer-spin-button, #ch::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 #cw, #ch { -moz-appearance: textfield; appearance: textfield; }
 .color-field { padding: 0; gap: 0; overflow: hidden; }
-.color-field .swatch { flex: none; width: 36px; height: 36px; border-radius: 0; }
+/* Round the swatch's own left corners to match the field's — relying on the field's overflow:hidden to clip a
+   hard-cornered square there leaves a hairline seam where the clip mask's antialiasing doesn't quite line up
+   with the field's inset border-shadow ring. */
+.color-field .swatch { flex: none; width: 36px; height: 36px; border-radius: var(--radius) 0 0 var(--radius); }
 .color-field input[type=text] { height: 100%; padding: 0 12px; background: transparent; border-radius: 0; box-shadow: none; }
 /* Zero the field's own padding and push it onto the first/last child instead — with box-sizing: border-box, a
    flex item's basis floors at its own padding, so a padded .op-field and a padding:0 .color-field never end up
