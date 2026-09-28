@@ -555,14 +555,17 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 .picker-tab:hover { color: var(--ink); }
 .picker-tab[aria-pressed="true"] { background: var(--ctrl-grad); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
 
-.ease-tabs { display: flex; gap: 2px; padding: 2px; background: var(--ctrl-bg); border-radius: var(--radius); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+.ease-tabs {
+  display: flex; align-items: center; justify-content: space-around; gap: 8px; height: 36px; padding: 0 12px;
+  background: var(--ctrl-bg); border-radius: var(--radius); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+}
 .ease-tabs[hidden] { display: none; }
 .ease-tab {
-  flex: 1; height: 26px; padding: 0; border: none; border-radius: calc(var(--radius) - 3px); background: transparent;
-  color: var(--ink-2); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background .15s ease-out, color .15s ease-out;
+  flex: 1; height: 100%; padding: 0; border: none; background: transparent;
+  color: var(--ink); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: color .15s ease-out;
 }
-.ease-tab:hover { color: var(--ink); }
-.ease-tab[aria-pressed="true"] { background: var(--ctrl-grad); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+.ease-tab:hover { color: var(--accent); }
+.ease-tab[aria-pressed="true"] { color: var(--accent); }
 
 /* Gradient ramp: the fill preview doubles as the drag surface; clicking empty track adds a stop, each existing
    stop gets a thumb (styled like the SV/hue thumbs elsewhere in this picker) riding on top at its own t. */
