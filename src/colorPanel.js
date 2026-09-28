@@ -323,8 +323,8 @@ function positionPickerThumbs() {
   const w = svCanvas.clientWidth || svCanvas.width, h = svCanvas.clientHeight || svCanvas.height;
   const hex = hsvToHex(pickerHue, pickerS, pickerV);
   $('svThumb').style.left = (pickerS * w) + 'px'; $('svThumb').style.top = ((1 - pickerV) * h) + 'px'; $('svThumb').style.background = hex;
-  $('hueThumb').style.left = (pickerHue / 360 * $('hueTrack').clientWidth) + 'px'; $('hueThumb').style.background = hsvToHex(pickerHue, 1, 1);
-  $('alphaThumb').style.left = (pickerA * $('alphaTrack').clientWidth) + 'px'; $('alphaThumb').style.background = rgbaCss(hex, pickerA);
+  $('hueThumb').style.left = (pickerHue / 360 * $('hueTrack').clientWidth) + 'px';
+  $('alphaThumb').style.left = (pickerA * $('alphaTrack').clientWidth) + 'px';
   $('alphaFill').style.background = `linear-gradient(to right, ${rgbaCss(hex, 0)}, ${hex})`;
   $('alphaOut').textContent = Math.round(pickerA * 100) + '%';
 }

@@ -526,14 +526,15 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
   -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 34px), #000 calc(var(--x) - 6px), #000 calc(var(--x) + 6px), transparent calc(var(--x) + 34px));
   mask-image: linear-gradient(to right, transparent calc(var(--x) - 34px), #000 calc(var(--x) - 6px), #000 calc(var(--x) + 6px), transparent calc(var(--x) + 34px)); }
 .checker { background-color: #fff; background-image: linear-gradient(45deg, #c8c8c8 25%, transparent 25%), linear-gradient(-45deg, #c8c8c8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c8c8c8 75%), linear-gradient(-45deg, transparent 75%, #c8c8c8 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; }
-.swatch { position: relative; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; flex: none; overflow: hidden; }
+.swatch { position: relative; width: 34px; height: 32px; padding: 0; border: none; border-radius: var(--radius); cursor: pointer; flex: none; overflow: hidden; }
+.swatch:hover { border-color: transparent; filter: none; }
 .swatch::after { content: ''; position: absolute; inset: 0; background: var(--sw, #888); }
 .swatch:disabled { cursor: default; opacity: .45; }
 .sv-wrap { position: relative; }
 .picker-foot { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); }
 .picker-foot output { color: var(--ink); font-variant-numeric: tabular-nums; }
-.alpha-track { position: relative; height: 14px; border-radius: 7px; overflow: visible; touch-action: none; cursor: pointer; }
-.alpha-fill { position: absolute; inset: 0; border-radius: 7px; }
+.alpha-track { position: relative; height: 40px; border-radius: 12px; overflow: visible; touch-action: none; cursor: pointer; }
+.alpha-fill { position: absolute; inset: 0; border-radius: 12px; }
 .picker {
   position: fixed; top: 0; left: -9999px; z-index: 50; padding: 12px; width: 246px; display: flex; flex-direction: column; gap: 10px;
   background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 16px 36px -10px rgba(0,0,0,.45), 0 2px 8px rgba(0,0,0,.15);
@@ -597,12 +598,13 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
   border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.4); pointer-events: none;
 }
 .hue-track {
-  position: relative; height: 14px; border-radius: 7px; touch-action: none; cursor: pointer;
+  position: relative; height: 40px; border-radius: 12px; touch-action: none; cursor: pointer;
   background: linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
 }
 .hue-thumb {
-  position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%;
-  background: #fff; border: 1px solid rgba(0,0,0,.3); box-shadow: 0 1px 3px rgba(0,0,0,.4); pointer-events: none;
+  position: absolute; top: 50%; width: 14px; height: 56px; margin: -28px 0 0 -7px; border-radius: 7px;
+  background: transparent; border: 3px solid #fff;
+  box-shadow: 0 0 6px rgba(0,0,0,.35), 0 0 10px rgba(255,255,255,.5); pointer-events: none;
 }
 input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
 button {
@@ -634,7 +636,7 @@ button.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--acc
 .panel .chip[aria-pressed="true"] { border-color: transparent; color: var(--ink); box-shadow: none; }
 .panel button.primary, .panel .icon-btn, .panel .swatch { height: 36px; }
 .panel .icon-btn { width: 36px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
-.panel .swatch { width: 36px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07); }
+.panel .swatch { width: 36px; }
 
 #selHex { font-variant-numeric: tabular-nums; text-transform: uppercase; }
 .empty { color: var(--ink-3); font-size: 13px; padding: 6px 0; }
