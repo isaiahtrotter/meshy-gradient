@@ -35,16 +35,22 @@ onRestore(() => { syncControlsFromState(); layout(); refreshAll(); });
 // handy for poking at the document from the console
 window.__meshy = { state, view };
 
+// Reveals the real canvas/sidebar and hides the skeleton loaders (meshygradient.html, styles.css) placed over
+// them so a boot in progress never shows the default HTML values before the restored/loaded ones replace them.
+function revealApp() { document.body.classList.remove('loading'); }
+
 async function boot() {
-  // fetched once and reused for both the presets grid and (for a first-time visit) the default gradient
+  layout(); // size the frame from the current (default or, below, restored) state before anything is drawn
+  const restored = loadState();
+  if (restored) { restoreReference(); syncControlsFromState(); layout(); refreshAll(); revealApp(); }
+  // fetched once and reused for both the presets grid and (for a first-time visit) the default gradient; a
+  // returning visitor's own canvas above doesn't wait on this network round-trip to appear
   const presets = await fetchPresets();
-  if (!loadState()) {
+  if (!restored) {
     const def = pickDefaultPreset(presets);
     if (def) applyConfig(def, { reassignIds: true }); else seedNodes(FALLBACK_COLOURS);
+    restoreReference(); syncControlsFromState(); layout(); refreshAll(); revealApp();
   }
-  restoreReference();
   renderPresets(presets);
-  syncControlsFromState();
-  layout(); refreshAll();
 }
 boot();

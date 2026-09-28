@@ -325,6 +325,29 @@ body {
   color: var(--ink-3); font-size: 12px; white-space: nowrap; pointer-events: none;
 }
 
+/* Skeleton loaders: shown while boot() (src/app.js) restores state, so the default HTML values and the empty
+   canvas never get a visible frame to flash in before the real content replaces them. body.loading controls
+   visibility; app.js removes that class once the real content is drawn. */
+@keyframes skeleton-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+.skeleton { position: absolute; inset: 0; z-index: 20; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+body.loading .skeleton { opacity: 1; }
+.skeleton-canvas { background: var(--stage); }
+.skeleton-canvas::before {
+  content: ''; position: absolute; inset: 0; margin: auto; width: 60%; height: 60%; border-radius: 12px;
+  background: var(--ctrl-bg); animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+.skeleton-panel { display: flex; flex-direction: column; gap: 24px; padding: 20px; background: var(--panel); overflow: hidden; }
+.skel-group { display: flex; flex-direction: column; gap: 10px; }
+.skel-inline { display: flex; gap: 10px; }
+.skel-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.skel-line, .skel-row { border-radius: 6px; background: var(--ctrl-bg); animation: skeleton-pulse 1.4s ease-in-out infinite; }
+.skel-line { width: 70px; height: 11px; }
+.skel-row.grow { flex: 1; }
+.skel-h36 { height: 36px; }
+.skel-h40 { height: 40px; }
+.skel-circle { width: 36px; height: 36px; border-radius: 50%; flex: none; }
+.skel-sq { aspect-ratio: 1; min-width: 0; }
+
 /* Panel */
 .panel {
   position: relative; background: var(--panel); border-left: 1px solid var(--line);

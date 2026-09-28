@@ -13,10 +13,11 @@
 window.addEventListener('error', function () {
   var el = document.getElementById('bootError');
   if (el) el.hidden = false;
+  document.body.classList.remove('loading'); // don't leave the skeleton up forever if boot() never finishes
 }, true);
 </script>
 </head>
-<body>
+<body class="loading">
 <div id="bootError" class="boot-error" hidden>
   Something went wrong loading the editor. Try a hard refresh (Cmd/Ctrl+Shift+R). If that doesn't help, open
   the browser console, run <code>localStorage.removeItem('meshGradientState.v1')</code>, then reload.
@@ -159,6 +160,7 @@ window.addEventListener('error', function () {
       <div class="overlay" id="overlay">
         <div class="marquee" id="marquee"></div>
       </div>
+      <div class="skeleton skeleton-canvas" aria-hidden="true"></div>
     </div>
     </div>
     <div class="loupe" id="loupe"><canvas id="loupeCanvas" width="132" height="132"></canvas></div>
@@ -186,6 +188,16 @@ window.addEventListener('error', function () {
   <aside class="panel">
     <div class="panel-fade panel-fade-top"></div>
     <div class="panel-fade panel-fade-bottom"></div>
+    <div class="skeleton skeleton-panel" aria-hidden="true">
+      <div class="skel-group"><div class="skel-line"></div><div class="skel-row skel-h36"></div></div>
+      <div class="skel-group"><div class="skel-line"></div><div class="skel-inline"><div class="skel-row skel-h40 grow"></div><div class="skel-row skel-h40 grow"></div></div></div>
+      <div class="skel-group"><div class="skel-line"></div><div class="skel-inline"><div class="skel-row skel-circle"></div><div class="skel-row skel-h36 grow"></div></div></div>
+      <div class="skel-group"><div class="skel-line"></div><div class="skel-grid"><div class="skel-row skel-sq"></div><div class="skel-row skel-sq"></div><div class="skel-row skel-sq"></div><div class="skel-row skel-sq"></div></div></div>
+      <div class="skel-group"><div class="skel-line"></div><div class="skel-row skel-h36"></div><div class="skel-row skel-h36"></div></div>
+      <div class="skel-group"><div class="skel-line"></div><div class="skel-row skel-h36"></div><div class="skel-row skel-h36"></div><div class="skel-row skel-h36"></div></div>
+      <div class="skel-group"><div class="skel-line"></div><div class="skel-row skel-h36"></div><div class="skel-row skel-h36"></div><div class="skel-row skel-h36"></div><div class="skel-row skel-h36"></div></div>
+      <div class="skel-group"><div class="skel-line"></div><div class="skel-inline"><div class="skel-row skel-h40 grow"></div><div class="skel-row skel-h40 grow"></div></div><div class="skel-row skel-h36"></div></div>
+    </div>
     <div class="panel-scroll" id="panelScroll">
     <section id="alignSection">
       <h2>Alignment</h2>
