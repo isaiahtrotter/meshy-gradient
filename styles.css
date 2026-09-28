@@ -367,7 +367,6 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
 /* Glow-bar family: this element's own background is the single centre line, shown at full 100% opacity;
    the halo (box-shadow) alpha values below are already baked down to the equivalent of a 50% overlay.
    .glow-active is toggled by JS during a preset's programmatic slide (no real pointer hover to trigger it). */
-#soft:hover ~ .adj-glow, #soft:active ~ .adj-glow, #soft.glow-active ~ .adj-glow,
 #grain:hover ~ .adj-glow, #grain:active ~ .adj-glow, #grain.glow-active ~ .adj-glow,
 #grainSize:hover ~ .adj-glow, #grainSize:active ~ .adj-glow, #grainSize.glow-active ~ .adj-glow,
 #density:hover ~ .adj-glow, #density:active ~ .adj-glow, #density.glow-active ~ .adj-glow,
@@ -392,7 +391,7 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
    (their alphas already halved from the line's own strength), each a bigger blur radius and lower opacity
    than the last, bleeding out toward the slider's own edges. Shared by every slider that doesn't have its
    own bespoke effect (Hue/Saturation/Brightness draw their own colour). */
-.adj-glow[data-for="soft"], .adj-glow[data-for="grain"], .adj-glow[data-for="grainSize"],
+.adj-glow[data-for="grain"], .adj-glow[data-for="grainSize"],
 .adj-glow[data-for="density"], .adj-glow[data-for="blendMode"] {
   inset: auto; top: 0; bottom: 0; left: calc(var(--pct) + var(--handle-shift)); width: 1px; margin-left: -.5px; border-radius: 0;
   background: rgba(255,255,255,.5);
@@ -403,19 +402,37 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
     0 0 90px 16px rgba(255,255,255,.08),
     0 0 160px 24px rgba(255,255,255,.04);
 }
-/* Softness slider: an actual blur, not just a glow, sitting right on the handle — a real frosted patch over
+/* Softness slider: an actual blur, not just a glow, riding the handle position — a real frosted patch over
    everything beneath it (label text, the fill/track boundary, the .slider-edge inner border), so the slider
    itself visibly demonstrates what the value it controls does. A sibling on top rather than a filter on the
-   slider itself, since only this one small region should blur, not the whole control; the radial mask fades
-   the backdrop-filter out on both sides instead of cutting off in a hard-edged box, and the ellipse's 100%
-   vertical radius keeps it full-height so it also blurs .slider-edge's box-shadow "border" at top and bottom. */
+   slider itself, since only this one region should blur, not the whole control. Only shown on hover/drag
+   (same opacity + ease-out transition every other slider's handle effect uses), and wider than the slider
+   itself so it's still reaching the rounded corner/border even with the handle at either extreme.
+   Progressive, not a single blur cut off by an opacity mask: five layers, each a bigger blur radius inside a
+   narrower radial mask, so the blur amount itself falls off gradually from the handle outward instead of a
+   uniform blur cross-fading with sharpness. */
 .slider-blur-fx {
-  position: absolute; top: 0; bottom: 0; width: 64px; z-index: 3; pointer-events: none;
+  position: absolute; top: 0; bottom: 0; width: 220px; z-index: 3; pointer-events: none;
   left: calc(var(--pct) + var(--handle-shift)); transform: translateX(-50%);
-  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  -webkit-mask-image: radial-gradient(ellipse 55% 100% at center, #000 0%, #000 15%, transparent 100%);
-  mask-image: radial-gradient(ellipse 55% 100% at center, #000 0%, #000 15%, transparent 100%);
+  opacity: 0; transition: opacity .15s ease-out;
 }
+#soft:hover ~ .slider-blur-fx, #soft:active ~ .slider-blur-fx, #soft.glow-active ~ .slider-blur-fx { opacity: 1; }
+.slider-blur-fx .blur-layer { position: absolute; inset: 0; }
+.slider-blur-fx .l1 { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  -webkit-mask-image: radial-gradient(ellipse 50% 100% at center, #000 0%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 100% at center, #000 0%, transparent 100%); }
+.slider-blur-fx .l2 { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  -webkit-mask-image: radial-gradient(ellipse 38% 100% at center, #000 0%, transparent 100%);
+  mask-image: radial-gradient(ellipse 38% 100% at center, #000 0%, transparent 100%); }
+.slider-blur-fx .l3 { backdrop-filter: blur(11px); -webkit-backdrop-filter: blur(11px);
+  -webkit-mask-image: radial-gradient(ellipse 27% 100% at center, #000 0%, transparent 100%);
+  mask-image: radial-gradient(ellipse 27% 100% at center, #000 0%, transparent 100%); }
+.slider-blur-fx .l4 { backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  -webkit-mask-image: radial-gradient(ellipse 17% 100% at center, #000 0%, transparent 100%);
+  mask-image: radial-gradient(ellipse 17% 100% at center, #000 0%, transparent 100%); }
+.slider-blur-fx .l5 { backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+  -webkit-mask-image: radial-gradient(ellipse 9% 100% at center, #000 0%, transparent 100%);
+  mask-image: radial-gradient(ellipse 9% 100% at center, #000 0%, transparent 100%); }
 .checker { background-color: #fff; background-image: linear-gradient(45deg, #c8c8c8 25%, transparent 25%), linear-gradient(-45deg, #c8c8c8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c8c8c8 75%), linear-gradient(-45deg, transparent 75%, #c8c8c8 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; }
 .swatch { position: relative; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; flex: none; overflow: hidden; }
 .swatch::after { content: ''; position: absolute; inset: 0; background: var(--sw, #888); }
