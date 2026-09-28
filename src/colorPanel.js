@@ -501,10 +501,16 @@ $('svClearCrop').addEventListener('click', e => {
     if (svClosing === 'start') { svClosing = 'end'; renderSVSquare(); }
   }));
 });
+// Inset the handle's travel by its own half-width so it stays fully inside the track instead of hanging its
+// far edge out over the track's rounded end to reach the min/max color.
+const HANDLE_RADIUS = 7;
+function insetThumbLeft(frac, trackWidth) {
+  return HANDLE_RADIUS + frac * Math.max(0, trackWidth - HANDLE_RADIUS * 2);
+}
 function positionPickerThumbs() {
   const hex = hsvToHex(pickerHue, pickerS, pickerV);
-  $('hueThumb').style.left = (pickerHue / 360 * $('hueTrack').clientWidth) + 'px';
-  $('alphaThumb').style.left = (pickerA * $('alphaTrack').clientWidth) + 'px';
+  $('hueThumb').style.left = insetThumbLeft(pickerHue / 360, $('hueTrack').clientWidth) + 'px';
+  $('alphaThumb').style.left = insetThumbLeft(pickerA, $('alphaTrack').clientWidth) + 'px';
   $('alphaFill').style.background = `linear-gradient(to right, ${rgbaCss(hex, 0)}, ${hex})`;
 }
 function syncPickerFromColor(hex, a) {
