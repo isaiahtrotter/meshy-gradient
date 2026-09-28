@@ -104,10 +104,17 @@ export function setZoom(z, cx, cy) {
 export function resetZoom() { view.zoom = 1; view.panX = view.panY = 0; layout(); }
 export function panBy(dx, dy) { view.panX += dx; view.panY += dy; applyPan(); refreshHandles(); draw(); }
 
+// A real mouse wheel reports whole-number, vertical-only "notch" deltas; a trackpad's two-finger scroll
+// (which should still pan, same as before) reports fractional deltas and usually moves on both axes at once.
+const isMouseWheelNotch = e => e.deltaX === 0 && e.deltaMode === 0 && Number.isInteger(e.deltaY) && e.deltaY !== 0;
+
 stage.addEventListener('wheel', e => {
   e.preventDefault();
   if (e.ctrlKey || e.metaKey) { // pinch on a trackpad arrives as ctrl+wheel
-    const factor = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025) * 1.5); // 1.5x: more zoom per inch of trackpad travel
+    const factor = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025) * 1.875); // 1.5x * 1.25: 25% more sensitive
+    setZoom(view.zoom * factor, e.clientX, e.clientY);
+  } else if (isMouseWheelNotch(e)) {
+    const factor = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0025));
     setZoom(view.zoom * factor, e.clientX, e.clientY);
   } else {
     const k = e.deltaMode === 1 ? 16 : 1;
