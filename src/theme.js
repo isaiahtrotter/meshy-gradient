@@ -12,6 +12,24 @@ const effectiveTheme = () => (theme === 'system' ? systemTheme() : theme);
 
 let theme = localStorage.getItem(STORAGE_KEY) || 'system';
 
+// The highlight behind the active segment slides instead of popping — sized/positioned off its own box.
+// The Appearance section is hidden (display:none) until first visited, so its first real measurement can
+// land well after boot; skip the slide just that once so it doesn't visibly grow in from a stale 0 width.
+const segInd = $('segInd');
+export function updateThemeIndicator() {
+  const active = $('themeSeg').querySelector('[data-theme-opt][aria-pressed="true"]');
+  if (!active) return;
+  const firstReal = !segInd.dataset.placed && active.offsetWidth > 0;
+  if (firstReal) segInd.style.transition = 'none';
+  segInd.style.left = active.offsetLeft + 'px';
+  segInd.style.width = active.offsetWidth + 'px';
+  if (firstReal) {
+    segInd.dataset.placed = '1';
+    void segInd.offsetWidth; // flush the position before transitions resume
+    segInd.style.transition = '';
+  }
+}
+
 function applyTheme() {
   if (theme === 'system') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = theme;
@@ -24,6 +42,7 @@ function applyTheme() {
   for (const b of $('themeSeg').querySelectorAll('[data-theme-opt]')) {
     b.setAttribute('aria-pressed', String(b.dataset.themeOpt === theme));
   }
+  updateThemeIndicator();
 }
 
 function setTheme(next) {

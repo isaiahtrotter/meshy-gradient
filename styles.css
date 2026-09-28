@@ -196,40 +196,75 @@ body {
   background: rgba(0,0,0,.5);
 }
 .modal-overlay[hidden] { display: none; }
-.modal {
-  width: min(420px, calc(100vw - 40px)); max-height: min(560px, calc(100vh - 40px)); overflow-y: auto;
-  background: var(--panel); border-radius: 12px; box-shadow: 0 24px 60px -12px rgba(0,0,0,.5);
-  font-family: var(--font-ui);
-}
-.modal-head {
-  position: sticky; top: 0; display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 16px 16px 20px; background: var(--panel); border-bottom: 1px solid var(--line);
-}
-.modal-head h2 { margin: 0; font: 500 14px/1 var(--font-ui); color: var(--ink); text-transform: none; letter-spacing: 0; }
-.modal-body { padding: 8px 20px 20px; display: flex; flex-direction: column; gap: 2px; }
 
-/* Settings modal: a sidebar of sections next to the active section's body. */
-.settings-modal { width: min(560px, calc(100vw - 40px)); }
-.settings-layout { display: flex; align-items: stretch; }
+/* ---- Settings dialog: a sidebar of sections next to the active section's body ---- */
+.settings-dialog {
+  width: min(720px, calc(100vw - 48px)); height: min(520px, calc(100vh - 48px));
+  display: flex; background: var(--panel); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 24px 64px rgba(0,0,0,.35); font-family: var(--font-ui); color: var(--ink);
+}
 .settings-nav {
-  flex: none; width: 150px; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px;
-  border-right: 1px solid var(--line);
+  position: relative; width: 180px; flex: none; background: var(--stage);
+  padding: 18px 10px; display: flex; flex-direction: column; gap: 2px;
 }
-.settings-nav .snav {
-  height: 32px; padding: 0 10px; border: none; border-radius: var(--radius); background: none;
-  color: var(--ink-2); font: 400 13px/1 var(--font-ui); text-align: left; justify-content: flex-start;
+.settings-title { position: relative; z-index: 1; font: 600 13px/1 var(--font-ui); color: var(--ink); padding: 0 10px 12px; }
+/* the highlight slides between sections instead of popping on each one — sized/positioned in JS */
+.navind {
+  position: absolute; left: 10px; right: 10px; border-radius: var(--radius); background: var(--panel);
+  transition: top .18s cubic-bezier(.3,.9,.4,1), height .18s ease; z-index: 0;
 }
-.settings-nav .snav:hover { color: var(--ink); background: var(--ctrl-bg); filter: none; }
-.settings-nav .snav[aria-selected="true"] { background: var(--ctrl-grad); color: var(--ink); }
-.settings-panels { flex: 1; min-width: 0; padding: 16px 20px 20px; }
-.settings-panels .chip { height: 32px; font-size: 13px; }
-.settings-panels [data-tab="shortcuts"] { gap: 2px; }
-.shortcut-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--ink);
+.snav {
+  position: relative; z-index: 1; height: 30px; padding: 0 10px; border: none; border-radius: var(--radius);
+  background: transparent; text-align: left; font: 400 12.5px/1 var(--font-ui); color: var(--ink-2); cursor: pointer;
+  transition: color .12s;
 }
-.shortcut-row:last-child { border-bottom: none; }
-.shortcut-row .keys { display: flex; align-items: center; gap: 4px; color: var(--ink-2); white-space: nowrap; }
+.snav:hover { color: var(--ink); filter: none; }
+.snav[aria-selected="true"] { color: var(--ink); font-weight: 500; }
+.settings-body { flex: 1; min-width: 0; position: relative; padding: 22px 26px; overflow-y: auto; }
+.settings-close {
+  position: absolute; top: 12px; right: 12px; width: 28px; height: 28px; border: none; border-radius: var(--radius);
+  background: transparent; color: var(--ink-3); font-size: 18px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.settings-close:hover { background: var(--ctrl-bg); color: var(--ink); filter: none; }
+.ssec { display: none; flex-direction: column; gap: 18px; }
+.ssec.active { display: flex; }
+.ssec h2 { font: 600 15px/1.2 var(--font-ui); text-transform: none; letter-spacing: 0; color: var(--ink); margin: 0 0 4px; }
+.srow { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.srow .slabel { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.srow .slabel b { font: 500 12.5px/1 var(--font-ui); color: var(--ink); }
+.srow .slabel span { font-size: 11.5px; color: var(--ink-3); }
+.sinput {
+  width: 200px; height: 30px; border: none; border-radius: var(--radius); background: var(--ctrl-bg); padding: 0 10px;
+  font: 400 12.5px/1 var(--font-ui); color: var(--ink); outline: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+}
+.sinput:focus { filter: brightness(1.15); }
+.sinput:disabled { color: var(--ink-3); }
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%; border: none; padding: 0;
+  background: var(--ctrl-bg); color: var(--ink); font-family: var(--font-ui); font-size: 11.5px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.avatar svg { display: block; color: var(--ink-3); }
+.avatar.lg { width: 56px; height: 56px; font-size: 20px; }
+/* segmented control: the highlight slides between options instead of popping on each one — positioned in JS */
+.seg { position: relative; display: flex; gap: 2px; padding: 2px; background: var(--ctrl-bg); border-radius: calc(var(--radius) + 1px); }
+.segind {
+  position: absolute; top: 2px; bottom: 2px; border-radius: var(--radius); background: var(--ctrl-grad);
+  transition: left .18s cubic-bezier(.3,.9,.4,1), width .18s ease; z-index: 0;
+}
+.seg button {
+  position: relative; z-index: 1; height: 26px; padding: 0 12px; border: none; border-radius: var(--radius);
+  background: transparent; font: 400 12px/1 var(--font-ui); color: var(--ink-2); cursor: pointer; transition: color .12s;
+}
+.seg button[aria-pressed="true"] { color: var(--ink); font-weight: 500; }
+/* shortcut list */
+.ssec .keys { display: grid; grid-template-columns: 1fr auto; row-gap: 10px; column-gap: 16px; font-size: 12.5px; }
+.ssec .keys .k { color: var(--ink-2); }
+.ssec .keys kbd {
+  display: inline-block; min-width: 18px; padding: 2px 6px; border-radius: 5px; background: var(--ctrl-bg);
+  border: 1px solid var(--line); font-family: var(--font-ui); font-size: 11px; color: var(--ink); text-align: center; margin-left: 3px;
+}
 .unlink-badge { position: absolute; z-index: 4; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px; display: none; pointer-events: none; }
 .stage.dropping { outline: 2px dashed var(--accent); outline-offset: -8px; }
 .stage.space-pan, .stage.space-pan * { cursor: grab !important; }

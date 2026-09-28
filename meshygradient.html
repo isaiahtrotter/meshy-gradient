@@ -81,53 +81,69 @@ window.addEventListener('error', function () {
   </div>
 </div>
 <div id="settingsModal" class="modal-overlay" hidden>
-  <div class="modal settings-modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-    <div class="modal-head">
-      <h2 id="settingsTitle">Settings</h2>
-      <button id="settingsClose" class="icon-btn" title="Close">
-        <svg width="14" height="14" viewBox="0 0 14 14"><line x1="1.5" y1="1.5" x2="12.5" y2="12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><line x1="12.5" y1="1.5" x2="1.5" y2="12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <div class="settings-layout">
-      <nav class="settings-nav" role="tablist" aria-label="Settings sections">
-        <button class="snav" data-tab="appearance" type="button" role="tab" aria-selected="true" aria-pressed="true">Appearance</button>
-        <button class="snav" data-tab="shortcuts" type="button" role="tab" aria-selected="false" aria-pressed="false">Shortcuts</button>
-      </nav>
-      <div class="settings-panels">
-        <section class="stab-panel" data-tab="appearance" role="tabpanel">
-          <h2>Theme</h2>
-          <div class="row" id="themeSeg" role="radiogroup" aria-label="Theme">
-            <button type="button" class="chip grow" data-theme-opt="light" aria-pressed="false">Light</button>
-            <button type="button" class="chip grow" data-theme-opt="dark" aria-pressed="false">Dark</button>
-            <button type="button" class="chip grow" data-theme-opt="system" aria-pressed="true">System</button>
+  <div class="settings-dialog" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <nav class="settings-nav">
+      <div class="settings-title" id="settingsTitle">Settings</div>
+      <div class="navind" id="navInd"></div>
+      <button class="snav" data-tab="account" type="button" aria-selected="true" aria-pressed="true">Account</button>
+      <button class="snav" data-tab="appearance" type="button" aria-selected="false" aria-pressed="false">Appearance</button>
+      <button class="snav" data-tab="shortcuts" type="button" aria-selected="false" aria-pressed="false">Shortcuts</button>
+    </nav>
+    <div class="settings-body">
+      <button id="settingsClose" class="settings-close" type="button" aria-label="Close settings">&times;</button>
+      <section class="ssec active" data-tab="account">
+        <h2>Account</h2>
+        <div class="srow">
+          <div class="avatar lg" id="avatarLg" aria-hidden="true"></div>
+        </div>
+        <div class="srow">
+          <div class="slabel"><b>Display name</b><span>Shown on your profile picture as initials.</span></div>
+          <input class="sinput" id="prefName" type="text" placeholder="Your name" maxlength="40" autocomplete="off">
+        </div>
+        <div class="srow">
+          <div class="slabel"><b>Email</b><span>Sign-in isn't set up yet.</span></div>
+          <input class="sinput" type="text" value="Not signed in" disabled>
+        </div>
+      </section>
+      <section class="ssec" data-tab="appearance">
+        <h2>Appearance</h2>
+        <div class="srow">
+          <div class="slabel"><b>Theme</b><span>System follows your OS setting.</span></div>
+          <div class="seg" id="themeSeg" role="radiogroup" aria-label="Theme">
+            <div class="segind" id="segInd"></div>
+            <button type="button" data-theme-opt="light" aria-pressed="false">Light</button>
+            <button type="button" data-theme-opt="dark" aria-pressed="false">Dark</button>
+            <button type="button" data-theme-opt="system" aria-pressed="true">System</button>
           </div>
-          <div class="help">System follows your OS's light/dark setting.</div>
-        </section>
-        <section class="stab-panel" data-tab="shortcuts" role="tabpanel" hidden>
-          <div class="shortcut-row"><span>Undo</span><span class="keys"><kbd>⌘</kbd><kbd>Z</kbd></span></div>
-          <div class="shortcut-row"><span>Redo</span><span class="keys"><kbd>⌘</kbd><kbd>⇧</kbd><kbd>Z</kbd></span></div>
-          <div class="shortcut-row"><span>Select all</span><span class="keys"><kbd>⌘</kbd><kbd>A</kbd></span></div>
-          <div class="shortcut-row"><span>Delete selected</span><span class="keys"><kbd>Delete</kbd></span></div>
-          <div class="shortcut-row"><span>Deselect / cancel / exit</span><span class="keys"><kbd>Esc</kbd></span></div>
-          <div class="shortcut-row"><span>Toggle preview</span><span class="keys"><kbd>H</kbd></span></div>
-          <div class="shortcut-row"><span>Hold to preview</span><span class="keys"><kbd>Space</kbd></span></div>
-          <div class="shortcut-row"><span>Sample a colour</span><span class="keys"><kbd>I</kbd></span></div>
-          <div class="shortcut-row"><span>Line tool</span><span class="keys"><kbd>L</kbd></span></div>
-          <div class="shortcut-row"><span>Arc tool</span><span class="keys"><kbd>A</kbd></span></div>
-          <div class="shortcut-row"><span>Circle tool</span><span class="keys"><kbd>C</kbd></span></div>
-          <div class="shortcut-row"><span>Pencil (draw a stroke)</span><span class="keys"><kbd>P</kbd></span></div>
-          <div class="shortcut-row"><span>Add a hardness stop</span><span class="keys">Click a stroke’s path</span></div>
-          <div class="shortcut-row"><span>Remove a hardness stop</span><span class="keys"><kbd>⌥</kbd> + click</span></div>
-          <div class="shortcut-row"><span>Flip horizontal / vertical</span><span class="keys"><kbd>⇧</kbd><kbd>H</kbd> / <kbd>⇧</kbd><kbd>V</kbd></span></div>
-          <div class="shortcut-row"><span>Nudge selection</span><span class="keys"><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></span></div>
-          <div class="shortcut-row"><span>Nudge further</span><span class="keys"><kbd>⇧</kbd><kbd>Arrow</kbd></span></div>
-          <div class="shortcut-row"><span>Zoom in / out</span><span class="keys"><kbd>⌘</kbd><kbd>+</kbd> / <kbd>⌘</kbd><kbd>−</kbd></span></div>
-          <div class="shortcut-row"><span>Reset zoom</span><span class="keys"><kbd>⌘</kbd><kbd>0</kbd></span></div>
-          <div class="shortcut-row"><span>Constrain drag to an axis</span><span class="keys"><kbd>⇧</kbd> + drag</span></div>
-          <div class="shortcut-row"><span>Duplicate while dragging</span><span class="keys"><kbd>⌥</kbd> + drag</span></div>
-          <div class="shortcut-row"><span>Node options (convert, link, flip)</span><span class="keys">Right-click a node</span></div>
-        </section>
-      </div>
+        </div>
+      </section>
+      <section class="ssec" data-tab="shortcuts">
+        <h2>Shortcuts</h2>
+        <div class="keys">
+          <div class="k">Undo</div><div><kbd>⌘</kbd><kbd>Z</kbd></div>
+          <div class="k">Redo</div><div><kbd>⌘</kbd><kbd>⇧</kbd><kbd>Z</kbd></div>
+          <div class="k">Select all</div><div><kbd>⌘</kbd><kbd>A</kbd></div>
+          <div class="k">Delete selected</div><div><kbd>Delete</kbd></div>
+          <div class="k">Deselect / cancel / exit</div><div><kbd>Esc</kbd></div>
+          <div class="k">Toggle preview</div><div><kbd>H</kbd></div>
+          <div class="k">Hold to preview</div><div><kbd>Space</kbd></div>
+          <div class="k">Sample a colour</div><div><kbd>I</kbd></div>
+          <div class="k">Line tool</div><div><kbd>L</kbd></div>
+          <div class="k">Arc tool</div><div><kbd>A</kbd></div>
+          <div class="k">Circle tool</div><div><kbd>C</kbd></div>
+          <div class="k">Pencil (draw a stroke)</div><div><kbd>P</kbd></div>
+          <div class="k">Add a hardness stop</div><div>Click a stroke’s path</div>
+          <div class="k">Remove a hardness stop</div><div><kbd>⌥</kbd> + click</div>
+          <div class="k">Flip horizontal / vertical</div><div><kbd>⇧</kbd><kbd>H</kbd> / <kbd>⇧</kbd><kbd>V</kbd></div>
+          <div class="k">Nudge selection</div><div><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></div>
+          <div class="k">Nudge further</div><div><kbd>⇧</kbd><kbd>Arrow</kbd></div>
+          <div class="k">Zoom in / out</div><div><kbd>⌘</kbd><kbd>+</kbd> / <kbd>⌘</kbd><kbd>−</kbd></div>
+          <div class="k">Reset zoom</div><div><kbd>⌘</kbd><kbd>0</kbd></div>
+          <div class="k">Constrain drag to an axis</div><div><kbd>⇧</kbd> + drag</div>
+          <div class="k">Duplicate while dragging</div><div><kbd>⌥</kbd> + drag</div>
+          <div class="k">Node options (convert, link, flip)</div><div>Right-click a node</div>
+        </div>
+      </section>
     </div>
   </div>
 </div>
