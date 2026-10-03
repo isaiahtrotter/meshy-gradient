@@ -108,7 +108,7 @@ body {
 .align-btn:hover { color: var(--accent); }
 .icon-btn { width: 32px; padding: 0; display: flex; align-items: center; justify-content: center; }
 .icon-btn svg { display: block; }
-.icon-btn svg[hidden], #themeBtn[hidden], .snav[hidden] { display: none; } /* the plain [hidden] UA rule loses to the display:block above */
+.icon-btn svg[hidden], #themeBtn[hidden], .snav[hidden], .topbar-auth-btn[hidden] { display: none; } /* the plain [hidden] UA rule loses to the display:block above */
 .stage.previewing .stage-hint, .stage.previewing .ref-x { display: none; }
 .stage.previewing .overlay { pointer-events: none; }
 /* Bottom toolbar: 20px icons, 12px padding, 16px between everything (the divider included). It sits in the

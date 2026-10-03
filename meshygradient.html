@@ -79,6 +79,7 @@ window.addEventListener('error', function () {
     <div class="topbar-sep" role="separator" aria-orientation="vertical"></div>
     <button id="signInBtn" class="topbar-auth-btn signin" type="button">Sign in</button>
     <button id="signUpBtn" class="topbar-auth-btn primary" type="button">Sign up</button>
+    <button id="signOutBtn" class="topbar-auth-btn signin" type="button" hidden>Sign out</button>
   </div>
 </div>
 <div id="settingsModal" class="modal-overlay" hidden>
@@ -102,8 +103,12 @@ window.addEventListener('error', function () {
           <input class="sinput" id="prefName" type="text" placeholder="Your name" maxlength="40" autocomplete="off">
         </div>
         <div class="srow">
-          <div class="slabel"><b>Email</b><span>Sign-in isn't set up yet.</span></div>
-          <input class="sinput" type="text" value="Not signed in" disabled>
+          <div class="slabel"><b>Email</b><span id="accountEmailNote">Sign-in isn't set up yet.</span></div>
+          <input class="sinput" id="accountEmail" type="text" value="Not signed in" disabled>
+        </div>
+        <div class="srow">
+          <button id="settingsSignInBtn" class="topbar-auth-btn primary" type="button">Sign in with Google</button>
+          <button id="settingsSignOutBtn" class="topbar-auth-btn signin" type="button" hidden>Sign out</button>
         </div>
       </section>
       <section class="ssec" data-tab="appearance">

@@ -15,6 +15,7 @@ import './keyboard.js';
 import './exporter.js';
 import './settingsPanel.js';
 import './theme.js';
+import './auth.js';
 import './tooltip.js';
 import './sliderRubberband.js';
 import { syncControlsFromState, seedNodes } from './controls.js';
