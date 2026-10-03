@@ -4,13 +4,21 @@
 // change keeps tracking live with zero JS, exactly like the CSS media query already does on its own).
 import { $ } from './dom.js';
 
+// Light mode is switched off for now: the UI is pinned to dark, and the header toggle + Settings > Appearance
+// tab are hidden. Flip this to true to bring it all back (the stored `meshyTheme` choice is left untouched).
+const LIGHT_MODE_ENABLED = false;
+
 const STORAGE_KEY = 'meshyTheme';
 const media = window.matchMedia('(prefers-color-scheme: dark)');
 
 const systemTheme = () => (media.matches ? 'dark' : 'light');
 const effectiveTheme = () => (theme === 'system' ? systemTheme() : theme);
 
-let theme = localStorage.getItem(STORAGE_KEY) || 'system';
+let theme = LIGHT_MODE_ENABLED ? (localStorage.getItem(STORAGE_KEY) || 'system') : 'dark';
+if (!LIGHT_MODE_ENABLED) {
+  $('themeBtn').hidden = true;
+  document.querySelector('.snav[data-tab="appearance"]').hidden = true;
+}
 
 // The highlight behind the active segment slides instead of popping — sized/positioned off its own box.
 // The Appearance section is hidden (display:none) until first visited, so its first real measurement can
