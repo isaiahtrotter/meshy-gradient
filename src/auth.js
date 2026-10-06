@@ -34,6 +34,7 @@ async function signIn() {
   const { error } = await client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } });
   if (error) setStatus(error.message, true);
 }
+export const startSignIn = signIn;
 async function signOut() {
   if (!client) return;
   const { error } = await client.auth.signOut();

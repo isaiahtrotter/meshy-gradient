@@ -6,7 +6,7 @@
 
 import { serializeConfig } from './state.js';
 import { $, showToast } from './dom.js';
-import { whenClient, onUser } from './auth.js';
+import { whenClient, onUser, startSignIn } from './auth.js';
 import { applyPreset, renderPresetThumb } from './presets.js';
 import { toggleSideTab, onSideTabOpen } from './sideTab.js';
 
@@ -148,7 +148,17 @@ async function updateCurrent(anchor) {
     await refreshMine();
   });
 }
-const needSignIn = (anchor, what) => { showToast(anchor, `Sign in to ${what}`); };
+// Signed-out visitors who press Save or Publish get a popup offering to sign in or create an account.
+const setAuthModal = open => { $('authModal').hidden = !open; };
+const needSignIn = (anchor, what) => {
+  $('authModalTitle').textContent = `Sign in to ${what}`;
+  $('authModalText').textContent = `You need to sign in or create an account to ${what} gradients${what === 'publish' ? ' to the community' : ''}.`;
+  setAuthModal(true);
+};
+$('authModalCancel').addEventListener('click', () => setAuthModal(false));
+for (const id of ['authModalSignIn', 'authModalSignUp']) $(id).addEventListener('click', () => { setAuthModal(false); startSignIn(); }); // Google creates the account on first use, so both start the same flow
+$('authModal').addEventListener('pointerdown', e => { if (e.target === $('authModal')) setAuthModal(false); });
+document.addEventListener('keydown', e => { if (!$('authModal').hidden && e.key === 'Escape') { e.stopPropagation(); setAuthModal(false); } }, true);
 
 $('gSave').addEventListener('click', e => saveNew(e.currentTarget));
 $('gUpdate').addEventListener('click', e => updateCurrent(e.currentTarget));

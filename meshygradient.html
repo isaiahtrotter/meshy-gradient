@@ -164,6 +164,17 @@ window.addEventListener('error', function () {
     </div>
   </div>
 </div>
+<div id="authModal" class="modal-overlay" hidden>
+  <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <h2 id="authModalTitle">Sign in to publish</h2>
+    <p id="authModalText">You need to sign in or create an account to publish gradients to the community.</p>
+    <div class="row confirm-actions">
+      <button id="authModalCancel" class="topbar-auth-btn signin grow" type="button">Cancel</button>
+      <button id="authModalSignIn" class="topbar-auth-btn signin grow" type="button">Sign in</button>
+      <button id="authModalSignUp" class="topbar-auth-btn primary grow" type="button">Sign up</button>
+    </div>
+  </div>
+</div>
 <div class="app">
   <div class="stage" id="stage">
     <div class="work" id="work">
@@ -177,7 +188,7 @@ window.addEventListener('error', function () {
         <div class="marquee" id="marquee"></div>
       </div>
       <div class="frame-actions" id="frameActions">
-        <button id="saveBtn" class="frame-btn" type="button" title="Save this gradient to your account">Save</button>
+        <button id="saveBtn" class="frame-btn primary" type="button" title="Save this gradient to your account">Save</button>
         <button id="publishBtn" class="frame-btn" type="button" title="Publish this gradient to the community">Publish</button>
       </div>
       <div class="skeleton skeleton-canvas" aria-hidden="true"></div>
