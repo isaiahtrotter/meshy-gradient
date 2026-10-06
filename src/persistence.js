@@ -9,7 +9,11 @@ let saveTimer = null;
 export function saveState() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(serializeConfig())); } catch {}
 }
+// Listeners told on every scheduleSave(), i.e. after every visible change (provenance.js uses it to notice edits).
+const saveListeners = new Set();
+export const onSave = cb => saveListeners.add(cb);
 export function scheduleSave() {
+  for (const cb of saveListeners) cb();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => { saveTimer = null; saveState(); }, 300);
 }

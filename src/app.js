@@ -22,6 +22,7 @@ import './auth.js';
 import './tooltip.js';
 import './sliderRubberband.js';
 import { syncControlsFromState, seedNodes } from './controls.js';
+import { markCopy } from './provenance.js';
 import { fetchPresets, pickDefaultPreset, renderPresets } from './presets.js';
 
 // a first-time visit with no presets at all (or none flagged default) still gets something to look at
@@ -54,6 +55,7 @@ async function boot() {
     const def = pickDefaultPreset(presets);
     if (def) applyConfig(def, { reassignIds: true }); else seedNodes(FALLBACK_COLOURS);
     restoreReference(); syncControlsFromState(); layout(); refreshAll(); revealApp();
+    if (def) markCopy({ instant: true }); // the starting gradient is a preset, so it counts as an untouched copy
   }
   renderPresets(presets);
 }

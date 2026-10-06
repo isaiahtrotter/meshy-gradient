@@ -13,6 +13,7 @@ import { normalizeNode } from './nodes.js';
 import { makeRenderer } from './renderer.js';
 import { toggleSideTab, onSideTabOpen } from './sideTab.js';
 import { masonry } from './masonry.js';
+import { markCopy, markOwn } from './provenance.js';
 
 const GRAIN_TYPES = ['mono', 'duo', 'multi'];
 const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay'];
@@ -55,7 +56,9 @@ function setCredit(name) {
 }
 try { setCredit(localStorage.getItem(CREDIT_KEY)); } catch {}
 
-export function applyPreset(p, { credit = null } = {}) {
+// own: the gradient is the user's own saved one, so Publish stays available; otherwise it's a copy of someone else's
+// (a preset or a community gradient) and Publish waits for the first edit.
+export function applyPreset(p, { credit = null, own = false } = {}) {
   pushUndo();
   setCredit(credit);
   if (!isNum(p.seed)) state.seed = Math.random() * 1000;
@@ -63,6 +66,7 @@ export function applyPreset(p, { credit = null } = {}) {
   state.selected.clear();
   syncControlsFromState({ animate: 'ripple' });
   layout(); refreshAll(); scheduleSave();
+  own ? markOwn() : markCopy();
   setStatus('Applied preset.');
 }
 // The sidebar grid shows this many presets; the last of them carries a "+N" for the rest and opens the side tab.

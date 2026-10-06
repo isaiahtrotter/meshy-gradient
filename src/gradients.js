@@ -55,7 +55,7 @@ async function fetchConfig(id, anchor) {
 }
 async function openMine(row, anchor) {
   const data = await fetchConfig(row.id, anchor); if (!data) return;
-  applyPreset(data.config);
+  applyPreset(data.config, { own: true });
   current = { id: row.id };
   $('gName').value = data.name;
   await refreshMine();

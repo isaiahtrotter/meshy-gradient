@@ -767,3 +767,8 @@ kbd {
 .confirm-dialog h2 { margin: 0; font: 600 15px/1.2 var(--font-ui); text-transform: none; letter-spacing: 0; color: var(--ink); }
 .confirm-dialog p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-2); }
 .confirm-actions { margin-top: 4px; }
+
+/* Publish waits for the first edit of a copied preset / community gradient: it fades and shrinks away in 150ms. */
+.frame-btn { transition: opacity .15s ease-out, transform .15s ease-out, visibility 0s linear 0s; }
+.frame-btn.is-hidden { opacity: 0; transform: scale(.92); visibility: hidden; pointer-events: none; transition: opacity .15s ease-out, transform .15s ease-out, visibility 0s linear .15s; }
+.frame-btn.no-anim, .frame-btn.no-anim.is-hidden { transition: none; }
