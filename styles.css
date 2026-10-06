@@ -745,9 +745,9 @@ kbd {
 .ct-head h2 { margin: 0; font: 600 15px/1.2 var(--font-ui); color: var(--ink); text-transform: none; letter-spacing: 0; }
 .ct-head .settings-close { top: 14px; right: 14px; }
 .ct-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 20px 20px; }
-.ct-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-.ct-grid-4 { grid-template-columns: repeat(4, 1fr); gap: 8px; } /* presets: four squares across, like the sidebar grid */
-.ct-grid-4 .ct-thumb { aspect-ratio: 1 / 1; }
+.ct-grid { display: flex; gap: 12px; align-items: flex-start; } /* masonry columns are filled by masonry.js */
+.ct-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.ct-grid-4, .ct-grid-4 .ct-col { gap: 8px; } /* presets: four columns, tighter */
 .ct-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .ct-thumb {
   position: relative; display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; padding: 0; border-radius: var(--radius); border: 1px solid var(--line);

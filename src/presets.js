@@ -12,6 +12,7 @@ import { syncControlsFromState } from './controls.js';
 import { normalizeNode } from './nodes.js';
 import { makeRenderer } from './renderer.js';
 import { toggleSideTab, onSideTabOpen } from './sideTab.js';
+import { masonry } from './masonry.js';
 
 const GRAIN_TYPES = ['mono', 'duo', 'multi'];
 const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay'];
@@ -97,17 +98,17 @@ function renderPresets(presets) {
 }
 // The side tab's pane: every preset, rendered when the tab opens (thumbnails are cached from then on).
 function renderPresetTab() {
-  const wrap = $('presetTabList');
-  wrap.innerHTML = '';
-  allPresets.forEach((p, i) => {
-    const card = document.createElement('div'); card.className = 'ct-card';
+  const items = allPresets.map((p, i) => {
+    const w = isNum(p.w) ? p.w : 1600, h = isNum(p.h) ? p.h : 1000;
     const b = document.createElement('button'); b.type = 'button'; b.className = 'ct-thumb';
+    b.style.aspectRatio = `${w} / ${h}`;
     const thumb = thumbFor(i);
     if (thumb) b.style.backgroundImage = `url(${thumb})`;
     b.setAttribute('aria-label', `Apply preset ${i + 1}`);
     b.addEventListener('click', () => applyPreset(p));
-    card.appendChild(b); wrap.appendChild(card);
+    return { el: b, ratio: h / w };
   });
+  masonry($('presetTabList'), items, 4);
 }
 onSideTabOpen(kind => { if (kind === 'presets') renderPresetTab(); });
 // Fetches presets.json once and caches the promise; safe to call from multiple places.

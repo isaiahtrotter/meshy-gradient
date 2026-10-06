@@ -9,6 +9,7 @@ import { $, showToast } from './dom.js';
 import { whenClient, onUser, startSignIn } from './auth.js';
 import { applyPreset, renderPresetThumb } from './presets.js';
 import { toggleSideTab, onSideTabOpen } from './sideTab.js';
+import { masonry, thumbRatio } from './masonry.js';
 
 let client = null, me = null;
 let current = null; // the saved gradient being edited: { id }, or null for an unsaved one
@@ -62,14 +63,17 @@ async function openMine(row, anchor) {
 
 // ---------- Community (published) ----------
 let pubRows = [];
-function renderPublic() {
-  const wrap = $('pubList');
-  wrap.innerHTML = '';
+let renderToken = 0;
+async function renderPublic() {
+  const token = ++renderToken;
   $('pubEmpty').hidden = pubRows.length > 0;
-  for (const row of pubRows) {
+  const ratios = await Promise.all(pubRows.map(r => thumbRatio(r.thumb)));
+  if (token !== renderToken) return; // a newer render started while the thumbnails were measured
+  const items = pubRows.map((row, i) => {
     const mine = !!me && row.user_id === me.id;
     const card = document.createElement('div'); card.className = 'ct-card';
     const thumb = document.createElement('button'); thumb.type = 'button'; thumb.className = 'ct-thumb';
+    thumb.style.aspectRatio = `1 / ${ratios[i]}`; // the gradient's own shape
     if (row.thumb) thumb.style.backgroundImage = `url(${row.thumb})`;
     thumb.setAttribute('aria-label', `Open ${row.name}`);
     thumb.title = 'Open a copy in the editor';
@@ -86,8 +90,9 @@ function renderPublic() {
     }
     card.append(thumb, meta);
     if (row.author_name && !mine) { const by = document.createElement('div'); by.className = 'ct-by'; by.textContent = `by ${row.author_name}`; card.appendChild(by); }
-    wrap.appendChild(card);
-  }
+    return { el: card, ratio: ratios[i] };
+  });
+  masonry($('pubList'), items, 2);
 }
 function renderCount() {
   const n = pubRows.length;
