@@ -9,7 +9,7 @@ A WebGL mesh-gradient editor. Static ES modules, no build step, deployed on Verc
 |---|---|
 | `meshygradient.html` | Markup only. Loads `styles.css` and `src/app.js` (type=module) |
 | `styles.css` | All styling. Mobile breakpoint is 820px (mirrored in `src/constants.js`) |
-| `default-gradient.json` | the gradient a first-time visit starts from (a full gradient config; "Copy gradient" produces the same shape) |
+| `default-gradient.json` | the gradient a first-time visit starts from (a full gradient config, the same shape the database stores) |
 | `src/` | The app, one concern per module (below) |
 
 ## Module map
@@ -43,7 +43,7 @@ composes handles + panel + draw, so most mutations end with `refreshAll()` from 
 | `interaction.js` | the pointer drag state machine (spread / hard / move / marquee / pan / draw / stopMove / stopHard) | most of the above |
 | `keyboard.js` | global shortcuts | actions, modes, sampling, view, undo |
 | `controls.js` | canvas size + scrubbers, sliders, align/shuffle/scatter, `syncControlsFromState`, `seedNodes` | state, undo, view, refresh, actions |
-| `loadGradient.js` | puts a gradient on the canvas (`applyGradient`), draws thumbnails, fetches the first-visit default, Copy gradient | state, undo, view, refresh, controls, provenance |
+| `loadGradient.js` | puts a gradient on the canvas (`applyGradient`), draws thumbnails, fetches the first-visit default | state, undo, view, refresh, controls, provenance |
 | `config.js` | public Supabase URL + anon key (empty = accounts off) | — |
 | `auth.js` | Supabase Auth, Google only (also exports `whenClient` and `onUser` for the database code): sign in/up (same flow), sign out, swaps the top bar buttons, fills the Settings account row | config, dom |
 | `sideTab.js` | the tab between the stage and the sidebar, shared by Community and My gradients: open / close / toggle, title, which pane shows | dom |
@@ -145,7 +145,7 @@ npm test                            # runs everything, ~40s
 Run `npm test` before every push to prod. It starts its own static server, so nothing needs to be running.
 
 - `tests/app.spec.js` drives the real page: add, drag, undo/redo, arc/line placement, spread handles, the
-  context menu, colour picker, canvas size, sliders, zoom, preview, copy, reload
+  context menu, colour picker, canvas size, sliders, zoom, preview, reload
   persistence, legacy saved shapes, export.
 - `tests/render.spec.js` renders every fixture gradient (`featured-gradients.json`, the original presets) and compares it pixel-for-pixel with the baselines in
   `tests/render.spec.js-snapshots/`. When a rendering change is intended, regenerate them with

@@ -357,16 +357,6 @@ test.describe('document', () => {
     await expect(tip).not.toHaveClass(/visible/);
   });
 
-  test('copy gradient produces a gradient-shaped payload', async ({ page, context }) => {
-    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await page.click('#copyGradientBtn');
-    const payload = JSON.parse(await page.evaluate(() => navigator.clipboard.readText()));
-    const s = await getState(page);
-    expect(payload.nodes).toHaveLength(s.n);
-    expect(payload.nodes[0].id).toBeUndefined();
-    expect(payload.w).toBe(s.w);
-  });
-
   test('state survives a reload, including one made just before it', async ({ page }) => {
     await page.fill('#cw', '1200');
     await page.press('#cw', 'Enter');

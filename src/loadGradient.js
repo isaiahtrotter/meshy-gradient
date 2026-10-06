@@ -1,10 +1,10 @@
 // Putting a gradient on the canvas (from the community, your saved ones, or the first-visit default), drawing a
-// thumbnail of one, and the "Copy gradient" button. The first-visit default is default-gradient.json.
+// thumbnail of one. The first-visit default is default-gradient.json.
 
 import { isNum } from './constants.js';
-import { state, applyConfig, serializeConfig } from './state.js';
+import { state, applyConfig } from './state.js';
 import { pushUndo } from './undo.js';
-import { $, setStatus, showToast } from './dom.js';
+import { $, setStatus } from './dom.js';
 import { layout } from './view.js';
 import { refreshAll } from './refresh.js';
 import { scheduleSave } from './persistence.js';
@@ -89,18 +89,3 @@ export function applyGradient(p, { credit = null, twitter = null, own = false } 
 export async function fetchDefaultGradient() {
   try { return await (await fetch('default-gradient.json', { cache: 'no-cache' })).json(); } catch { return null; }
 }
-
-async function copyGradient(e) {
-  const anchor = e.currentTarget; // e itself is only valid synchronously; grab this before the first await
-  const payload = JSON.stringify(serializeConfig({ stripIds: true }));
-  const done = () => { setStatus('Gradient copied.'); showToast(anchor, 'Copied gradient'); };
-  try { await navigator.clipboard.writeText(payload); done(); }
-  catch {
-    try {
-      const ta = document.createElement('textarea'); ta.value = payload; ta.style.position = 'fixed'; ta.style.opacity = '0';
-      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-      done();
-    } catch { setStatus('Could not copy automatically. Open the console to grab the JSON.', true); console.log(payload); }
-  }
-}
-$('copyGradientBtn').addEventListener('click', copyGradient);

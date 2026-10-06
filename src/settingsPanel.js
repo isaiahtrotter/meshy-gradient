@@ -5,6 +5,7 @@
 
 import { $ } from './dom.js';
 import { cleanHandle } from './constants.js';
+import { onUser } from './auth.js';
 import { updateThemeIndicator } from './theme.js';
 
 const NAME_KEY = 'meshyDisplayName', TWITTER_KEY = 'meshyTwitter';
@@ -66,6 +67,17 @@ function showSection(name) {
 $('settingsModal').querySelector('.settings-nav').addEventListener('click', e => {
   const tab = e.target.closest('.snav'); if (!tab) return;
   showSection(tab.dataset.tab);
+});
+
+// ---------- The Account section only exists while signed in ----------
+let fellBack = false; // true while Settings is showing another section only because Account was unavailable
+onUser(user => {
+  const nav = document.querySelector('.snav[data-tab="account"]');
+  nav.hidden = !user;
+  // signed out: land on the first section that's still there (the dialog opens on Account by default)
+  if (!user && document.querySelector('.ssec.active')?.dataset.tab === 'account') { showSection(document.querySelector('.snav:not([hidden])').dataset.tab); fellBack = true; }
+  if (user && fellBack) { showSection('account'); fellBack = false; } // signed in: back to the section Settings opens on
+  updateNavIndicator();
 });
 
 // ---------- Open/close ----------

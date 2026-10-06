@@ -62,7 +62,7 @@ export function setCanvasSize(w, h) {
   state.h = clamp(Math.round(h) || CANVAS_MIN, CANVAS_MIN, CANVAS_MAX);
 }
 
-// Everything that describes a gradient (saved state, presets, "Copy gradient" all share this shape).
+// Everything that describes a gradient (saved state, the database and the first-visit default all share this shape).
 export function serializeConfig({ stripIds } = {}) {
   return {
     w: state.w, h: state.h,

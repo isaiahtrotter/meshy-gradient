@@ -710,7 +710,6 @@ button.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--acc
   position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; border-radius: inherit;
   background: rgba(0,0,0,.5); color: #fff; font: 600 14px/1 var(--font-ui); letter-spacing: .01em; pointer-events: none;
 }
-.preset[aria-expanded="true"] { border-color: var(--accent); }
 .ct-thumb.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .preset-skel { background-color: var(--ctrl-bg); animation: skeleton-pulse 1.4s ease-in-out infinite; cursor: default; pointer-events: none; }
 
