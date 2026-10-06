@@ -74,12 +74,13 @@ body {
   background: var(--ctrl-grad); border: none; color: var(--ink);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
 }
-.app > .stage { grid-column: 1; } .app > .community-tab { grid-column: 2; } .app > .panel { grid-column: 3; } /* the tab is hidden most of the time: pin the columns so the panel never slides into its slot */
-.app { position: relative; display: grid; grid-template-columns: 1fr auto 300px; grid-template-rows: minmax(0, 1fr); flex: 1; min-height: 0; }
+.app > .stage { grid-column: 1; } .app > .community-tab { grid-column: 2; } .app > .panel { grid-column: 3; justify-self: end; width: 300px; } /* the tab is hidden most of the time: pin the columns so the panel never slides into its slot */
+.app { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto 300px; grid-template-rows: minmax(0, 1fr); flex: 1; min-height: 0; }
 @media (max-width: 820px) {
   body { overflow: auto; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   body input, body textarea { -webkit-user-select: auto; user-select: auto; -webkit-touch-callout: default; }
   .app > .stage, .app > .panel { grid-column: auto; }
+  .app > .panel { justify-self: stretch; width: auto; }
   .app { grid-template-columns: 1fr; grid-template-rows: minmax(52vh, auto) auto; height: auto; flex: none; }
   #cw, #ch { touch-action: none; }
 }
@@ -392,6 +393,7 @@ section h2 {
   color: color-mix(in srgb, var(--ink) 60%, transparent); margin: 0;
 }
 .row { display: flex; gap: 8px; align-items: center; }
+.row[hidden] { display: none; } /* a plain [hidden] loses to the display above */
 .row.wrap { flex-wrap: wrap; }
 .grow { flex: 1; min-width: 0; }
 .dim-field {
@@ -718,10 +720,10 @@ kbd {
 @media (prefers-reduced-motion: reduce) { .handle { transition: none; } }
 
 /* ---- Save / Publish buttons on the gradient, the Community tab beside the sidebar, and the publish confirmation ---- */
-.frame-actions { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 6; display: flex; gap: 6px; } /* above the frame's top-left corner, in the stage's top padding */
+.frame-actions { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 6; display: flex; gap: 4px; } /* above the frame's top-left corner, in the stage's top padding */
 .stage.previewing .frame-actions { display: none; }
 .frame-btn {
-  height: 26px; padding: 0 10px; border: none; border-radius: var(--radius); font: 500 12px/1 var(--font-ui); color: var(--ink);
+  height: 22px; padding: 0 8px; border: none; border-radius: 6px; font: 500 11px/1 var(--font-ui); color: var(--ink);
   background: var(--ctrl-grad); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), 0 2px 6px rgba(0,0,0,.25); cursor: pointer;
 }
 .panel .comm-btn { width: 100%; height: 36px; }
