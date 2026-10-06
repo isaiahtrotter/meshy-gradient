@@ -369,7 +369,9 @@ $('shareBtn').addEventListener('click', async e => {
 // author, like one from the Community tab.
 export async function openSharedFromUrl() {
   const slug = new URLSearchParams(location.search).get('g');
-  if (!slug || !/^[A-Za-z0-9]{6,32}$/.test(slug)) return;
+  if (slug === null) return; // not a share link
+  const home = () => location.replace(`${location.origin}/`); // a broken link just lands on the app's home page
+  if (!/^[A-Za-z0-9]{6,32}$/.test(slug)) return home();
   try {
     const c = client || await Promise.race([whenClient, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
     const { data, error } = await c.rpc('gradient_by_slug', { p_slug: slug });
@@ -379,7 +381,7 @@ export async function openSharedFromUrl() {
     applyGradient(row.config, { credit: row.author_name, twitter: row.author_twitter });
   } catch (err) {
     console.error(err);
-    showToast($('frame'), 'That shared gradient couldn’t be found');
+    return home();
   }
   history.replaceState(null, '', location.pathname); // a reload keeps the gradient (it's saved locally) without re-fetching it
 }
