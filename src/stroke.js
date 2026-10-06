@@ -101,11 +101,30 @@ export function stopFactor(stops, t) {
 }
 export const strokeK = (n, t) => clamp(n.k * stopFactor(n.stops, t), HARD_K_MIN, STROKE_K_MAX);
 
+// A coarse path (an older stroke, or a preset) made fine: a Catmull-Rom spline through its points, re-sampled evenly at
+// FINE_SPACING. The renderer measures distance to the polyline, which is circular around every corner, so a sparse
+// polyline shows as a string of beads; at this spacing the corners turn too little to see.
+const FINE_SPACING = 0.004; // of the long side, ~4px on a 1000px canvas
+function refine(pts) {
+  const n = pts.length, dense = [pts[0]];
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = pts[Math.max(i - 1, 0)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(i + 2, n - 1)];
+    for (let s = 1; s <= 8; s++) {
+      const t = s / 8, t2 = t * t, t3 = t2 * t;
+      dense.push([0, 1].map(c => 0.5 * (2 * p1[c] + (p2[c] - p0[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t2 + (3 * p1[c] - p0[c] - 3 * p2[c] + p3[c]) * t3)));
+    }
+  }
+  const len = cumLengths(dense).pop();
+  return resample(dense, clamp(Math.round(len / FINE_SPACING) + 1, 2, MAX_STROKE_PTS)).map(([x, y]) => [Math.round(x * 1e5) / 1e5, Math.round(y * 1e5) / 1e5]);
+}
+
 // ---------- normalizer helpers (nodes.js) ----------
 export function sanitizePts(raw) {
   const pts = Array.isArray(raw) ? raw.filter(p => Array.isArray(p) && isNum(p[0]) && isNum(p[1])).map(p => [p[0], p[1]]) : [];
   if (pts.length < 2) return [[-0.1, 0], [0.1, 0]];
-  return pts.length > MAX_STROKE_PTS ? resample(pts, MAX_STROKE_PTS) : pts;
+  if (pts.length > MAX_STROKE_PTS) return resample(pts, MAX_STROKE_PTS);
+  const len = cumLengths(pts).pop();
+  return pts.length < MAX_STROKE_PTS && len / (pts.length - 1) > FINE_SPACING * 1.5 ? refine(pts) : pts;
 }
 export function sanitizeStops(raw) {
   const stops = Array.isArray(raw)

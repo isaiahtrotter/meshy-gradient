@@ -167,7 +167,7 @@ function moveMarquee(drag, p) {
 
 // ---------- Brush strokes ----------
 const DRAW_MIN_PX = 6;      // shorter than this and it was a click, not a stroke
-const STROKE_SPACING_PX = 10; // target distance between the stored path points, on screen at the time of drawing
+const STROKE_SPACING_PX = 4;  // target distance between the stored path points, on screen at the time of drawing
 const STOP_GAP = 0.01;      // how close (in t) two stops may get
 const round4 = v => Math.round(v * 1e4) / 1e4;
 // The stroke's path in frame px, as it's laid out on screen.

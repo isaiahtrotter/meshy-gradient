@@ -1,7 +1,7 @@
 // Shared limits and tunables. Anything that also appears in CSS is noted.
 
 export const MAXN = 40;               // uniform slots in the shader; an unlinked arc/line uses two
-export const MAX_STROKE_PTS = 48;     // points per brush stroke; the columns of the renderer's stroke texture
+export const MAX_STROKE_PTS = 192;     // points per brush stroke; the columns of the renderer's stroke texture
 export const MAX_GRAD_STOPS = 8;      // stops per node's linear gradient; the columns of the renderer's gradient-stop texture
 export const HARD_K_MIN = 1, HARD_K_MAX = 40; // the range the hardness rings drag through
 export const MOBILE_BREAKPOINT = 820; // must match the @media (max-width) in styles.css
