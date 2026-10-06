@@ -70,7 +70,7 @@ async function renderMineTab() {
 async function refreshMine() {
   if (!client || !me) return;
   const { data, error } = await client.from('gradients').select('id, thumb').eq('user_id', me.id).eq('is_public', false).order('updated_at', { ascending: false });
-  if (error) { fail($('gSave'), error); return; }
+  if (error) { fail($('saveBtn'), error); return; }
   if (current && !data.some(r => r.id === current.id)) current = null; // deleted elsewhere
   renderMine(data);
   syncCurrent();
@@ -220,7 +220,6 @@ for (const id of ['authModalSignIn', 'authModalSignUp']) $(id).addEventListener(
 $('authModal').addEventListener('pointerdown', e => { if (e.target === $('authModal')) setAuthModal(false); });
 document.addEventListener('keydown', e => { if (!$('authModal').hidden && e.key === 'Escape') { e.stopPropagation(); setAuthModal(false); } }, true);
 
-$('gSave').addEventListener('click', e => saveNew(e.currentTarget));
 $('gDelete').addEventListener('click', e => guarded(e.currentTarget, async () => {
   if (!current || !confirm('Delete this saved gradient? This can’t be undone.')) return;
   const { error } = await client.from('gradients').delete().eq('id', current.id);
