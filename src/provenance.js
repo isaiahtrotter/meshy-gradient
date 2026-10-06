@@ -7,7 +7,7 @@ import { serializeConfig } from './state.js';
 import { $ } from './dom.js';
 import { onSave } from './persistence.js';
 
-const KEY = 'meshGradientCopyHash.v1';
+const KEY = 'meshGradientCopyHash.v1', SAVED_KEY = 'meshGradientSavedHash.v1';
 
 // cyrb53: a small, fast string hash; collisions are a non-issue here.
 function hash(str) {
@@ -24,6 +24,9 @@ const currentHash = () => hash(JSON.stringify(serializeConfig({ stripIds: true }
 const stored = () => { try { return localStorage.getItem(KEY); } catch { return null; } };
 
 let copyHash = stored();
+// The same idea for the Save button: while the canvas is exactly a gradient that's already in the user's saved list
+// (just opened from there, or just saved), there's nothing to save, so the button hides until the first edit.
+let savedHash = (() => { try { return localStorage.getItem(SAVED_KEY); } catch { return null; } })();
 
 // instant: skip the fade, for the first call on page load.
 function update(instant = false) {
@@ -34,7 +37,10 @@ function update(instant = false) {
   // the "By [name]" line only belongs to an exact copy: the first edit removes it, and undoing back to the copy restores it
   const credit = $('frameCredit');
   credit.hidden = !(pristine && credit.firstChild);
-  if (instant) { void btn.offsetWidth; btn.classList.remove('no-anim'); }
+  const save = $('saveBtn');
+  if (instant) save.classList.add('no-anim');
+  save.classList.toggle('is-hidden', savedHash !== null && currentHash() === savedHash);
+  if (instant) { void btn.offsetWidth; btn.classList.remove('no-anim'); save.classList.remove('no-anim'); }
 }
 
 // Re-evaluates the Publish button and the byline, e.g. after the byline text changes.
@@ -43,13 +49,25 @@ export const refreshProvenance = (instant = false) => update(instant);
 // Call right after loading a gradient that isn't the user's own (a community one).
 export function markCopy({ instant = false } = {}) {
   copyHash = currentHash();
-  try { localStorage.setItem(KEY, copyHash); } catch {}
+  savedHash = null; try { localStorage.setItem(KEY, copyHash); localStorage.removeItem(SAVED_KEY); } catch {}
   update(instant);
 }
 // Call after loading anything the user owns: Publish is available straight away.
 export function markOwn() {
-  copyHash = null;
-  try { localStorage.removeItem(KEY); } catch {}
+  copyHash = null; savedHash = null;
+  try { localStorage.removeItem(KEY); localStorage.removeItem(SAVED_KEY); } catch {}
+  update();
+}
+// The canvas is now exactly a gradient in the user's saved list (opened from it, or just saved): hide Save until an edit.
+export function markSaved() {
+  savedHash = currentHash();
+  try { localStorage.setItem(SAVED_KEY, savedHash); } catch {}
+  update();
+}
+// The saved gradient is gone (deleted, or signed out): Save is available again.
+export function clearSaved() {
+  savedHash = null;
+  try { localStorage.removeItem(SAVED_KEY); } catch {}
   update();
 }
 

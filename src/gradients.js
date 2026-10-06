@@ -9,6 +9,7 @@ import { cleanHandle } from './constants.js';
 import { $, showToast } from './dom.js';
 import { whenClient, onUser, startSignIn } from './auth.js';
 import { applyGradient, renderThumb } from './loadGradient.js';
+import { markSaved, clearSaved } from './provenance.js';
 import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
 import { masonry, thumbRatio } from './masonry.js';
 
@@ -87,6 +88,7 @@ async function fetchConfig(id, anchor) {
 async function openMine(row, anchor) {
   const data = await fetchConfig(row.id, anchor); if (!data) return;
   applyGradient(data.config, { own: true });
+  markSaved(); // it's already in the saved list, so Save hides until an edit
   current = { id: row.id };
   await refreshMine();
 }
@@ -209,6 +211,7 @@ async function saveNew(anchor) {
     if (error?.code === DUPLICATE) { showToast(anchor, 'Already saved'); return; } // an identical gradient is already in your saved ones
     if (error) throw error;
     current = { id: data.id };
+    markSaved();
     showToast(anchor, 'Saved');
     await refreshMine();
   });
@@ -229,7 +232,7 @@ $('gDelete').addEventListener('click', e => guarded(e.currentTarget, async () =>
   if (!current || !confirm('Delete this saved gradient? This can’t be undone.')) return;
   const { error } = await client.from('gradients').delete().eq('id', current.id);
   if (error) throw error;
-  current = null;
+  current = null; clearSaved();
   await refreshMine();
 }));
 // The small button on the canvas: adds the current gradient to your saved ones.
@@ -266,9 +269,10 @@ $('publishConfirm').addEventListener('click', async () => {
 });
 
 onUser(user => {
+  const signedOut = !user && !!me; // a real sign-out, not the initial "nobody yet" call at startup
   me = user; current = null;
   $('mySignedIn').hidden = !user; $('mySignedOut').hidden = !!user;
-  if (!user) $('myList').innerHTML = '';
+  if (!user) { $('myList').innerHTML = ''; if (signedOut) clearSaved(); }
   syncCurrent(); renderPublic(); // the Delete buttons depend on who is signed in
   if (user) { refreshMine(); refreshPublic(); } // refreshPublic also re-credits any of your rows that are out of date
 });
