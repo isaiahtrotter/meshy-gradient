@@ -8,7 +8,7 @@
 //   stopMove – sliding one of a stroke's hardness stops along its path (clicking the path adds one and starts this)
 //   stopHard – dragging a stop's dotted ring: radial motion sets the hardness at that point of the stroke
 
-import { MAXN, HARD_K_MIN, HARD_K_MAX, clamp } from './constants.js';
+import { MAXN, HARD_K_MIN, HARD_K_MAX, STROKE_K_MAX, clamp } from './constants.js';
 import { state, nodeById, cloneNode, addNode, selectOnly, selectedNodes, toggleSelected, removeNodes } from './state.js';
 import { session } from './session.js';
 import { snapshot, pushUndo } from './undo.js';
@@ -204,11 +204,27 @@ function beginStopMove(e, n, i) {
   if (!n) return;
   const interior = i > 0 && i < n.stops.length - 1;
   if (e.altKey) { if (interior) { pushUndo(); n.stops.splice(i, 1); refreshAll(); } return; }
-  session.drag = { type: 'stopMove', n, i, snap: snapshot(), moved: false, pinned: !interior };
+  session.drag = { type: 'stopMove', n, i, snap: snapshot(), moved: false, pinned: !interior, pts0: interior ? null : n.pts.map(q => [q[0], q[1]]) };
   overlay.setPointerCapture(e.pointerId);
 }
+// Dragging an end of the path moves that end to the pointer. The points near it follow with a smooth falloff
+// over the first quarter of the path, so the stroke bends instead of kinking at the end point.
+const END_FALLOFF = 0.25;
+function moveEnd(drag, p) {
+  const { n, i } = drag, d = maxDim(), first = i === 0, pts = drag.pts0;
+  const cs = Math.cos(n.th), sn = Math.sin(n.th);
+  const lx = p.px - n.x * d.w, ly = p.py - n.y * d.h;
+  const target = [(lx * cs + ly * sn) / d.m, (-lx * sn + ly * cs) / d.m]; // inverse of strokeWorld's rotation
+  const end = pts[first ? 0 : pts.length - 1], dx = target[0] - end[0], dy = target[1] - end[1];
+  const cum = cumLengths(pts), total = cum[cum.length - 1] || 1, r5 = v => Math.round(v * 1e5) / 1e5;
+  n.pts = pts.map((q, j) => {
+    const s = (first ? cum[j] : total - cum[j]) / (total * END_FALLOFF), u = Math.max(0, 1 - s), w = u * u * (3 - 2 * u);
+    return [r5(q[0] + dx * w), r5(q[1] + dy * w)];
+  });
+  drag.moved = true;
+}
 function moveStop(drag, p) {
-  if (drag.pinned) return;
+  if (drag.pinned) { moveEnd(drag, p); return; }
   const { n, i } = drag, { P, cum } = strokeScreen(n);
   const t = round4(clamp(nearestT(P, cum, [p.px, p.py]).t, n.stops[i - 1].t + STOP_GAP, n.stops[i + 1].t - STOP_GAP));
   if (t !== n.stops[i].t) { n.stops[i].t = t; drag.moved = true; }
@@ -237,7 +253,7 @@ function beginStopHard(e, p, ring, n, i) {
 function moveStopHard(drag, p) {
   drag.moved = true;
   const dist = Math.hypot(p.px - drag.sx, p.py - drag.sy);
-  drag.r = clamp(drag.r + dist - drag.lastDist, stopHardToRadius(HARD_K_MAX), stopHardToRadius(HARD_K_MIN)); drag.lastDist = dist;
+  drag.r = clamp(drag.r + dist - drag.lastDist, stopHardToRadius(STROKE_K_MAX), stopHardToRadius(HARD_K_MIN)); drag.lastDist = dist;
   const k = Math.round(stopRadiusToHard(drag.r) * 10) / 10;
   drag.n.stops[drag.i].m = clamp(round4(k / drag.n.k), STOP_M_MIN, STOP_M_MAX);
 }

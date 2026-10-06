@@ -36,7 +36,7 @@ export const GRAD_EASE_TYPES = ['linear', 'in', 'out', 'inout'];
 export const SIDE_KEY = { l: 'sl', r: 'sr', t: 'st', b: 'sb' };
 export const ANGLE_KEY = { l: 'al', r: 'ar', t: 'at', b: 'ab' };
 export const OPPOSITE_SIDE = { l: 'r', r: 'l', t: 'b', b: 't' };
-export const DEFAULTS = { k: 2.2, spread: 0.5, phi: 0.35, sw: 0.3, arcArm: 0.32, lineArm: 0.4 };
+export const DEFAULTS = { k: 2.2, spread: 0.5, phi: 0.35, sw: 0.3, strokeSw: 0.15, arcArm: 0.32, lineArm: 0.4 };
 
 const isNum = v => typeof v === 'number' && Number.isFinite(v);
 const clamp01 = v => Math.min(1, Math.max(0, v));
@@ -79,7 +79,7 @@ export function normalizeNode(raw) {
   n.gradStops = sanitizeGradStops(n.gradStops, n.color);
   if (n.type === 'stroke') {
     n.pts = sanitizePts(n.pts); n.stops = sanitizeStops(n.stops);
-    n.sw = isNum(n.sw) && n.sw > 0 ? n.sw : DEFAULTS.sw;
+    n.sw = isNum(n.sw) && n.sw > 0 ? n.sw : DEFAULTS.strokeSw;
     n.linked = true;
     for (const f of ['sl', 'sr', 'st', 'sb', 'th2', 'phi', 'ar', 'al', 'at', 'ab', 'r', 'rx', 'ry', 'thr', 'thl']) delete n[f];
     return n;

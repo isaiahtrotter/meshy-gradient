@@ -6,6 +6,8 @@ export const MAX_GRAD_STOPS = 8;      // stops per node's linear gradient; the c
 export const HARD_K_MIN = 1, HARD_K_MAX = 40; // the range the hardness rings drag through
 export const MOBILE_BREAKPOINT = 820; // must match the @media (max-width) in styles.css
 export const CANVAS_MIN = 16, CANVAS_MAX = 8192, EXPORT_MAX = 16384;
+// a brush stroke's stop hardness reaches far past the rings' range so a tip can narrow to a point
+export const STROKE_K_MAX = 1000;
 export const ZOOM_MIN = 0.25, ZOOM_MAX = 8;
 export const PX_PER_SPREAD = 100, ARM_MIN = 12; // a circle spread of 0.5 draws a 50px arm
 export const UNDO_LIMIT = 60;

@@ -2,7 +2,7 @@
 // badge, and for strokes the drawn path plus a dot and small dotted ring per hardness stop. refreshHandles()
 // creates what's missing, positions everything, and removes elements for deleted nodes.
 
-import { PX_PER_SPREAD, ARM_MIN, HARD_K_MIN, HARD_K_MAX, clamp } from './constants.js';
+import { PX_PER_SPREAD, ARM_MIN, HARD_K_MIN, HARD_K_MAX, STROKE_K_MAX, clamp } from './constants.js';
 import { state } from './state.js';
 import { session } from './session.js';
 import { armAngle, armEnds, arcCurves } from './nodes.js';
@@ -18,7 +18,7 @@ export const hardToRadius = k => (15 + 400 / (k + 2)) * session.zoom;
 export const radiusToHard = R => clamp(400 / Math.max(1, R / session.zoom - 15) - 2, HARD_K_MIN, HARD_K_MAX);
 // the same idea at a smaller size for a stroke's stop rings: k=1 → 40px, k=2.2 → 31px, k=40 → 10px (at 100% zoom)
 export const stopHardToRadius = k => (8 + 96 / (k + 2)) * session.zoom;
-export const stopRadiusToHard = R => clamp(96 / Math.max(1, R / session.zoom - 8) - 2, HARD_K_MIN, HARD_K_MAX);
+export const stopRadiusToHard = R => clamp(96 / Math.max(1, R / session.zoom - 8) - 2, HARD_K_MIN, STROKE_K_MAX);
 
 export const handleEls = new Map(), ctlEls = new Map();
 // Arc/line arms are drawn at true length (a fraction of the frame's long side, which already scales with zoom
@@ -88,7 +88,7 @@ function syncStopEls(c, n) {
     s.dot.dataset.stop = s.ring.dataset.stop = i;
     const end = i === 0 || i === last;
     s.dot.classList.toggle('end', end);
-    s.dot.title = end ? 'Stroke end. Its dotted ring sets the hardness here' : 'Drag along the stroke to move. ⌥-click to remove';
+    s.dot.title = end ? 'Drag to move this end of the stroke. Its dotted ring sets the hardness here, pull it in to taper to a point' : 'Drag along the stroke to move. ⌥-click to remove';
   });
 }
 function layoutStroke(c, n, cx, cy, dims) {

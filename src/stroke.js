@@ -6,9 +6,9 @@
 // the first point, 1 at the last) and m multiplies the node's own `k`, so the main hardness ring still scales the
 // whole profile at once. There is always a stop at t = 0 and one at t = 1.
 
-import { MAX_STROKE_PTS, HARD_K_MIN, HARD_K_MAX, clamp, isNum } from './constants.js';
+import { MAX_STROKE_PTS, HARD_K_MIN, STROKE_K_MAX, clamp, isNum } from './constants.js';
 
-export const STOP_M_MIN = 0.01, STOP_M_MAX = 100;
+export const STOP_M_MIN = 0.01, STOP_M_MAX = 1000;
 export const defaultStops = () => [{ t: 0, m: 1 }, { t: 1, m: 1 }];
 
 export function cumLengths(pts) {
@@ -94,7 +94,7 @@ export function stopFactor(stops, t) {
   const u = span > 0 ? clamp((t - a.t) / span, 0, 1) : 1, e = u * u * (3 - 2 * u);
   return Math.exp(Math.log(a.m) + (Math.log(b.m) - Math.log(a.m)) * e);
 }
-export const strokeK = (n, t) => clamp(n.k * stopFactor(n.stops, t), HARD_K_MIN, HARD_K_MAX);
+export const strokeK = (n, t) => clamp(n.k * stopFactor(n.stops, t), HARD_K_MIN, STROKE_K_MAX);
 
 // ---------- normalizer helpers (nodes.js) ----------
 export function sanitizePts(raw) {
