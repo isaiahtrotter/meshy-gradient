@@ -6,8 +6,8 @@
 
 import { serializeConfig } from './state.js';
 import { $, showToast } from './dom.js';
-import { whenClient, onUser, startSignIn } from './auth.js';
-import { applyPreset, renderPresetThumb } from './presets.js';
+import { whenClient, onUser, startSignIn, configured } from './auth.js';
+import { applyGradient, renderThumb } from './loadGradient.js';
 import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
 import { masonry, thumbRatio } from './masonry.js';
 
@@ -23,7 +23,7 @@ function fail(anchor, error) {
 }
 
 // ---------- My gradients (private saves) ----------
-// Like the presets grid: the sidebar shows the first GRID_SLOTS saved gradients, and once there are that many the
+// The sidebar grids work like this: the sidebar shows the first GRID_SLOTS saved gradients, and once there are that many the
 // last tile carries "+N" for the rest and opens them all in the side tab.
 const GRID_SLOTS = 8;
 let mineRows = [];
@@ -86,7 +86,7 @@ async function fetchConfig(id, anchor) {
 }
 async function openMine(row, anchor) {
   const data = await fetchConfig(row.id, anchor); if (!data) return;
-  applyPreset(data.config, { own: true });
+  applyGradient(data.config, { own: true });
   current = { id: row.id };
   $('gName').value = data.name;
   await refreshMine();
@@ -125,6 +125,28 @@ async function renderPublic() {
   });
   masonry($('pubList'), items, 4);
 }
+// The sidebar's Community grid: the first GRID_SLOTS published gradients, the last tile carrying "+N" for the rest.
+function renderCommunityGrid() {
+  const wrap = $('communityGrid');
+  wrap.innerHTML = '';
+  $('communityEmpty').hidden = pubRows.length > 0;
+  pubRows.slice(0, GRID_SLOTS).forEach((row, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'preset';
+    if (row.thumb) b.style.backgroundImage = `url(${row.thumb})`;
+    if (i === GRID_SLOTS - 1) {
+      b.id = 'communityMoreBtn'; b.setAttribute('aria-controls', 'communityTab'); b.setAttribute('aria-expanded', String(sideTabKind() === 'community'));
+      b.setAttribute('aria-label', `Show all ${pubRows.length} community gradients`);
+      const more = document.createElement('span'); more.className = 'preset-more'; more.textContent = `+${pubRows.length - GRID_SLOTS}`;
+      b.appendChild(more);
+      b.addEventListener('click', () => toggleSideTab('community'));
+    } else {
+      const label = row.author_name ? `${row.name} by ${row.author_name}` : row.name;
+      b.title = label; b.setAttribute('aria-label', label);
+      b.addEventListener('click', () => openPublic(row, b));
+    }
+    wrap.appendChild(b);
+  });
+}
 function renderCount() {
   const n = pubRows.length;
   $('communityBtn').textContent = `${n} Community Gradient${n === 1 ? '' : 's'}`;
@@ -132,13 +154,13 @@ function renderCount() {
 async function refreshPublic() {
   if (!client) return;
   const { data, error } = await client.from('gradients').select('id, name, thumb, author_name, user_id').eq('is_public', true).order('created_at', { ascending: false }).limit(200);
-  if (error) { console.error(error); return; }
-  pubRows = data; renderPublic(); renderCount();
+  if (error) { console.error(error); renderCommunityGrid(); return; }
+  pubRows = data; renderPublic(); renderCommunityGrid(); renderCount();
 }
 async function openPublic(row, anchor) {
   const data = await fetchConfig(row.id, anchor); if (!data) return;
   // a copy: the original stays as its author left it, and the canvas credits whoever made it
-  applyPreset(data.config, { credit: row.user_id !== me?.id ? row.author_name : null });
+  applyGradient(data.config, { credit: row.user_id !== me?.id ? row.author_name : null });
   current = null; await refreshMine(); // clears the highlight on the saved list
 }
 async function deletePublished(row, anchor) {
@@ -163,7 +185,7 @@ async function guarded(anchor, task) {
 }
 const snapshotRow = name => {
   const config = serializeConfig({ stripIds: true });
-  return { name: (name || '').trim() || 'Untitled', config, thumb: renderPresetThumb(config, 200, 'image/jpeg') };
+  return { name: (name || '').trim() || 'Untitled', config, thumb: renderThumb(config, 200, 'image/jpeg') };
 };
 const authorName = () => me.user_metadata?.full_name || me.user_metadata?.name || null;
 
@@ -250,3 +272,4 @@ onUser(user => {
   if (user) refreshMine();
 });
 whenClient.then(c => { client = c; refreshPublic(); if (me) refreshMine(); });
+if (!configured) renderCommunityGrid(); // accounts are off: replace the loading squares with the empty message

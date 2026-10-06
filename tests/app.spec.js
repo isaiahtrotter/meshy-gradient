@@ -4,14 +4,13 @@ import { test, expect } from '@playwright/test';
 import { openApp, loadConfig, getState, selectedNode, frameBox, clickCanvas, dragFrom, visibleSpreadHandle, presets, defaultPreset } from './helpers.js';
 
 test.describe('boot', () => {
-  test('seeds the default preset, renders presets, no errors', async ({ page }) => {
+  test('seeds the default gradient, no errors', async ({ page }) => {
     const errors = await openApp(page);
     const s = await getState(page);
     expect(s.n).toBe(defaultPreset.nodes.length);
     expect(s.types).toEqual(defaultPreset.nodes.map(n => n.type || 'circle'));
     expect([s.w, s.h]).toEqual([defaultPreset.w, defaultPreset.h]);
     await expect(page.locator('.handle')).toHaveCount(defaultPreset.nodes.length);
-    await expect(page.locator('#presets .preset')).toHaveCount(presets.length);
     await expect(page.locator('#status')).toHaveText('');
     expect(errors).toEqual([]);
   });
@@ -174,13 +173,14 @@ test.describe('nodes', () => {
       { id: 2, x: .7, y: .6, type: 'arc', th: .3, phi: .4, sl: .2, sr: .2 },
     ] });
     const node = id => page.evaluate(i => window.__meshy.state.nodes.find(n => n.id === i), id);
+    const loadedPts = (await node(1)).pts; // a sparse stroke is refined to a finer path on load, so compare against that
     await page.locator('.handle[data-id="1"]').click({ button: 'right' });
     await expect(page.locator('#nodeMenu button[data-flip]')).toHaveText([/Flip horizontal/, /Flip vertical/]);
     await page.locator('#nodeMenu button[data-flip="x"]').click();
     await expect(page.locator('#nodeMenu')).toBeHidden();
     let n = await node(1);
     expect(n.th).toBeCloseTo(Math.PI - .5, 9);
-    expect(n.pts).toEqual([[-.1, 0], [0, -.05], [.1, .02]]);
+    expect(n.pts).toEqual(loadedPts.map(([x, y]) => [x, y === 0 ? 0 : -y]));
     expect([n.x, n.y]).toEqual([.3, .4]); // a single node flips in place
 
     // Shift+V on the arc (via its menu's key), then undo restores it
@@ -246,10 +246,9 @@ test.describe('colour', () => {
 test.describe('document', () => {
   test.beforeEach(async ({ page }) => { await openApp(page); });
 
-  test('preset applies nodes, size and sliders', async ({ page }) => {
+  test('a loaded gradient applies nodes, size and sliders', async ({ page }) => {
     const p = presets[presets.length - 1];
-    await page.locator('#presets .preset').last().click();
-    await page.waitForTimeout(300);
+    await loadConfig(page, p);
     const s = await getState(page);
     expect(s.n).toBe(p.nodes.length);
     expect([s.w, s.h]).toEqual([p.w, p.h]);
@@ -312,7 +311,7 @@ test.describe('document', () => {
     expect(await page.evaluate(() => !document.getElementById('undoBtn').disabled)).toBe(canUndoBefore);
   });
 
-  test('temperature slider warms the render and a preset without one resets it to neutral', async ({ page }) => {
+  test('temperature slider warms the render and a gradient without one resets it to neutral', async ({ page }) => {
     const setTemp = v => page.locator('#adjTemp').evaluate((el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }, v);
     const shot = async () => { await page.waitForTimeout(120); return page.locator('#gl').screenshot(); };
     await setTemp(0); const neutral = await shot();
@@ -321,8 +320,7 @@ test.describe('document', () => {
     await expect(page.locator('#adjTempVal')).toHaveText('80');
     expect((await shot()).equals(neutral)).toBe(false);
 
-    await page.locator('#presets .preset').first().click(); // presets predate temperature
-    await page.waitForTimeout(300);
+    await loadConfig(page, presets[0]); // these gradients predate temperature
     expect(await page.evaluate(() => window.__meshy.state.adj.temp)).toBe(0);
     await expect(page.locator('#adjTempVal')).toHaveText('0');
   });
@@ -359,7 +357,7 @@ test.describe('document', () => {
     await expect(tip).not.toHaveClass(/visible/);
   });
 
-  test('copy gradient produces a preset-shaped payload', async ({ page, context }) => {
+  test('copy gradient produces a gradient-shaped payload', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.click('#copyGradientBtn');
     const payload = JSON.parse(await page.evaluate(() => navigator.clipboard.readText()));
@@ -387,7 +385,10 @@ test.describe('document', () => {
     expect(s.types).toEqual(['circle', 'arc', 'stroke']);
     expect(s.nodes[0].sl).toBe(.4);
     expect(s.nodes[1].ar).toBe(.5);
-    expect(s.nodes[2].pts).toEqual([[0, 0], [.1, .1]]);
+    const pts = s.nodes[2].pts; // the bad point is dropped; the remaining two are refined into a finer straight path
+    expect(pts[0]).toEqual([0, 0]);
+    expect(pts[pts.length - 1]).toEqual([.1, .1]);
+    expect(pts.length).toBeGreaterThan(2);
     expect(s.nodes[2].stops).toEqual([{ t: 0, m: 3 }, { t: .5, m: 3 }, { t: 1, m: 3 }]); // ends filled in
     expect(s.nodes[2].linked).toBe(true);
     expect(s.nodes[2].sl).toBeUndefined();

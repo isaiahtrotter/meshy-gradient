@@ -1,4 +1,4 @@
-// Whether the canvas still holds an untouched copy of a preset or a community gradient. While it does, the Publish
+// Whether the canvas still holds an untouched copy of a community gradient (or the starting gradient). While it does, the Publish
 // button stays hidden (there's nothing of yours to publish); the first edit brings it back, and undoing back to the
 // copy hides it again. The copy is remembered as a hash of its serialized config, kept in localStorage so a reload
 // doesn't forget it.
@@ -34,7 +34,7 @@ function update(instant = false) {
   if (instant) { void btn.offsetWidth; btn.classList.remove('no-anim'); }
 }
 
-// Call right after loading a gradient that isn't the user's own (a preset, or a community one).
+// Call right after loading a gradient that isn't the user's own (a community one).
 export function markCopy({ instant = false } = {}) {
   copyHash = currentHash();
   try { localStorage.setItem(KEY, copyHash); } catch {}

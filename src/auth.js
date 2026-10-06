@@ -4,7 +4,7 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { $, setStatus } from './dom.js';
 
-const configured = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+export const configured = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
 let client = null, resolveClient;
 // Resolves with the Supabase client once it has loaded (never, if accounts are off), for modules that talk to the database.
 export const whenClient = new Promise(r => { resolveClient = r; });

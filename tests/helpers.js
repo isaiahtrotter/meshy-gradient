@@ -4,20 +4,28 @@ import fs from 'node:fs';
 import { expect } from '@playwright/test';
 
 export const PAGE = '/meshygradient.html';
-export const presets = JSON.parse(fs.readFileSync(new URL('../presets.json', import.meta.url), 'utf8'));
-// The preset that seeds a first-time visit — mirrors pickDefaultPreset() in src/presets.js — so tests stay
-// correct no matter which preset is currently flagged as the default.
-export const defaultPreset = presets.find(p => p.default) || presets[presets.length - 1];
+// The original eyezayuh gradients (now community gradients in the database): kept here as fixtures for the renderer baselines.
+export const presets = JSON.parse(fs.readFileSync(new URL('./fixtures/eyezayuh-gradients.json', import.meta.url), 'utf8'));
+// The gradient a first-time visit starts from (default-gradient.json at the repo root).
+export const defaultPreset = JSON.parse(fs.readFileSync(new URL('../default-gradient.json', import.meta.url), 'utf8'));
+
+// The app loads the Supabase client from esm.sh; tests run offline and signed out, so give it a client with an empty database.
+const FAKE_SUPABASE = `export function createClient() {
+  const q = { select() { return q; }, eq() { return q; }, order() { return q; }, limit() { return q; }, single() { return q; }, then(res) { return Promise.resolve({ data: [], error: null }).then(res); } };
+  return { auth: { onAuthStateChange(cb) { setTimeout(() => cb('INITIAL_SESSION', null), 0); }, signInWithOAuth() { return Promise.resolve({}); }, signOut() { return Promise.resolve({}); } }, from() { return q; } };
+}`;
+const READY = () => window.__meshy && !document.body.classList.contains('loading');
 
 // Fresh page with no saved state and no console/page errors tolerated.
 export async function openApp(page) {
   const errors = [];
+  await page.route('https://esm.sh/**', r => r.fulfill({ contentType: 'application/javascript', body: FAKE_SUPABASE }));
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
   await page.goto(PAGE, { waitUntil: 'networkidle' });
   await page.evaluate(() => localStorage.clear());
   await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForFunction(() => window.__meshy && document.querySelectorAll('#presets .preset').length > 0);
+  await page.waitForFunction(READY);
   return errors;
 }
 
@@ -29,9 +37,9 @@ export async function loadConfig(page, cfg) {
   await page.waitForTimeout(350);
   await page.evaluate(c => localStorage.setItem('meshGradientState.v1', JSON.stringify(c)), cfg);
   await page.reload({ waitUntil: 'networkidle' });
-  // window.__meshy exists as soon as app.js's module body runs, well before boot() (async: fetches presets,
-  // loads state, renders preset thumbnails) actually finishes — wait for something boot() only does at the end.
-  await page.waitForFunction(() => window.__meshy && document.querySelectorAll('#presets .preset').length > 0);
+  // window.__meshy exists as soon as app.js's module body runs, well before boot() (async: fetches the default
+  // gradient, loads state) actually finishes — wait for something boot() only does at the end.
+  await page.waitForFunction(READY);
   await page.waitForTimeout(100);
 }
 

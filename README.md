@@ -9,7 +9,7 @@ A WebGL mesh-gradient editor. Static ES modules, no build step, deployed on Verc
 |---|---|
 | `meshygradient.html` | Markup only. Loads `styles.css` and `src/app.js` (type=module) |
 | `styles.css` | All styling. Mobile breakpoint is 820px (mirrored in `src/constants.js`) |
-| `presets.json` | Array of gradient configs shown in the Presets grid. Paste a "Copy gradient" payload in to add one. The entry with `"default": true` also seeds a first-time visit (no saved state); move the flag to change it, or none/an empty list falls back to seeding a few built-in colours (`FALLBACK_COLOURS` in `app.js`) |
+| `default-gradient.json` | the gradient a first-time visit starts from (a full gradient config; "Copy gradient" produces the same shape) |
 | `src/` | The app, one concern per module (below) |
 
 ## Module map
@@ -43,21 +43,21 @@ composes handles + panel + draw, so most mutations end with `refreshAll()` from 
 | `interaction.js` | the pointer drag state machine (spread / hard / move / marquee / pan / draw / stopMove / stopHard) | most of the above |
 | `keyboard.js` | global shortcuts | actions, modes, sampling, view, undo |
 | `controls.js` | canvas size + scrubbers, sliders, align/shuffle/scatter, `syncControlsFromState`, `seedNodes` | state, undo, view, refresh, actions |
-| `presets.js` | fetches `presets.json` (cached), applies presets, picks the default preset, Copy gradient | state, undo, view, refresh, controls |
+| `loadGradient.js` | puts a gradient on the canvas (`applyGradient`), draws thumbnails, fetches the first-visit default, Copy gradient | state, undo, view, refresh, controls, provenance |
 | `config.js` | public Supabase URL + anon key (empty = accounts off) | — |
 | `auth.js` | Supabase Auth, Google only (also exports `whenClient` and `onUser` for the database code): sign in/up (same flow), sign out, swaps the top bar buttons, fills the Settings account row | config, dom |
-| `sideTab.js` | the tab between the stage and the sidebar, shared by Community and Presets: open / close / toggle, title, which pane shows | dom |
+| `sideTab.js` | the tab between the stage and the sidebar, shared by Community and My gradients: open / close / toggle, title, which pane shows | dom |
 | `masonry.js` | shortest-column masonry for the side tab's grids, plus thumbnail aspect-ratio measuring | — |
-| `gradients.js` | Supabase `gradients` table (schema in `supabase/schema.sql`): private saves under My gradients (save / update / delete), Publish (a public snapshot, confirmed in a modal), the Community tab beside the sidebar with Delete on your own, and the Save / Publish buttons on the canvas | auth, state, presets |
+| `gradients.js` | Supabase `gradients` table (schema in `supabase/schema.sql`): the Community grid (first 8, last tile `+N`) and tab, My gradients (save / update / delete, same grid and tab), Publish with its confirmation, uniqueness errors, and the Save / Publish buttons on the canvas | auth, state, loadGradient, sideTab, masonry |
 | `tooltip.js` | the bottom toolbar's shared hover tooltip (1s delay, then slides between icons); reads `data-tip`/`data-key` off each button | dom (via `document.querySelector`, no imports) |
-| `app.js` | entry: `boot()` fetches presets once, seeds a first-time visit from the default preset (or a few fallback colours if none), wires undo hooks, first layout | everything |
+| `app.js` | entry: `boot()` restores the last session or seeds a first-time visit from `default-gradient.json` (or a few fallback colours), wires undo hooks, first layout | everything |
 
 Listener registration order matters in one place: `sampling.js` must evaluate before `interaction.js` (its
 capture-phase pointerdown swallows clicks while sampling). `interaction.js` imports `sampling.js`, so this holds.
 
 ## Data model
 
-Every node in `state.nodes` has passed through `normalizeNode()` (on create, load, preset, undo restore), so
+Every node in `state.nodes` has passed through `normalizeNode()` (on create, load, undo restore), so
 readers never apply fallbacks. Positions and lengths are normalized: `x`,`y` in 0..1 of the canvas.
 
 Common fields: `id`, `type` (`'circle'|'arc'|'line'|'stroke'`), `x`, `y`, `a` (alpha), `k` (hardness), `color`
@@ -145,9 +145,9 @@ npm test                            # runs everything, ~40s
 Run `npm test` before every push to prod. It starts its own static server, so nothing needs to be running.
 
 - `tests/app.spec.js` drives the real page: add, drag, undo/redo, arc/line placement, spread handles, the
-  context menu, colour picker, presets, canvas size, sliders, zoom, preview, copy, reload
+  context menu, colour picker, canvas size, sliders, zoom, preview, copy, reload
   persistence, legacy saved shapes, export.
-- `tests/render.spec.js` renders every preset and compares it pixel-for-pixel with the baselines in
+- `tests/render.spec.js` renders every fixture gradient (`tests/fixtures/eyezayuh-gradients.json`, the original presets) and compares it pixel-for-pixel with the baselines in
   `tests/render.spec.js-snapshots/`. When a rendering change is intended, regenerate them with
   `npm run test:update` and commit the new PNGs. Baselines are per platform; they're generated on macOS.
 - `tests/helpers.js` holds the shared page helpers. The app exposes `window.__meshy.state` for the tests.
@@ -161,3 +161,10 @@ Pure modules (`geometry`, `nodes`, `state`, `undo`, `color`) import cleanly in N
    visible part of the frame when zoomed in.
 3. Add a storage version/migration hook beyond the normalizer for future non-node schema changes.
 4. Check in a test runner (vitest) for the pure modules and an eslint config.
+
+## Community gradients and the database
+
+Gradients live in the Supabase `gradients` table (`supabase/schema.sql`, run once in the SQL Editor). The original
+presets were moved into it as published gradients by `eyezayuh`: run `supabase/seed_eyezayuh.sql` once, after
+setting the email on its first lines. The same fixtures are kept in `tests/fixtures/eyezayuh-gradients.json` for the
+renderer baselines.

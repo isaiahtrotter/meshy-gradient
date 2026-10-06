@@ -23,9 +23,9 @@ import './tooltip.js';
 import './sliderRubberband.js';
 import { syncControlsFromState, seedNodes } from './controls.js';
 import { markCopy } from './provenance.js';
-import { fetchPresets, pickDefaultPreset, renderPresets } from './presets.js';
+import { fetchDefaultGradient } from './loadGradient.js';
 
-// a first-time visit with no presets at all (or none flagged default) still gets something to look at
+// a first-time visit whose default gradient can't be fetched still gets something to look at
 const FALLBACK_COLOURS = ['#ff7a59', '#ffd166', '#6a4c93', '#1982c4'];
 
 onUndoChange((canUndo, canRedo) => {
@@ -48,15 +48,12 @@ async function boot() {
   layout(); // size the frame from the current (default or, below, restored) state before anything is drawn
   const restored = loadState();
   if (restored) { restoreReference(); syncControlsFromState(); layout(); refreshAll(); revealApp(); }
-  // fetched once and reused for both the presets grid and (for a first-time visit) the default gradient; a
-  // returning visitor's own canvas above doesn't wait on this network round-trip to appear
-  const presets = await fetchPresets();
   if (!restored) {
-    const def = pickDefaultPreset(presets);
+    // a returning visitor's own canvas above doesn't wait on this network round-trip to appear
+    const def = await fetchDefaultGradient();
     if (def) applyConfig(def, { reassignIds: true }); else seedNodes(FALLBACK_COLOURS);
     restoreReference(); syncControlsFromState(); layout(); refreshAll(); revealApp();
-    if (def) markCopy({ instant: true }); // the starting gradient is a preset, so it counts as an untouched copy
+    if (def) markCopy({ instant: true }); // the starting gradient isn't the visitor's own, so Publish waits for the first edit
   }
-  renderPresets(presets);
 }
 boot();

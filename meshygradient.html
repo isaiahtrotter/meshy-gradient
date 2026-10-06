@@ -228,9 +228,6 @@ window.addEventListener('error', function () {
       <div data-pane="mine" hidden>
         <div class="ct-grid" id="mineTabList"></div>
       </div>
-      <div data-pane="presets" hidden>
-        <div class="ct-grid ct-grid-4" id="presetTabList"></div>
-      </div>
     </div>
   </div>
   <aside class="panel">
@@ -357,21 +354,18 @@ window.addEventListener('error', function () {
       </div>
     </section>
 
-    <section id="presetSection" data-collapse="presets">
-      <h2>Presets</h2>
-      <!-- Placeholder squares reserving the grid's footprint until fetchPresets() (src/presets.js) resolves and
-           renderPresets() replaces them with real thumbnails in place, so that swap can't shift the sections below. -->
-      <div class="presets" id="presets">
-        <div class="preset preset-skel" aria-hidden="true"></div>
-        <div class="preset preset-skel" aria-hidden="true"></div>
-        <div class="preset preset-skel" aria-hidden="true"></div>
-        <div class="preset preset-skel" aria-hidden="true"></div>
-        <div class="preset preset-skel" aria-hidden="true"></div>
-        <div class="preset preset-skel" aria-hidden="true"></div>
-        <div class="preset preset-skel" aria-hidden="true"></div>
-        <div class="preset preset-skel" aria-hidden="true"></div>
+    <section id="communitySection" data-collapse="community">
+      <h2>Community gradients</h2>
+      <!-- Placeholder squares reserving the grid's footprint until the community list loads (src/gradients.js), so the
+           swap can't shift the sections below. -->
+      <div class="presets" id="communityGrid">
+        <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
       </div>
-      <div class="empty" id="presetsEmpty" hidden>No presets yet — copy a gradient (top right) and send it to Claude to add one.</div>
+      <div class="empty" id="communityEmpty" hidden>No community gradients yet.</div>
+      <button id="communityBtn" class="topbar-auth-btn signin comm-btn" type="button" aria-expanded="false" aria-controls="communityTab">0 Community Gradients</button>
     </section>
 
     <section id="mySection" data-collapse="my-gradients">
@@ -386,10 +380,6 @@ window.addEventListener('error', function () {
       </div>
     </section>
 
-    <section id="communitySection">
-      <h2>Community gradients</h2>
-      <button id="communityBtn" class="topbar-auth-btn signin comm-btn" type="button" aria-expanded="false" aria-controls="communityTab">0 Community Gradients</button>
-    </section>
 
     <section data-collapse="blend">
       <h2>Blend</h2>
