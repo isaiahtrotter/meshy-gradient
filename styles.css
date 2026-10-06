@@ -785,3 +785,7 @@ section[data-collapse] > h2[hidden] { display: none; }
 .frame-btn { transition: opacity .15s ease-out, transform .15s ease-out, visibility 0s linear 0s; }
 .frame-btn.is-hidden { opacity: 0; transform: scale(.92); visibility: hidden; pointer-events: none; transition: opacity .15s ease-out, transform .15s ease-out, visibility 0s linear .15s; }
 .frame-btn.no-anim, .frame-btn.no-anim.is-hidden { transition: none; }
+
+/* The top bar's Share section (visible only while signed in): the button plus its own divider. */
+.topbar-section { display: flex; align-items: center; gap: 10px; }
+.topbar-section[hidden] { display: none; }

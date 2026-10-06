@@ -12,7 +12,7 @@ export const defaultPreset = JSON.parse(fs.readFileSync(new URL('../default-grad
 // The app loads the Supabase client from esm.sh; tests run offline and signed out, so give it a client with an empty database.
 const FAKE_SUPABASE = `export function createClient() {
   const q = { select() { return q; }, eq() { return q; }, order() { return q; }, limit() { return q; }, single() { return q; }, then(res) { return Promise.resolve({ data: [], error: null }).then(res); } };
-  return { auth: { onAuthStateChange(cb) { setTimeout(() => cb('INITIAL_SESSION', null), 0); }, signInWithOAuth() { return Promise.resolve({}); }, signOut() { return Promise.resolve({}); } }, from() { return q; } };
+  return { auth: { onAuthStateChange(cb) { setTimeout(() => cb('INITIAL_SESSION', null), 0); }, signInWithOAuth() { return Promise.resolve({}); }, signOut() { return Promise.resolve({}); } }, rpc() { return Promise.resolve({ data: null, error: null }); }, from() { return q; } };
 }`;
 const READY = () => window.__meshy && !document.body.classList.contains('loading');
 

@@ -14,7 +14,7 @@ import './interaction.js';
 import './keyboard.js';
 import './exporter.js';
 import './sideTab.js';
-import './gradients.js';
+import { openSharedFromUrl } from './gradients.js';
 import './collapse.js';
 import './settingsPanel.js';
 import './theme.js';
@@ -55,5 +55,6 @@ async function boot() {
     restoreReference(); syncControlsFromState(); layout(); refreshAll(); revealApp();
     if (def) markCopy({ instant: true }); // the starting gradient isn't the visitor's own, so Publish waits for the first edit
   }
+  await openSharedFromUrl(); // a /?g=<slug> share link replaces whatever was on the canvas
 }
 boot();

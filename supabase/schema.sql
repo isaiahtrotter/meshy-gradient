@@ -70,3 +70,39 @@ create policy "delete own" on public.gradients
 -- fingerprint. (The app only ever updates author_name and author_twitter.)
 revoke update on public.gradients from authenticated;
 grant update (author_name, author_twitter, is_public, thumb, config, updated_at) on public.gradients to authenticated;
+
+-- ---------- Sharing ----------
+-- A share link is /?g=<slug>. The slug is an unguessable id, so anyone holding the link can open that one gradient
+-- (even a private one) without being able to list or browse anything else.
+create or replace function public.gradient_by_slug(p_slug text)
+returns table (config jsonb, author_name text, author_twitter text)
+language sql stable security definer set search_path = public
+as $$
+  select g.config, g.author_name, g.author_twitter from public.gradients g where g.slug = p_slug limit 1;
+$$;
+revoke all on function public.gradient_by_slug(text) from public;
+grant execute on function public.gradient_by_slug(text) to anon, authenticated;
+
+-- Returns the slug for a gradient the signed-in user is sharing: reuses their existing row with exactly this content,
+-- otherwise saves it (privately) first.
+create or replace function public.share_gradient(p_config jsonb, p_thumb text, p_author text, p_twitter text)
+returns text
+language plpgsql security definer set search_path = public
+as $$
+declare
+  v_slug text;
+begin
+  if auth.uid() is null then raise exception 'Sign in to share a gradient'; end if;
+  select slug into v_slug from public.gradients
+    where user_id = auth.uid() and config_hash = md5(p_config::text)
+    order by is_public desc, created_at limit 1;
+  if v_slug is null then
+    insert into public.gradients (user_id, author_name, author_twitter, config, thumb, is_public)
+    values (auth.uid(), p_author, p_twitter, p_config, p_thumb, false)
+    returning slug into v_slug;
+  end if;
+  return v_slug;
+end;
+$$;
+revoke all on function public.share_gradient(jsonb, text, text, text) from public;
+grant execute on function public.share_gradient(jsonb, text, text, text) to authenticated;

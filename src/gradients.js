@@ -283,6 +283,7 @@ $('publishConfirm').addEventListener('click', async () => {
 });
 
 onUser(user => {
+  $('shareSection').hidden = !user; // the Share button is only for signed-in users
   const signedOut = !user && !!me; // a real sign-out, not the initial "nobody yet" call at startup
   me = user; current = null;
   $('mySignedIn').hidden = !user; $('mySignedOut').hidden = !!user;
@@ -320,3 +321,35 @@ for (const id of ['prefName', 'prefTwitter']) $(id).addEventListener('input', ()
   lastPushed = ''; // an edit is always worth pushing
   profileTimer = setTimeout(() => pushProfile(true), 700);
 });
+
+// ---------- Share links ----------
+// Sharing saves the canvas if it isn't already (privately, so it also shows in My gradients) and copies a link,
+// /?g=<slug>, that opens exactly this gradient for anyone, signed in or not. share_gradient / gradient_by_slug are
+// database functions (supabase/schema.sql): the slug is the capability, so nothing else becomes browsable.
+$('shareBtn').addEventListener('click', e => guarded(e.currentTarget, async () => {
+  const { config, thumb } = snapshotRow();
+  const { data: slug, error } = await client.rpc('share_gradient', { p_config: config, p_thumb: thumb, p_author: authorName(), p_twitter: authorTwitter() });
+  if (error) throw error;
+  const url = `${location.origin}/?g=${slug}`;
+  try { await navigator.clipboard.writeText(url); showToast(e.currentTarget, 'Link copied'); }
+  catch { window.prompt('Copy this link to share the gradient:', url); }
+  refreshMine();
+}));
+
+// Opens the gradient a share link points at (called once the app has booted). It lands as a copy, credited to its
+// author, like one from the Community tab.
+export async function openSharedFromUrl() {
+  const slug = new URLSearchParams(location.search).get('g');
+  if (!slug || !/^[A-Za-z0-9]{6,32}$/.test(slug)) return;
+  try {
+    const c = client || await Promise.race([whenClient, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
+    const { data, error } = await c.rpc('gradient_by_slug', { p_slug: slug });
+    const row = Array.isArray(data) ? data[0] : data;
+    if (error || !row) throw error || new Error('not found');
+    applyGradient(row.config, { credit: row.author_name, twitter: row.author_twitter });
+  } catch (err) {
+    console.error(err);
+    showToast($('frame'), 'That shared gradient couldn’t be found');
+  }
+  history.replaceState(null, '', location.pathname); // a reload keeps the gradient (it's saved locally) without re-fetching it
+}
