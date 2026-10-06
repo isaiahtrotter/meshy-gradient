@@ -8,6 +8,7 @@ import { $, stage, frame, work, frameRect, setStatus } from './dom.js';
 import { makeRenderer } from './renderer.js';
 import { scheduleSave } from './persistence.js';
 import { refreshHandles } from './handles.js';
+import { captureInk } from './ink.js';
 import { updateExportSize } from './exporter.js';
 
 // ---------- Preview renderer ----------
@@ -25,6 +26,8 @@ export function draw() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const cap = 4096; // deep zoom on a large canvas would otherwise ask for an enormous framebuffer
     preview.render(Math.min(cap, Math.max(1, Math.round(rect.width * dpr))), Math.min(cap, Math.max(1, Math.round(rect.height * dpr))), state);
+    captureInk(glCanvas);
+    if (state.selected.size) refreshHandles(); // re-tone the overlay lines against what was just drawn
   });
 }
 
