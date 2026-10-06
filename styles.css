@@ -316,6 +316,14 @@ body {
 .stop-ring .grab { fill: none; stroke: transparent; stroke-width: 10px; pointer-events: stroke; cursor: grab; }
 .stop-ring:hover .dots, .stop-ring.active .dots { opacity: .9; }
 .stop-ring.active .grab { cursor: grabbing; }
+/* Bezier controls: a square per interior anchor, a round handle either side, joined by thin lines. */
+.bz-lines { position: absolute; left: 0; top: 0; display: none; overflow: visible; pointer-events: none; }
+.bz-lines path { fill: none; stroke: #fff; stroke-width: 1px; opacity: .6; }
+.bz-anchor, .bz-handle { position: absolute; z-index: 2; display: none; cursor: grab; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.bz-anchor { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; background: #fff; border-radius: 2px; }
+.bz-handle { width: 8px; height: 8px; margin: -4px 0 0 -4px; background: var(--accent); border: 1.5px solid #fff; border-radius: 50%; box-sizing: border-box; }
+.bz-anchor::before, .bz-handle::before { content: ''; position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; transform: translate(-50%, -50%); }
+.overlay.hide-handles .bz-lines, .overlay.hide-handles .bz-anchor, .overlay.hide-handles .bz-handle { display: none !important; }
 .overlay.hide-handles .stroke-path, .overlay.hide-handles .stop-dot, .overlay.hide-handles .stop-ring { display: none !important; }
 .marquee {
   position: absolute; border: 1px solid var(--accent); background: rgba(47,109,246,.12);

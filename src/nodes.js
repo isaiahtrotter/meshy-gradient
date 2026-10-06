@@ -7,7 +7,7 @@
 //          on screen, × softness in the shader).
 // arc:     phi (bend at the apex), sw (band width). Lengths are a fraction of the canvas's long side.
 // line:    sw. Same length units as an arc.
-// stroke:  pts (the drawn path), stops (hardness along it), sw; see stroke.js. No arms: no sl/sr, always linked,
+// stroke:  pts (the drawn path, sampled from `anchors`, its Bezier controls), stops (hardness along it), sw; see stroke.js. No arms: no sl/sr, always linked,
 //          never converts to or from another type. th rotates the path about x, y.
 // unlinked: ar, al (and at, ab for circles) hold each arm's own angle. Linked nodes derive them from th/th2/phi.
 // grad: true if this node's fill is a screen-space linear gradient (angle gradAngle degrees, 0 = left-to-right)
@@ -28,7 +28,7 @@
 
 import { wrapAngle, arcGeom, halfArcGeom } from './geometry.js';
 import { randomColor, HEX6 } from './color.js';
-import { sanitizePts, sanitizeStops } from './stroke.js';
+import { sanitizePts, sanitizeStops, sanitizeAnchors } from './stroke.js';
 import { OCC_SOFT_MAX_PX, OCC_SOFT_DEFAULT_PX, MAX_GRAD_STOPS, clamp } from './constants.js';
 
 export const NODE_TYPES = ['circle', 'arc', 'line', 'stroke'];
@@ -78,13 +78,13 @@ export function normalizeNode(raw) {
   n.gradEase = GRAD_EASE_TYPES.includes(n.gradEase) ? n.gradEase : 'linear';
   n.gradStops = sanitizeGradStops(n.gradStops, n.color);
   if (n.type === 'stroke') {
-    n.pts = sanitizePts(n.pts); n.stops = sanitizeStops(n.stops);
+    n.pts = sanitizePts(n.pts); n.stops = sanitizeStops(n.stops); n.anchors = sanitizeAnchors(n.anchors, n.pts);
     n.sw = isNum(n.sw) && n.sw > 0 ? n.sw : DEFAULTS.strokeSw;
     n.linked = true;
     for (const f of ['sl', 'sr', 'st', 'sb', 'th2', 'phi', 'ar', 'al', 'at', 'ab', 'r', 'rx', 'ry', 'thr', 'thl']) delete n[f];
     return n;
   }
-  delete n.pts; delete n.stops;
+  delete n.pts; delete n.stops; delete n.anchors;
   const rx = n.rx ?? n.r ?? DEFAULTS.spread, ry = n.ry ?? n.r ?? DEFAULTS.spread;
   n.sl = isNum(n.sl) ? n.sl : rx;
   n.sr = isNum(n.sr) ? n.sr : rx;
@@ -165,7 +165,11 @@ export function convertNodeType(n, to) {
 export function flipNode(n, axis) {
   const f = a => wrapAngle((axis === 'x' ? Math.PI : 0) - a);
   n.th = f(n.th);
-  if (n.type === 'stroke') { n.pts = n.pts.map(([x, y]) => [x, y === 0 ? 0 : -y]); return; }
+  if (n.type === 'stroke') {
+    n.pts = n.pts.map(([x, y]) => [x, y === 0 ? 0 : -y]);
+    n.anchors = n.anchors.map(a => ({ ...a, y: a.y === 0 ? 0 : -a.y, iy: a.iy === 0 ? 0 : -a.iy, oy: a.oy === 0 ? 0 : -a.oy }));
+    return;
+  }
   if (n.type === 'circle') n.th2 = f(n.th2);
   if (n.type === 'arc') n.phi = -n.phi;
   if (!n.linked) for (const k of ['ar', 'al', 'at', 'ab']) if (k in n) n[k] = f(n[k]);
