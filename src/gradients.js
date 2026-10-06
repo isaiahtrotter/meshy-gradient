@@ -7,7 +7,7 @@
 import { serializeConfig } from './state.js';
 import { cleanHandle } from './constants.js';
 import { $, showToast } from './dom.js';
-import { whenClient, onUser, startSignIn } from './auth.js';
+import { whenClient, onUser, startSignIn, configured } from './auth.js';
 import { applyGradient, renderThumb } from './loadGradient.js';
 import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
 import { masonry, thumbRatio } from './masonry.js';
@@ -92,25 +92,10 @@ async function openMine(row, anchor) {
 }
 
 // ---------- Community (published) ----------
-// The community list is the featured gradients that ship with the app (featured-gradients.json, the original presets,
-// credited to FEATURED_AUTHOR) followed by everything published in the database.
-const FEATURED_AUTHOR = 'eyezayuh'; // the name shown in "By …" under the canvas for a featured gradient
-let builtinRows = [], dbRows = [];
+// The community list is every published gradient in the database (the original presets were seeded into it, owned by
+// the site owner's account, so their credit follows that account's name and Twitter handle like any other).
 let pubRows = [];
-function rebuildPublic() {
-  pubRows = [...builtinRows, ...dbRows];
-  renderPublic(); renderCommunityGrid();
-}
-async function loadFeatured() {
-  try {
-    const list = await (await fetch('featured-gradients.json', { cache: 'no-cache' })).json();
-    builtinRows = (Array.isArray(list) ? list : []).map((config, i) => {
-      const { default: _flag, ...cfg } = config;
-      return { id: `featured-${i}`, builtin: true, config: cfg, author_name: FEATURED_AUTHOR, thumb: renderThumb(cfg, 200, 'image/jpeg') };
-    });
-  } catch { builtinRows = []; }
-  rebuildPublic();
-}
+function rebuildPublic() { renderPublic(); renderCommunityGrid(); }
 let renderToken = 0;
 async function renderPublic() {
   const token = ++renderToken;
@@ -161,15 +146,14 @@ function renderCommunityGrid() {
 async function refreshPublic() {
   if (!client) return;
   const { data, error } = await client.from('gradients').select('id, thumb, author_name, author_twitter, user_id').eq('is_public', true).order('created_at', { ascending: false }).limit(200);
-  if (error) { console.error(error); return; }
-  dbRows = data; rebuildPublic();
+  if (error) { console.error(error); rebuildPublic(); return; } // shows the empty message instead of the loading squares
+  pubRows = data; rebuildPublic();
   pushProfile(); // re-credit any of your rows that are out of date
 }
 async function openPublic(row, anchor) {
-  const data = row.builtin ? { config: row.config } : await fetchConfig(row.id, anchor); // featured gradients carry their config
-  if (!data) return;
-  // a copy: the original stays as its author left it, and the canvas credits whoever made it
-  applyGradient(data.config, { credit: !!me && row.user_id === me.id ? null : row.author_name, twitter: row.author_twitter });
+  const data = await fetchConfig(row.id, anchor); if (!data) return;
+  // a copy: the original stays as its author left it, and the canvas always credits whoever made it (even if that's you)
+  applyGradient(data.config, { credit: row.author_name, twitter: row.author_twitter });
   current = null; await refreshMine(); // clears the highlight on the saved list
 }
 async function deletePublished(row, anchor) {
@@ -269,29 +253,32 @@ onUser(user => {
   if (user) { refreshMine(); refreshPublic(); } // refreshPublic also re-credits any of your rows that are out of date
 });
 whenClient.then(c => { client = c; refreshPublic(); if (me) refreshMine(); });
-loadFeatured(); // needs no account or database, so the Community grid fills straight away
+if (!configured) rebuildPublic(); // accounts are off: replace the loading squares with the empty message
 
 // Your display name and Twitter handle (Settings) are what your published gradients are credited to, and they're kept
 // on your account so they follow you to other devices. pushProfile() writes them to the rows: it runs when either
 // changes, and also whenever your published rows are out of date (e.g. they were published before the handle existed,
 // or from another device), since an unchanged Settings field fires no event. `lastPushed` stops a failed update looping.
 let lastPushed = '';
-async function pushProfile() {
+// `explicit` means the user just edited a field, so an empty handle really means "remove it"; otherwise an empty
+// Settings field (a fresh device, say) never wipes a handle already stored on the rows.
+async function pushProfile(explicit = false) {
   if (!client || !me) return;
   const name = authorName(), twitter = cleanHandle($('prefTwitter').value) || null;
   if (!name) return;
   const combo = JSON.stringify([me.id, name, twitter]);
-  const stale = dbRows.some(r => r.user_id === me.id && (r.author_name !== name || (r.author_twitter || null) !== twitter));
+  const stale = pubRows.some(r => r.user_id === me.id && (r.author_name !== name || (twitter ? r.author_twitter !== twitter : explicit && r.author_twitter)));
   if (!stale || combo === lastPushed) return;
   lastPushed = combo;
-  const { error } = await client.from('gradients').update({ author_name: name, author_twitter: twitter }).eq('user_id', me.id);
+  const fields = twitter || explicit ? { author_name: name, author_twitter: twitter } : { author_name: name };
+  const { error } = await client.from('gradients').update(fields).eq('user_id', me.id);
   if (error) { console.error(error); return; }
-  client.auth.updateUser({ data: { display_name: name, twitter } }).catch(() => {});
+  client.auth.updateUser({ data: twitter || explicit ? { display_name: name, twitter } : { display_name: name } }).catch(() => {});
   refreshPublic();
 }
 let profileTimer = 0;
 for (const id of ['prefName', 'prefTwitter']) $(id).addEventListener('input', () => {
   clearTimeout(profileTimer);
   lastPushed = ''; // an edit is always worth pushing
-  profileTimer = setTimeout(pushProfile, 700);
+  profileTimer = setTimeout(() => pushProfile(true), 700);
 });

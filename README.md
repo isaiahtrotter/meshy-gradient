@@ -9,7 +9,6 @@ A WebGL mesh-gradient editor. Static ES modules, no build step, deployed on Verc
 |---|---|
 | `meshygradient.html` | Markup only. Loads `styles.css` and `src/app.js` (type=module) |
 | `styles.css` | All styling. Mobile breakpoint is 820px (mirrored in `src/constants.js`) |
-| `featured-gradients.json` | the eight featured community gradients that ship with the app (the original presets), credited to `trumpchaos@gmail.com`; they always appear first in the Community grid and tab, ahead of anything published in the database. Also the renderer test baselines' fixtures |
 | `default-gradient.json` | the gradient a first-time visit starts from (a full gradient config; "Copy gradient" produces the same shape) |
 | `src/` | The app, one concern per module (below) |
 
@@ -148,7 +147,7 @@ Run `npm test` before every push to prod. It starts its own static server, so no
 - `tests/app.spec.js` drives the real page: add, drag, undo/redo, arc/line placement, spread handles, the
   context menu, colour picker, canvas size, sliders, zoom, preview, copy, reload
   persistence, legacy saved shapes, export.
-- `tests/render.spec.js` renders every fixture gradient (`featured-gradients.json`) and compares it pixel-for-pixel with the baselines in
+- `tests/render.spec.js` renders every fixture gradient (`tests/fixtures/featured-gradients.json`, the original presets) and compares it pixel-for-pixel with the baselines in
   `tests/render.spec.js-snapshots/`. When a rendering change is intended, regenerate them with
   `npm run test:update` and commit the new PNGs. Baselines are per platform; they're generated on macOS.
 - `tests/helpers.js` holds the shared page helpers. The app exposes `window.__meshy.state` for the tests.
@@ -166,6 +165,9 @@ Pure modules (`geometry`, `nodes`, `state`, `undo`, `color`) import cleanly in N
 ## Community gradients and the database
 
 Gradients people save or publish live in the Supabase `gradients` table (`supabase/schema.sql`, run once in the SQL
-Editor). The Community grid shows the featured gradients from `featured-gradients.json` first, then published ones from
-the table. The Display name in Settings is what published gradients are credited to; changing it re-credits all of
-yours and is stored on the account (`user_metadata.display_name`).
+Editor). The Community grid and tab list every published gradient; the original presets were seeded into the table
+under the site owner's account, so they behave like any other. Opening one always shows a "By [name]" byline under the
+canvas, linked to the author's Twitter profile when they have a handle, and the byline lasts until the gradient is
+edited. The Display name and Twitter handle in Settings are what published gradients are credited to; changing them
+(or loading the app with out-of-date rows) re-credits all of yours, and they're stored on the account
+(`user_metadata`). The original presets are kept in `tests/fixtures/featured-gradients.json` for the renderer baselines.
