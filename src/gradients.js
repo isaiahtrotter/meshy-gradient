@@ -101,7 +101,8 @@ async function refreshPublic() {
 }
 async function openPublic(row, anchor) {
   const data = await fetchConfig(row.id, anchor); if (!data) return;
-  applyPreset(data.config); // a copy: the original stays as its author left it
+  // a copy: the original stays as its author left it, and the canvas credits whoever made it
+  applyPreset(data.config, { credit: row.user_id !== me?.id ? row.author_name : null });
   current = null; await refreshMine(); // clears the highlight on the saved list
 }
 async function deletePublished(row, anchor) {

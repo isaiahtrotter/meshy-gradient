@@ -727,6 +727,8 @@ kbd {
 /* ---- Save / Publish buttons on the gradient, the Community tab beside the sidebar, and the publish confirmation ---- */
 .frame-actions { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 6; display: flex; gap: 4px; } /* above the frame's top-left corner, in the stage's top padding */
 .stage.previewing .frame-actions { display: none; }
+.frame-credit { position: absolute; top: calc(100% + 5px); left: 0; max-width: 100%; font: 400 11px/12px var(--font-ui); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; }
+.stage.previewing .frame-credit { display: none; }
 .frame-btn {
   height: 22px; padding: 0 8px; border: none; border-radius: 6px; font: 500 11px/1 var(--font-ui); color: var(--ink);
   background: var(--ctrl-grad); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), 0 2px 6px rgba(0,0,0,.25); cursor: pointer;
@@ -744,6 +746,8 @@ kbd {
 .ct-head .settings-close { top: 14px; right: 14px; }
 .ct-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 20px 20px; }
 .ct-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.ct-grid-4 { grid-template-columns: repeat(4, 1fr); gap: 8px; } /* presets: four squares across, like the sidebar grid */
+.ct-grid-4 .ct-thumb { aspect-ratio: 1 / 1; }
 .ct-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .ct-thumb {
   position: relative; display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; padding: 0; border-radius: var(--radius); border: 1px solid var(--line);

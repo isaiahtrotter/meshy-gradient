@@ -44,8 +44,19 @@ export function renderPresetThumb(p, size = 160, type = 'image/png') {
   return url;
 }
 
-export function applyPreset(p) {
+// "By [name]" under the canvas while it holds a gradient someone else published; any other load clears it. Kept in
+// localStorage so it survives a reload along with the gradient itself.
+const CREDIT_KEY = 'meshGradientCredit.v1';
+function setCredit(name) {
+  const el = $('frameCredit');
+  el.textContent = name ? `By ${name}` : ''; el.hidden = !name;
+  try { if (name) localStorage.setItem(CREDIT_KEY, name); else localStorage.removeItem(CREDIT_KEY); } catch {}
+}
+try { setCredit(localStorage.getItem(CREDIT_KEY)); } catch {}
+
+export function applyPreset(p, { credit = null } = {}) {
   pushUndo();
+  setCredit(credit);
   if (!isNum(p.seed)) state.seed = Math.random() * 1000;
   applyConfig(p, { reassignIds: true });
   state.selected.clear();
