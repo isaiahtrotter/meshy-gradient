@@ -77,13 +77,18 @@ export function smoothStroke(raw, spacing) {
   return resample(smooth, clamp(Math.round(len / spacing) + 1, 2, MAX_STROKE_PTS));
 }
 
-// A drawn path in frame px → the node fields: pivot at the path's bounding-box centre, points relative to it in
-// long-side units, unrotated. `dims` is maxDim().
+// A drawn path in frame px → the node fields: pivot at the middle of the line (half its length along it, so the
+// node always sits on the stroke), points relative to it in long-side units, unrotated. `dims` is maxDim().
 export function strokeFromPath(path, dims) {
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const [x, y] of path) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, r5 = v => Math.round(v * 1e5) / 1e5;
+  const [cx, cy] = pointAt(path, cumLengths(path), 0.5), r5 = v => Math.round(v * 1e5) / 1e5;
   return { x: cx / dims.w, y: cy / dims.h, th: 0, pts: path.map(([x, y]) => [r5((x - cx) / dims.m), r5((y - cy) / dims.m)]) };
+}
+
+// Moves the pivot back to the middle of the line after its ends have been dragged, without changing the shape.
+export function recenterStroke(n, dims) {
+  const [mx, my] = pointAt(n.pts, cumLengths(n.pts), 0.5), c = Math.cos(n.th), s = Math.sin(n.th);
+  n.x += (mx * c - my * s) * dims.m / dims.w; n.y += (mx * s + my * c) * dims.m / dims.h;
+  n.pts = n.pts.map(([x, y]) => [Math.round((x - mx) * 1e5) / 1e5, Math.round((y - my) * 1e5) / 1e5]);
 }
 
 // The path in world space: rotated by th about centre C, lengths × scale.

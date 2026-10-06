@@ -13,7 +13,7 @@ import { state, nodeById, cloneNode, addNode, selectOnly, selectedNodes, toggleS
 import { session } from './session.js';
 import { snapshot, pushUndo } from './undo.js';
 import { armAngle, SIDE_KEY, ANGLE_KEY, OPPOSITE_SIDE } from './nodes.js';
-import { cumLengths, pointAt, nearestT, smoothStroke, strokeFromPath, strokeWorld, strokeK, stopFactor, STOP_M_MIN, STOP_M_MAX } from './stroke.js';
+import { cumLengths, pointAt, nearestT, smoothStroke, strokeFromPath, recenterStroke, strokeWorld, strokeK, stopFactor, STOP_M_MIN, STOP_M_MAX } from './stroke.js';
 import { wrapAngle } from './geometry.js';
 import { stage, overlay, work, normPos, maxDim, frameRect, setStatus } from './dom.js';
 import { view, applyPan, draw } from './view.js';
@@ -302,6 +302,7 @@ function endDrag(e) {
     if (drag.moved) pushUndo(drag.snap);
     overlay.querySelectorAll('.hard-ring.active, .stop-ring.active').forEach(el => el.classList.remove('active')); stage.classList.remove('hard-dragging');
   }
+  if (drag.type === 'stopMove' && drag.pinned && drag.moved) recenterStroke(drag.n, maxDim()); // an end moved: keep the node mid-line
   if (drag.type === 'draw' && drag.n) pushUndo(drag.snap);
   if (drag.type === 'move') {
     if (drag.moved) pushUndo(drag.snap);
