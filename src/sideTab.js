@@ -1,13 +1,13 @@
 // The tab that opens between the stage and the sidebar. One panel, two kinds of content: 'community' (every published
-// gradient, filled by gradients.js) and 'presets' (every preset, filled by presets.js). Opening one swaps the title and
+// gradient) and 'mine' (all your saved ones), both filled by gradients.js, and 'presets' (every preset, filled by presets.js). Opening one swaps the title and
 // the visible pane; opening the same one again, the close button, or Escape closes it. The stage's ResizeObserver
 // refits the canvas as the tab takes or gives back its column.
 
 import { $ } from './dom.js';
 
 const tab = $('communityTab');
-const TITLES = { community: 'Community', presets: 'Presets' };
-const BUTTONS = { community: 'communityBtn', presets: 'presetMoreBtn' }; // buttons that mirror the open state in aria-expanded
+const TITLES = { community: 'Community', presets: 'Presets', mine: 'My gradients' };
+const BUTTONS = { community: 'communityBtn', presets: 'presetMoreBtn', mine: 'myMoreBtn' }; // buttons that mirror the open state in aria-expanded
 const listeners = new Set();
 let kind = null;
 

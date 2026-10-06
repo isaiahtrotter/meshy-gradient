@@ -8,12 +8,13 @@ import { serializeConfig } from './state.js';
 import { $, showToast } from './dom.js';
 import { whenClient, onUser, startSignIn } from './auth.js';
 import { applyPreset, renderPresetThumb } from './presets.js';
-import { toggleSideTab, onSideTabOpen } from './sideTab.js';
+import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
 import { masonry, thumbRatio } from './masonry.js';
 
 let client = null, me = null;
 let current = null; // the saved gradient being edited: { id }, or null for an unsaved one
 let busy = false;
+const DUPLICATE = '23505'; // Postgres unique violation: the gradient is identical to one already saved / published
 
 // Anything that fails shows next to the button that was pressed. A missing table means schema.sql hasn't been run yet.
 function fail(anchor, error) {
@@ -22,18 +23,48 @@ function fail(anchor, error) {
 }
 
 // ---------- My gradients (private saves) ----------
+// Like the presets grid: the sidebar shows the first GRID_SLOTS saved gradients, and once there are that many the
+// last tile carries "+N" for the rest and opens them all in the side tab.
+const GRID_SLOTS = 8;
+let mineRows = [];
 function renderMine(rows) {
+  mineRows = rows;
   const wrap = $('myList');
   wrap.innerHTML = '';
   $('myEmpty').hidden = rows.length > 0;
-  for (const row of rows) {
+  rows.slice(0, GRID_SLOTS).forEach((row, i) => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'preset';
+    if (row.thumb) b.style.backgroundImage = `url(${row.thumb})`;
+    if (i === GRID_SLOTS - 1) {
+      b.id = 'myMoreBtn'; b.setAttribute('aria-controls', 'communityTab'); b.setAttribute('aria-expanded', String(sideTabKind() === 'mine'));
+      b.setAttribute('aria-label', `Show all ${rows.length} saved gradients`);
+      const more = document.createElement('span'); more.className = 'preset-more'; more.textContent = `+${rows.length - GRID_SLOTS}`;
+      b.appendChild(more);
+      b.addEventListener('click', () => toggleSideTab('mine'));
+    } else {
+      b.title = row.name; b.setAttribute('aria-label', row.name);
+      b.classList.toggle('current', current?.id === row.id);
+      b.addEventListener('click', () => openMine(row, b));
+    }
+    wrap.appendChild(b);
+  });
+  if (sideTabKind() === 'mine') renderMineTab();
+}
+// The side tab's pane: every saved gradient as masonry, each at its own shape.
+let mineToken = 0;
+async function renderMineTab() {
+  const token = ++mineToken;
+  const ratios = await Promise.all(mineRows.map(r => thumbRatio(r.thumb)));
+  if (token !== mineToken) return;
+  masonry($('mineTabList'), mineRows.map((row, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ct-thumb';
+    b.style.aspectRatio = `1 / ${ratios[i]}`;
     if (row.thumb) b.style.backgroundImage = `url(${row.thumb})`;
     b.title = row.name; b.setAttribute('aria-label', row.name);
     b.classList.toggle('current', current?.id === row.id);
     b.addEventListener('click', () => openMine(row, b));
-    wrap.appendChild(b);
-  }
+    return { el: b, ratio: ratios[i] };
+  }), 4);
 }
 async function refreshMine() {
   if (!client || !me) return;
@@ -121,7 +152,7 @@ async function deletePublished(row, anchor) {
 
 // The tab beside the sidebar (sideTab.js): opening it refreshes the list.
 $('communityBtn').addEventListener('click', () => toggleSideTab('community'));
-onSideTabOpen(kind => { if (kind === 'community') refreshPublic(); });
+onSideTabOpen(kind => { if (kind === 'community') refreshPublic(); if (kind === 'mine') renderMineTab(); });
 
 // ---------- Saving and publishing ----------
 // Runs `task` with the buttons disabled, so a double click can't save twice.
@@ -139,6 +170,7 @@ const authorName = () => me.user_metadata?.full_name || me.user_metadata?.name |
 async function saveNew(anchor) {
   await guarded(anchor, async () => {
     const { data, error } = await client.from('gradients').insert({ ...snapshotRow($('gName').value), user_id: me.id, author_name: authorName(), is_public: false }).select('id').single();
+    if (error?.code === DUPLICATE) { showToast(anchor, 'Already saved'); return; } // an identical gradient is already in your saved ones
     if (error) throw error;
     current = { id: data.id };
     showToast(anchor, 'Saved');
@@ -149,6 +181,7 @@ async function updateCurrent(anchor) {
   if (!current) return;
   await guarded(anchor, async () => {
     const { error } = await client.from('gradients').update({ ...snapshotRow($('gName').value), author_name: authorName(), updated_at: new Date().toISOString() }).eq('id', current.id);
+    if (error?.code === DUPLICATE) { showToast(anchor, 'Same as another saved one'); return; }
     if (error) throw error;
     showToast(anchor, 'Updated');
     await refreshMine();
@@ -197,7 +230,7 @@ $('publishConfirm').addEventListener('click', async () => {
   $('publishError').hidden = true;
   await guarded(anchor, async () => {
     const { error } = await client.from('gradients').insert({ ...snapshotRow($('pubName').value), user_id: me.id, author_name: authorName(), is_public: true });
-    if (error?.code === '23505') { // unique violation: an identical gradient is already published
+    if (error?.code === DUPLICATE) { // unique violation: an identical gradient is already published
       $('publishError').textContent = 'This exact gradient is already in the community. Change something about it to make it unique, then publish.';
       $('publishError').hidden = false;
       return;

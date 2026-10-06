@@ -26,6 +26,10 @@ alter table public.gradients add column if not exists config_hash text generated
 -- (Table Editor → gradients, filter is_public) and run it again.
 create unique index if not exists gradients_public_unique on public.gradients (config_hash) where is_public;
 
+-- ...and you can't keep the same gradient twice in your own saved ones (each user's private rows are unique to them).
+-- Same advice if this fails: two of your saved rows are identical, so delete the extra one first.
+create unique index if not exists gradients_saved_unique on public.gradients (user_id, config_hash) where not is_public;
+
 create index if not exists gradients_public_idx on public.gradients (created_at desc) where is_public;
 
 alter table public.gradients enable row level security;
