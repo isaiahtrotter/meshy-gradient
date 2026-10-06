@@ -18,7 +18,7 @@ export const hardToRadius = k => (15 + 400 / (k + 2)) * session.zoom;
 export const radiusToHard = R => clamp(400 / Math.max(1, R / session.zoom - 15) - 2, HARD_K_MIN, HARD_K_MAX);
 // the same idea at a smaller size for a stroke's stop rings: k=1 → 40px, k=2.2 → 31px, k=40 → 10px (at 100% zoom)
 export const stopHardToRadius = k => (8 + 96 / (k + 2)) * session.zoom;
-export const stopRadiusToHard = R => clamp(96 / Math.max(1, R / session.zoom - 8) - 2, HARD_K_MIN, STROKE_K_MAX);
+export const stopRadiusToHard = R => clamp(96 / Math.max(0.01, R / session.zoom - 8) - 2, HARD_K_MIN, STROKE_K_MAX);
 
 export const handleEls = new Map(), ctlEls = new Map();
 // Arc/line arms are drawn at true length (a fraction of the frame's long side, which already scales with zoom

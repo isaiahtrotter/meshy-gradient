@@ -8,7 +8,7 @@
 
 import { MAX_STROKE_PTS, HARD_K_MIN, STROKE_K_MAX, clamp, isNum } from './constants.js';
 
-export const STOP_M_MIN = 0.01, STOP_M_MAX = 1000;
+export const STOP_M_MIN = 0.01, STOP_M_MAX = 10000;
 export const defaultStops = () => [{ t: 0, m: 1 }, { t: 1, m: 1 }];
 
 export function cumLengths(pts) {
