@@ -207,7 +207,7 @@ function beginStopMove(e, n, i) {
   const interior = i > 0 && i < n.stops.length - 1;
   if (e.altKey) { if (interior) { pushUndo(); n.stops.splice(i, 1); refreshAll(); } return; }
   session.stopSel = interior ? { id: n.id, i } : null;
-  session.drag = { type: 'stopMove', n, i, snap: snapshot(), moved: false, pinned: !interior, pts0: interior ? null : n.pts.map(q => [q[0], q[1]]) };
+  session.drag = { type: 'stopMove', n, i, snap: snapshot(), moved: false, pinned: !interior, pts0: interior ? null : n.pts.map(q => [q[0], q[1]]), x0: n.x, y0: n.y };
   overlay.setPointerCapture(e.pointerId);
 }
 // Dragging an end of the path moves that end to the pointer. The points near it follow with a smooth falloff
@@ -216,7 +216,7 @@ const END_FALLOFF = 0.25;
 function moveEnd(drag, p) {
   const { n, i } = drag, d = maxDim(), first = i === 0, pts = drag.pts0;
   const cs = Math.cos(n.th), sn = Math.sin(n.th);
-  const lx = p.px - n.x * d.w, ly = p.py - n.y * d.h;
+  const lx = p.px - drag.x0 * d.w, ly = p.py - drag.y0 * d.h; // measured from the pivot the drag started with
   const target = [(lx * cs + ly * sn) / d.m, (-lx * sn + ly * cs) / d.m]; // inverse of strokeWorld's rotation
   const end = pts[first ? 0 : pts.length - 1], dx = target[0] - end[0], dy = target[1] - end[1];
   const cum = cumLengths(pts), total = cum[cum.length - 1] || 1, r5 = v => Math.round(v * 1e5) / 1e5;
@@ -224,6 +224,7 @@ function moveEnd(drag, p) {
     const s = (first ? cum[j] : total - cum[j]) / (total * END_FALLOFF), u = Math.max(0, 1 - s), w = u * u * (3 - 2 * u);
     return [r5(q[0] + dx * w), r5(q[1] + dy * w)];
   });
+  n.x = drag.x0; n.y = drag.y0; recenterStroke(n, d); // the node follows the middle of the line as its length changes
   drag.moved = true;
 }
 function moveStop(drag, p) {
@@ -302,7 +303,6 @@ function endDrag(e) {
     if (drag.moved) pushUndo(drag.snap);
     overlay.querySelectorAll('.hard-ring.active, .stop-ring.active').forEach(el => el.classList.remove('active')); stage.classList.remove('hard-dragging');
   }
-  if (drag.type === 'stopMove' && drag.pinned && drag.moved) recenterStroke(drag.n, maxDim()); // an end moved: keep the node mid-line
   if (drag.type === 'draw' && drag.n) pushUndo(drag.snap);
   if (drag.type === 'move') {
     if (drag.moved) pushUndo(drag.snap);
