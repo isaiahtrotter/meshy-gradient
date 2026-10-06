@@ -97,9 +97,9 @@ async function openMine(row, anchor) {
 // database can't be read, or has nothing published yet, the original presets (featured-gradients.json) stand in so the
 // grid is never empty; they carry their own config and the credit FALLBACK_AUTHOR.
 const FALLBACK_AUTHOR = 'eyezayuh';
-let pubRows = [], fallbackRows = [], loadProblem = '';
+let pubRows = [], fallbackRows = [], loadProblem = '', loadedOnce = false;
 function rebuildPublic() {
-  $('communityEmpty').textContent = loadProblem ? `Couldn’t load the community list: ${loadProblem}` : 'No community gradients yet.';
+  $('communityEmpty').textContent = loadProblem ? `Couldn’t load the community list: ${loadProblem}` : 'No published gradients found in the database yet.';
   renderPublic(); renderCommunityGrid();
 }
 const shownRows = () => (pubRows.length ? pubRows : fallbackRows);
@@ -145,7 +145,7 @@ function renderCommunityGrid() {
   const wrap = $('communityGrid');
   wrap.innerHTML = '';
   const rows = shownRows();
-  $('communityEmpty').hidden = rows.length > 0 && !loadProblem;
+  $('communityEmpty').hidden = !loadProblem && (pubRows.length > 0 || !loadedOnce); // also explains why the original gradients are standing in
   rows.slice(0, GRID_SLOTS).forEach((row, i) => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'preset';
     if (row.thumb) b.style.backgroundImage = `url(${row.thumb})`;
@@ -166,7 +166,7 @@ async function refreshPublic() {
   if (!client) return;
   const { data, error } = await client.from('gradients').select('id, thumb, author_name, author_twitter, user_id').eq('is_public', true).order('created_at', { ascending: false }).limit(200);
   if (error) { console.error(error); loadProblem = error.message || 'unknown error'; rebuildPublic(); return; } // the fallback fills the grid
-  loadProblem = ''; pubRows = data; rebuildPublic();
+  loadProblem = ''; loadedOnce = true; pubRows = data; rebuildPublic();
   pushProfile(); // re-credit any of your rows that are out of date
 }
 async function openPublic(row, anchor) {
