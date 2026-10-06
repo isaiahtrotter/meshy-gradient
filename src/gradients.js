@@ -8,6 +8,7 @@ import { serializeConfig } from './state.js';
 import { $, showToast } from './dom.js';
 import { whenClient, onUser } from './auth.js';
 import { applyPreset, renderPresetThumb } from './presets.js';
+import { toggleSideTab, onSideTabOpen } from './sideTab.js';
 
 let client = null, me = null;
 let current = null; // the saved gradient being edited: { id }, or null for an unsaved one
@@ -112,15 +113,9 @@ async function deletePublished(row, anchor) {
   });
 }
 
-// The tab beside the sidebar.
-function setTab(open) {
-  $('communityTab').hidden = !open;
-  $('communityBtn').setAttribute('aria-expanded', String(open));
-  if (open) refreshPublic();
-}
-$('communityBtn').addEventListener('click', () => setTab($('communityTab').hidden));
-$('ctClose').addEventListener('click', () => setTab(false));
-document.addEventListener('keydown', e => { if (!$('communityTab').hidden && e.key === 'Escape' && $('publishModal').hidden) { e.stopPropagation(); setTab(false); } }, true);
+// The tab beside the sidebar (sideTab.js): opening it refreshes the list.
+$('communityBtn').addEventListener('click', () => toggleSideTab('community'));
+onSideTabOpen(kind => { if (kind === 'community') refreshPublic(); });
 
 // ---------- Saving and publishing ----------
 // Runs `task` with the buttons disabled, so a double click can't save twice.

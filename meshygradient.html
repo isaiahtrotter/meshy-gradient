@@ -208,8 +208,13 @@ window.addEventListener('error', function () {
   <div class="community-tab" id="communityTab" hidden role="complementary" aria-labelledby="ctTitle">
     <div class="ct-head"><h2 id="ctTitle">Community</h2><button id="ctClose" class="settings-close" type="button" aria-label="Close community">&times;</button></div>
     <div class="ct-scroll">
-      <div class="ct-grid" id="pubList"></div>
-      <div class="empty" id="pubEmpty">No community gradients yet.</div>
+      <div data-pane="community">
+        <div class="ct-grid" id="pubList"></div>
+        <div class="empty" id="pubEmpty">No community gradients yet.</div>
+      </div>
+      <div data-pane="presets" hidden>
+        <div class="ct-grid" id="presetTabList"></div>
+      </div>
     </div>
   </div>
   <aside class="panel">

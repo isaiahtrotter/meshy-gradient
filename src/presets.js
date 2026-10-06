@@ -11,6 +11,7 @@ import { scheduleSave } from './persistence.js';
 import { syncControlsFromState } from './controls.js';
 import { normalizeNode } from './nodes.js';
 import { makeRenderer } from './renderer.js';
+import { toggleSideTab, onSideTabOpen } from './sideTab.js';
 
 const GRAIN_TYPES = ['mono', 'duo', 'multi'];
 const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay'];
@@ -52,19 +53,52 @@ export function applyPreset(p) {
   layout(); refreshAll(); scheduleSave();
   setStatus('Applied preset.');
 }
+// The sidebar grid shows this many presets; the last of them carries a "+N" for the rest and opens the side tab.
+const GRID_SLOTS = 8;
+let allPresets = [];
+const thumbCache = new Map(); // index -> data URL, so a preset is only ever rendered once
+const thumbFor = i => {
+  if (!thumbCache.has(i)) thumbCache.set(i, renderPresetThumb(allPresets[i]));
+  return thumbCache.get(i);
+};
 function renderPresets(presets) {
+  allPresets = presets; thumbCache.clear();
   const wrap = $('presets');
   wrap.innerHTML = '';
   $('presetsEmpty').hidden = presets.length > 0;
-  presets.forEach((p, i) => {
+  presets.slice(0, GRID_SLOTS).forEach((p, i) => {
     const b = document.createElement('button'); b.className = 'preset'; b.type = 'button';
-    b.setAttribute('aria-label', `Apply preset ${i + 1}`);
-    const thumb = renderPresetThumb(p);
+    const thumb = thumbFor(i);
     if (thumb) b.style.backgroundImage = `url(${thumb})`;
-    b.addEventListener('click', () => applyPreset(p));
+    if (i === GRID_SLOTS - 1) {
+      // the corner tile: a count of the presets that don't fit, and it opens all of them in the side tab
+      b.id = 'presetMoreBtn'; b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-controls', 'communityTab');
+      b.setAttribute('aria-label', `Show all ${presets.length} presets`);
+      const more = document.createElement('span'); more.className = 'preset-more'; more.textContent = `+${Math.max(0, presets.length - GRID_SLOTS)}`;
+      b.appendChild(more);
+      b.addEventListener('click', () => toggleSideTab('presets'));
+    } else {
+      b.setAttribute('aria-label', `Apply preset ${i + 1}`);
+      b.addEventListener('click', () => applyPreset(p));
+    }
     wrap.appendChild(b);
   });
 }
+// The side tab's pane: every preset, rendered when the tab opens (thumbnails are cached from then on).
+function renderPresetTab() {
+  const wrap = $('presetTabList');
+  wrap.innerHTML = '';
+  allPresets.forEach((p, i) => {
+    const card = document.createElement('div'); card.className = 'ct-card';
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ct-thumb';
+    const thumb = thumbFor(i);
+    if (thumb) b.style.backgroundImage = `url(${thumb})`;
+    b.setAttribute('aria-label', `Apply preset ${i + 1}`);
+    b.addEventListener('click', () => applyPreset(p));
+    card.appendChild(b); wrap.appendChild(card);
+  });
+}
+onSideTabOpen(kind => { if (kind === 'presets') renderPresetTab(); });
 // Fetches presets.json once and caches the promise; safe to call from multiple places.
 let presetsPromise = null;
 export function fetchPresets() {
