@@ -6,7 +6,7 @@ import { PX_PER_SPREAD, ARM_MIN, HARD_K_MIN, HARD_K_MAX, STROKE_K_MAX, clamp } f
 import { state } from './state.js';
 import { session } from './session.js';
 import { armAngle, armEnds, arcCurves } from './nodes.js';
-import { cumLengths, pointAt, strokeWorld, strokeK, localToWorld } from './stroke.js';
+import { cumLengths, pointAt, strokeWorld, strokeK } from './stroke.js';
 import { rgbaCss } from './color.js';
 import { overlay, maxDim, normPos, setStyle } from './dom.js';
 
@@ -71,9 +71,6 @@ function ensureStrokeControls(c, n) {
   c.path.innerHTML = '<path class="hit"><title>Click to add a hardness stop</title></path><path class="line"/>';
   c.path.querySelector('.hit').dataset.id = n.id;
   c.stops = [];
-  c.bzLines = document.createElementNS(SVG_NS, 'svg'); c.bzLines.setAttribute('class', 'bz-lines'); c.bzLines.innerHTML = '<path/>';
-  c.bz = [];
-  overlay.insertBefore(c.bzLines, c.ring);
   // under the main ring, so where the two cross the ring still rotates instead of adding a stop
   overlay.insertBefore(c.path, c.ring);
 }
@@ -94,41 +91,7 @@ function syncStopEls(c, n) {
     if (end) s.dot.removeAttribute('title'); else s.dot.title = 'Drag along the stroke to move. ⌥-click to remove';
   });
 }
-// One square per anchor (the two ends are the white end dots instead) and a round handle on each side of it, joined
-// by thin lines. A handle with zero length (an open end) is hidden.
-function syncBezEls(c, n) {
-  while (c.bz.length < n.anchors.length) {
-    const mk = (cls, part) => {
-      const el = document.createElement('div'); el.className = cls; el.dataset.id = n.id; el.dataset.part = part;
-      overlay.appendChild(el); return el;
-    };
-    c.bz.push({ a: mk('bz-anchor', 'a'), i: mk('bz-handle', 'i'), o: mk('bz-handle', 'o') });
-  }
-  while (c.bz.length > n.anchors.length) { const b = c.bz.pop(); b.a.remove(); b.i.remove(); b.o.remove(); }
-}
-function layoutBez(c, n, cx, cy, dims, show) {
-  syncBezEls(c, n);
-  const C = { x: cx, y: cy }, last = n.anchors.length - 1;
-  setStyle(c.bzLines, { width: dims.w + 'px', height: dims.h + 'px' }); c.bzLines.setAttribute('viewBox', `0 0 ${dims.w} ${dims.h}`);
-  let d = '';
-  n.anchors.forEach((a, idx) => {
-    const b = c.bz[idx], [ax, ay] = localToWorld(n, C, dims.m, a.x, a.y);
-    b.a.dataset.idx = b.i.dataset.idx = b.o.dataset.idx = idx;
-    b.a.style.display = show && idx > 0 && idx < last ? 'block' : 'none';
-    setStyle(b.a, { left: ax + 'px', top: ay + 'px' });
-    for (const k of ['i', 'o']) {
-      const hx = a[k + 'x'], hy = a[k + 'y'], el = b[k], has = show && (hx !== 0 || hy !== 0);
-      el.style.display = has ? 'block' : 'none';
-      if (!has) continue;
-      const [px, py] = localToWorld(n, C, dims.m, a.x + hx, a.y + hy);
-      setStyle(el, { left: px + 'px', top: py + 'px' });
-      d += `M ${ax.toFixed(1)} ${ay.toFixed(1)} L ${px.toFixed(1)} ${py.toFixed(1)} `;
-    }
-  });
-  c.bzLines.firstChild.setAttribute('d', d);
-  c.bzLines.style.display = show ? 'block' : 'none';
-}
-function layoutStroke(c, n, cx, cy, dims, drawing) {
+function layoutStroke(c, n, cx, cy, dims) {
   const P = strokeWorld(n, { x: cx, y: cy }, dims.m), cum = cumLengths(P);
   setStyle(c.path, { width: dims.w + 'px', height: dims.h + 'px' }); c.path.setAttribute('viewBox', `0 0 ${dims.w} ${dims.h}`);
   // quadratic curves through the segment midpoints, so the drawn line has no corners
@@ -138,7 +101,6 @@ function layoutStroke(c, n, cx, cy, dims, drawing) {
   d += ` L ${f(P[P.length - 1][0])} ${f(P[P.length - 1][1])}`;
   for (const p of c.path.children) p.setAttribute('d', d);
   syncStopEls(c, n);
-  layoutBez(c, n, cx, cy, dims, !drawing);
   n.stops.forEach((st, i) => {
     const [sx, sy] = pointAt(P, cum, st.t), { dot, ring } = c.stops[i];
     setStyle(dot, { left: sx + 'px', top: sy + 'px' });
@@ -152,10 +114,6 @@ const setStrokeShown = (c, pathOn, stopsOn) => {
   if (!c.path) return;
   c.path.style.display = pathOn ? 'block' : 'none';
   for (const s of c.stops) s.dot.style.display = s.ring.style.display = stopsOn ? 'block' : 'none';
-  if (!stopsOn) {
-    c.bzLines.style.display = 'none';
-    for (const b of c.bz) b.a.style.display = b.i.style.display = b.o.style.display = 'none';
-  }
 };
 
 const ARC_SAMPLES = 48;
@@ -210,7 +168,7 @@ export function refreshHandles() {
     const armLen = (v, dir) => (drag && drag.type === 'spread' && drag.n === n && drag.side === dir) ? Math.max(0, v * scale) : Math.max(ARM_MIN, v * scale);
     const gap = 9; // flush against the 20px main node
     if (isStroke) {
-      layoutStroke(c, n, cx, cy, dims, drawing);
+      layoutStroke(c, n, cx, cy, dims);
       if (drawing) continue;
     } else if (isArc) {
       const C = { x: cx, y: cy }, { l: P1, r: P2 } = armEnds(n, C, dims.m);
@@ -238,10 +196,7 @@ export function refreshHandles() {
   for (const [id, c] of ctlEls) {
     if (live.has(id)) continue;
     [...Object.values(c.arms), ...Object.values(c.hs), c.lbl, c.ring, c.arc, c.unlink].forEach(el => el.remove());
-    if (c.path) {
-      c.path.remove(); c.bzLines.remove(); c.stops.forEach(s => { s.dot.remove(); s.ring.remove(); });
-      c.bz.forEach(b => { b.a.remove(); b.i.remove(); b.o.remove(); });
-    }
+    if (c.path) { c.path.remove(); c.stops.forEach(s => { s.dot.remove(); s.ring.remove(); }); }
     ctlEls.delete(id);
   }
 }

@@ -101,63 +101,7 @@ export function stopFactor(stops, t) {
 }
 export const strokeK = (n, t) => clamp(n.k * stopFactor(n.stops, t), HARD_K_MIN, STROKE_K_MAX);
 
-// ---------- Bezier anchors ----------
-// A stroke's editable form: anchors { x, y, ix, iy, ox, oy, br? } in the same local space as `pts`, where (ix, iy)
-// and (ox, oy) are the in and out handles as offsets from the anchor. The path is the cubic Bezier through them,
-// and `pts` is just that curve sampled for the renderer (sampleAnchors). `br` marks a broken tangent: its two
-// handles move independently instead of staying in line.
-const r5 = v => Math.round(v * 1e5) / 1e5;
-const ANCHOR_SPACING = 0.08, MAX_ANCHORS = 10, SAMPLE_SPACING = 0.0125; // long-side fractions (~64px and ~10px)
-
-// Anchors spread evenly along a path, with Catmull-Rom tangents so the curve follows it closely.
-export function fitAnchors(pts) {
-  const cum = cumLengths(pts), total = cum[cum.length - 1];
-  const n = clamp(Math.round(total / ANCHOR_SPACING) + 1, 2, MAX_ANCHORS);
-  const P = Array.from({ length: n }, (_, j) => pointAt(pts, cum, j / (n - 1)));
-  return P.map((p, j) => {
-    const a = { x: r5(p[0]), y: r5(p[1]), ix: 0, iy: 0, ox: 0, oy: 0 };
-    const prev = P[j - 1], next = P[j + 1];
-    if (prev && next) { a.ox = r5((next[0] - prev[0]) / 6); a.oy = r5((next[1] - prev[1]) / 6); a.ix = -a.ox; a.iy = -a.oy; }
-    else if (next) { a.ox = r5((next[0] - p[0]) / 3); a.oy = r5((next[1] - p[1]) / 3); }
-    else { a.ix = r5((prev[0] - p[0]) / 3); a.iy = r5((prev[1] - p[1]) / 3); }
-    return a;
-  });
-}
-
-// The anchors' curve as a polyline of at most MAX_STROKE_PTS points, evenly spaced by arc length.
-export function sampleAnchors(anchors) {
-  const dense = [[anchors[0].x, anchors[0].y]];
-  for (let i = 1; i < anchors.length; i++) {
-    const a = anchors[i - 1], b = anchors[i];
-    const x1 = a.x + a.ox, y1 = a.y + a.oy, x2 = b.x + b.ix, y2 = b.y + b.iy;
-    for (let s = 1; s <= 32; s++) {
-      const t = s / 32, u = 1 - t, w0 = u * u * u, w1 = 3 * u * u * t, w2 = 3 * u * t * t, w3 = t * t * t;
-      dense.push([w0 * a.x + w1 * x1 + w2 * x2 + w3 * b.x, w0 * a.y + w1 * y1 + w2 * y2 + w3 * b.y]);
-    }
-  }
-  const total = cumLengths(dense).pop();
-  return resample(dense, clamp(Math.round(total / SAMPLE_SPACING) + 1, 2, MAX_STROKE_PTS)).map(([x, y]) => [r5(x), r5(y)]);
-}
-
-// Local path space ↔ frame px: rotate by th about the pivot C, lengths × scale (the same transform as strokeWorld).
-export function localToWorld(n, C, scale, x, y) {
-  const c = Math.cos(n.th) * scale, s = Math.sin(n.th) * scale;
-  return [C.x + x * c - y * s, C.y + x * s + y * c];
-}
-export function worldToLocal(n, C, scale, px, py) {
-  const c = Math.cos(n.th), s = Math.sin(n.th), dx = px - C.x, dy = py - C.y;
-  return [(dx * c + dy * s) / scale, (-dx * s + dy * c) / scale];
-}
-
 // ---------- normalizer helpers (nodes.js) ----------
-const anchorOk = a => a && isNum(a.x) && isNum(a.y) && isNum(a.ix) && isNum(a.iy) && isNum(a.ox) && isNum(a.oy);
-export function sanitizeAnchors(raw, pts) {
-  if (Array.isArray(raw) && raw.length >= 2 && raw.length <= MAX_ANCHORS && raw.every(anchorOk)) {
-    return raw.map(a => ({ x: a.x, y: a.y, ix: a.ix, iy: a.iy, ox: a.ox, oy: a.oy, ...(a.br ? { br: true } : {}) }));
-  }
-  return fitAnchors(pts);
-}
-
 export function sanitizePts(raw) {
   const pts = Array.isArray(raw) ? raw.filter(p => Array.isArray(p) && isNum(p[0]) && isNum(p[1])).map(p => [p[0], p[1]]) : [];
   if (pts.length < 2) return [[-0.1, 0], [0.1, 0]];

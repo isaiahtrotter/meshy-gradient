@@ -13,7 +13,7 @@ import { state, nodeById, cloneNode, addNode, selectOnly, selectedNodes, toggleS
 import { session } from './session.js';
 import { snapshot, pushUndo } from './undo.js';
 import { armAngle, SIDE_KEY, ANGLE_KEY, OPPOSITE_SIDE } from './nodes.js';
-import { cumLengths, pointAt, nearestT, smoothStroke, strokeFromPath, strokeWorld, fitAnchors, sampleAnchors, worldToLocal, strokeK, stopFactor, STOP_M_MIN, STOP_M_MAX } from './stroke.js';
+import { cumLengths, pointAt, nearestT, smoothStroke, strokeFromPath, strokeWorld, strokeK, stopFactor, STOP_M_MIN, STOP_M_MAX } from './stroke.js';
 import { wrapAngle } from './geometry.js';
 import { stage, overlay, work, normPos, maxDim, frameRect, setStatus } from './dom.js';
 import { view, applyPan, draw } from './view.js';
@@ -48,8 +48,6 @@ overlay.addEventListener('pointerdown', e => {
     ring.classList.add('active'); stage.classList.add('hard-dragging');
     overlay.setPointerCapture(e.pointerId); return;
   }
-  const bez = e.target.closest('.bz-anchor, .bz-handle');
-  if (bez) { beginBez(e, bez); return; }
   const stopDot = e.target.closest('.stop-dot');
   if (stopDot) { beginStopMove(e, nodeById(+stopDot.dataset.id), +stopDot.dataset.stop); return; }
   const stopRing = e.target.closest('.stop-ring');
@@ -171,7 +169,7 @@ function moveMarquee(drag, p) {
 const DRAW_MIN_PX = 6;      // shorter than this and it was a click, not a stroke
 const STROKE_SPACING_PX = 10; // target distance between the stored path points, on screen at the time of drawing
 const STOP_GAP = 0.01;      // how close (in t) two stops may get
-const round4 = v => Math.round(v * 1e4) / 1e4, round5 = v => Math.round(v * 1e5) / 1e5;
+const round4 = v => Math.round(v * 1e4) / 1e4;
 // The stroke's path in frame px, as it's laid out on screen.
 function strokeScreen(n) {
   const d = maxDim(), P = strokeWorld(n, { x: n.x * d.w, y: n.y * d.h }, d.m);
@@ -207,38 +205,23 @@ function beginStopMove(e, n, i) {
   if (!n) return;
   const interior = i > 0 && i < n.stops.length - 1;
   if (e.altKey) { if (interior) { pushUndo(); n.stops.splice(i, 1); refreshAll(); } return; }
-  session.drag = { type: 'stopMove', n, i, snap: snapshot(), moved: false, pinned: !interior };
+  session.drag = { type: 'stopMove', n, i, snap: snapshot(), moved: false, pinned: !interior, pts0: interior ? null : n.pts.map(q => [q[0], q[1]]) };
   overlay.setPointerCapture(e.pointerId);
 }
-// Dragging an end of the path moves that end's anchor, handles and all, so the curve keeps its shape.
+// Dragging an end of the path moves that end to the pointer. The points near it follow with a smooth falloff
+// over the first quarter of the path, so the stroke bends instead of kinking at the end point.
+const END_FALLOFF = 0.25;
 function moveEnd(drag, p) {
-  const { n, i } = drag, d = maxDim(), a = n.anchors[i === 0 ? 0 : n.anchors.length - 1];
-  const [x, y] = worldToLocal(n, { x: n.x * d.w, y: n.y * d.h }, d.m, p.px, p.py);
-  a.x = round5(x); a.y = round5(y);
-  n.pts = sampleAnchors(n.anchors);
-  drag.moved = true;
-}
-// Bezier controls: an anchor drags its point (handles ride along); a handle sets its offset from the anchor and, unless
-// the tangent is broken (⌥ while dragging), the opposite handle swings to stay in line with it, keeping its length.
-function beginBez(e, el) {
-  const n = nodeById(+el.dataset.id); if (!n) return;
-  session.drag = { type: 'bez', n, idx: +el.dataset.idx, part: el.dataset.part, snap: snapshot(), moved: false };
-  overlay.setPointerCapture(e.pointerId);
-}
-function moveBez(drag, p, e) {
-  const { n, part } = drag, a = n.anchors[drag.idx], d = maxDim();
-  const [x, y] = worldToLocal(n, { x: n.x * d.w, y: n.y * d.h }, d.m, p.px, p.py);
-  if (part === 'a') { a.x = round5(x); a.y = round5(y); }
-  else {
-    const k = part === 'i' ? 'i' : 'o', q = part === 'i' ? 'o' : 'i';
-    a[k + 'x'] = round5(x - a.x); a[k + 'y'] = round5(y - a.y);
-    if (e.altKey) a.br = true;
-    if (!a.br) {
-      const len = Math.hypot(a[k + 'x'], a[k + 'y']), oldLen = Math.hypot(a[q + 'x'], a[q + 'y']), keep = oldLen || len;
-      if (len > 0) { a[q + 'x'] = round5(-a[k + 'x'] / len * keep); a[q + 'y'] = round5(-a[k + 'y'] / len * keep); }
-    }
-  }
-  n.pts = sampleAnchors(n.anchors);
+  const { n, i } = drag, d = maxDim(), first = i === 0, pts = drag.pts0;
+  const cs = Math.cos(n.th), sn = Math.sin(n.th);
+  const lx = p.px - n.x * d.w, ly = p.py - n.y * d.h;
+  const target = [(lx * cs + ly * sn) / d.m, (-lx * sn + ly * cs) / d.m]; // inverse of strokeWorld's rotation
+  const end = pts[first ? 0 : pts.length - 1], dx = target[0] - end[0], dy = target[1] - end[1];
+  const cum = cumLengths(pts), total = cum[cum.length - 1] || 1, r5 = v => Math.round(v * 1e5) / 1e5;
+  n.pts = pts.map((q, j) => {
+    const s = (first ? cum[j] : total - cum[j]) / (total * END_FALLOFF), u = Math.max(0, 1 - s), w = u * u * (3 - 2 * u);
+    return [r5(q[0] + dx * w), r5(q[1] + dy * w)];
+  });
   drag.moved = true;
 }
 function moveStop(drag, p) {
@@ -288,7 +271,6 @@ stage.addEventListener('pointermove', e => {
   if (drag.type === 'spread') { moveSpread(drag, p, e); refreshHandles(); draw(); }
   else if (drag.type === 'hard') { moveHard(drag, p, e); refreshHandles(); draw(); }
   else if (drag.type === 'draw') { moveDraw(drag, e); refreshSelection(); draw(); }
-  else if (drag.type === 'bez') { moveBez(drag, p, e); refreshHandles(); draw(); }
   else if (drag.type === 'stopMove') { moveStop(drag, p); refreshHandles(); draw(); }
   else if (drag.type === 'stopHard') { moveStopHard(drag, p); refreshHandles(); draw(); }
   else if (drag.type === 'move') {
@@ -313,15 +295,11 @@ function endDrag(e) {
   const drag = session.drag;
   if (!drag) return;
   if (drag.type === 'pan') { stage.classList.remove('panning'); session.drag = null; return; }
-  if (drag.type === 'spread' || drag.type === 'hard' || drag.type === 'stopMove' || drag.type === 'stopHard' || drag.type === 'bez') {
+  if (drag.type === 'spread' || drag.type === 'hard' || drag.type === 'stopMove' || drag.type === 'stopHard') {
     if (drag.moved) pushUndo(drag.snap);
     overlay.querySelectorAll('.hard-ring.active, .stop-ring.active').forEach(el => el.classList.remove('active')); stage.classList.remove('hard-dragging');
   }
-  if (drag.type === 'draw' && drag.n) {
-    // hand the finished stroke over to Bezier anchors: the path becomes the fitted curve, which is what gets edited
-    drag.n.anchors = fitAnchors(drag.n.pts); drag.n.pts = sampleAnchors(drag.n.anchors);
-    pushUndo(drag.snap);
-  }
+  if (drag.type === 'draw' && drag.n) pushUndo(drag.snap);
   if (drag.type === 'move') {
     if (drag.moved) pushUndo(drag.snap);
     else if (drag.duplicating && drag.cloneIds) { removeNodes(new Set(drag.cloneIds)); state.selected = new Set(drag.sourceIds); }
