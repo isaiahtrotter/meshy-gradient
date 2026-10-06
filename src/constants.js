@@ -5,7 +5,7 @@ export const MAX_STROKE_PTS = 192;     // points per brush stroke; the columns o
 export const MAX_GRAD_STOPS = 8;      // stops per node's linear gradient; the columns of the renderer's gradient-stop texture
 export const HARD_K_MIN = 1, HARD_K_MAX = 40; // the range the hardness rings drag through
 export const MOBILE_BREAKPOINT = 820; // must match the @media (max-width) in styles.css
-export const CANVAS_MIN = 16, CANVAS_MAX = 8192, EXPORT_MAX = 16384;
+export const CANVAS_MIN = 150, CANVAS_MAX = 8192, EXPORT_MAX = 16384;
 // a brush stroke's stop hardness reaches far past the rings' range so a tip can narrow to a point
 export const STROKE_K_MAX = 10000;
 export const ZOOM_MIN = 0.25, ZOOM_MAX = 8;

@@ -1,6 +1,6 @@
 // Export: renders the gradient at the requested width on an offscreen canvas and downloads a JPG.
 
-import { EXPORT_MAX, clamp } from './constants.js';
+import { CANVAS_MIN, EXPORT_MAX, clamp } from './constants.js';
 import { state } from './state.js';
 import { $, setStatus } from './dom.js';
 import { makeRenderer } from './renderer.js';
@@ -27,7 +27,7 @@ $('scales').addEventListener('click', e => {
 
 $('exportBtn').addEventListener('click', async () => {
   if (!state.nodes.length) { setStatus('Add at least one node before exporting.', true); return; }
-  const w = clamp(Math.round(+$('ew').value) || state.w, 16, EXPORT_MAX);
+  const w = clamp(Math.round(+$('ew').value) || state.w, CANVAS_MIN, EXPORT_MAX);
   const h = Math.max(1, Math.round(w * state.h / state.w));
   const btn = $('exportBtn'); btn.disabled = true; setStatus(`Rendering ${w} × ${h}…`);
   let r = null;

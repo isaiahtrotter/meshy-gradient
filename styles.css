@@ -745,18 +745,17 @@ kbd {
 .ct-head h2 { margin: 0; font: 600 15px/1.2 var(--font-ui); color: var(--ink); text-transform: none; letter-spacing: 0; }
 .ct-head .settings-close { top: 14px; right: 14px; }
 .ct-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 20px 20px; }
-.ct-grid { display: flex; gap: 12px; align-items: flex-start; } /* masonry columns are filled by masonry.js */
-.ct-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.ct-grid-4, .ct-grid-4 .ct-col { gap: 8px; } /* presets: four columns, tighter */
+.ct-grid { display: flex; gap: 8px; align-items: flex-start; } /* masonry columns are filled by masonry.js */
+.ct-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .ct-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .ct-thumb {
   position: relative; display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; padding: 0; border-radius: var(--radius); border: 1px solid var(--line);
   background: #000 center / cover no-repeat; cursor: pointer;
 }
 .ct-thumb:hover { border-color: var(--line); }
-.ct-meta { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
-.ct-name { font: 500 12px/1.2 var(--font-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ct-by { font-size: 11px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ct-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; } /* four narrow columns: name, then Delete under it */
+.ct-name { max-width: 100%; font: 500 11px/1.2 var(--font-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ct-by { font-size: 10px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ct-del { flex: none; height: 22px; padding: 0 8px; border: none; border-radius: 6px; font: 500 11px/1 var(--font-ui); color: var(--ink); background: var(--ctrl-bg); cursor: pointer; }
 .ct-del:hover { color: #ff6b6b; }
 .ct-yours { position: absolute; left: 6px; bottom: 6px; padding: 1px 5px; border-radius: 3px; font: 500 9px/1.3 var(--font-ui); color: #fff; background: rgba(0,0,0,.55); }

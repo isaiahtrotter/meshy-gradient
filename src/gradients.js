@@ -92,7 +92,7 @@ async function renderPublic() {
     if (row.author_name && !mine) { const by = document.createElement('div'); by.className = 'ct-by'; by.textContent = `by ${row.author_name}`; card.appendChild(by); }
     return { el: card, ratio: ratios[i] };
   });
-  masonry($('pubList'), items, 2);
+  masonry($('pubList'), items, 4);
 }
 function renderCount() {
   const n = pubRows.length;
