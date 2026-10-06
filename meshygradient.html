@@ -110,6 +110,10 @@ window.addEventListener('error', function () {
           <div class="slabel"><b>Email</b><span id="accountEmailNote">Sign-in isn't set up yet.</span></div>
           <input class="sinput" id="accountEmail" type="text" value="Not signed in" disabled>
         </div>
+        <div class="srow" id="importRow" hidden>
+          <div class="slabel"><b>Original gradients</b><span id="importNote">Adds the original 8 gradients to the community under your name and Twitter handle. Safe to repeat.</span></div>
+          <button id="importOriginalsBtn" class="topbar-auth-btn signin" type="button">Add to community</button>
+        </div>
         <div class="srow">
           <button id="settingsSignInBtn" class="topbar-auth-btn primary" type="button">Sign in with Google</button>
           <button id="settingsSignOutBtn" class="topbar-auth-btn signin" type="button" hidden>Sign out</button>
