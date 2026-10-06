@@ -38,7 +38,6 @@ function renderMine(rows) {
   mineRows = rows;
   const wrap = $('myList');
   wrap.innerHTML = '';
-  $('myEmpty').hidden = rows.length > 0;
   rows.slice(0, GRID_SLOTS).forEach((row, i) => {
     const cell = document.createElement('div'); cell.className = 'preset-cell';
     const b = document.createElement('button'); b.type = 'button'; b.className = 'preset';
@@ -58,6 +57,12 @@ function renderMine(rows) {
     }
     wrap.appendChild(cell);
   });
+  // the grid always shows GRID_SLOTS places: empty ones (an outline) wait for the gradients you'll save, and a new
+  // account is just eight of them
+  for (let i = rows.length; i < GRID_SLOTS; i++) {
+    const empty = document.createElement('div'); empty.className = 'preset-empty'; empty.setAttribute('aria-hidden', 'true');
+    wrap.appendChild(empty);
+  }
   if (sideTabKind() === 'mine') renderMineTab();
 }
 // The side tab's pane: every saved gradient as masonry, each at its own shape.

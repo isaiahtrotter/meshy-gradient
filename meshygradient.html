@@ -407,7 +407,6 @@ window.addEventListener('error', function () {
       <div class="empty" id="mySignedOut">Sign in to save, edit and share your gradients.</div>
       <div id="mySignedIn" hidden>
         <div class="presets" id="myList"></div>
-        <div class="empty" id="myEmpty" hidden>Nothing saved yet.</div>
       </div>
     </section>
 
@@ -453,7 +452,7 @@ window.addEventListener('error', function () {
       <div class="slider"><span class="slider-label">Temperature</span><span class="slider-value" id="adjTempVal">0</span><input type="range" id="adjTemp" min="-100" max="100" step="1" value="0"><div class="adj-glow" data-for="temp"></div><div class="slider-edge"></div></div>
     </section>
 
-    <section>
+    <section data-collapse="export">
       <h2>Export</h2>
       <div class="row">
         <div class="dim-field"><span class="dim-prefix" id="ewScrub">W</span><input type="number" id="ew" min="150" max="16384" step="1" value="3200" disabled></div>

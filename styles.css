@@ -794,3 +794,6 @@ section[data-collapse] > h2[hidden] { display: none; }
 .topbar-auth-btn.danger { background: #c53030; border: 1px solid #e05252; color: #fff; }
 .topbar-auth-btn.danger:hover { filter: brightness(1.1); }
 .topbar-auth-btn[hidden] { display: none; }
+
+/* an empty place in My gradients, waiting for a saved gradient */
+.preset-empty { aspect-ratio: 1 / 1; border-radius: var(--radius); border: 1px dashed color-mix(in srgb, var(--ink) 22%, transparent); }
