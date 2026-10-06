@@ -31,5 +31,5 @@ function syncButtons() {
 
 $('ctClose').addEventListener('click', closeSideTab);
 document.addEventListener('keydown', e => {
-  if (!tab.hidden && e.key === 'Escape' && $('publishModal').hidden && $('authModal').hidden) { e.stopPropagation(); closeSideTab(); }
+  if (!tab.hidden && e.key === 'Escape' && $('publishModal').hidden && $('authModal').hidden && $('publishedModal').hidden) { e.stopPropagation(); closeSideTab(); }
 }, true);

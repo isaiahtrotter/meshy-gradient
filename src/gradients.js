@@ -8,14 +8,18 @@ import { serializeConfig } from './state.js';
 import { cleanHandle } from './constants.js';
 import { $, showToast } from './dom.js';
 import { whenClient, onUser, startSignIn } from './auth.js';
-import { applyGradient, renderThumb } from './loadGradient.js';
-import { markSaved, clearSaved } from './provenance.js';
+import { applyGradient, renderThumb, setCredit } from './loadGradient.js';
+import { markSaved, clearSaved, markCopy, onProvenance } from './provenance.js';
 import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
 import { masonry, thumbRatio } from './masonry.js';
 
 let client = null, me = null;
 let current = null; // the saved gradient that's open on the canvas (so it can be deleted): { id }, or null
 let busy = false;
+// The community gradient on the canvas that the Share button would link to (see the Share section at the bottom).
+const SHARE_KEY = 'meshGradientShareSlug.v1';
+let shareSlug = (() => { try { return localStorage.getItem(SHARE_KEY); } catch { return null; } })();
+let pristineCopy = false;
 const DUPLICATE = '23505'; // Postgres unique violation: the gradient is identical to one already saved / published
 
 // Anything that fails shows next to the button that was pressed. A missing table means schema.sql hasn't been run yet.
@@ -103,6 +107,7 @@ async function fetchConfig(id, anchor) {
 }
 async function openMine(row, anchor) {
   const data = await fetchConfig(row.id, anchor); if (!data) return;
+  setShareSlug(null);
   applyGradient(data.config, { own: true });
   markSaved(); // it's already in the saved list, so Save hides until an edit
   current = { id: row.id };
@@ -187,7 +192,7 @@ function renderCommunityGrid() {
 }
 async function refreshPublic() {
   if (!client) return;
-  const { data, error } = await client.from('gradients').select('id, thumb, author_name, author_twitter, user_id').eq('is_public', true).order('created_at', { ascending: false }).limit(200);
+  const { data, error } = await client.from('gradients').select('id, slug, thumb, author_name, author_twitter, user_id').eq('is_public', true).order('created_at', { ascending: false }).limit(200);
   if (error) { console.error(error); loadProblem = error.message || 'unknown error'; rebuildPublic(); return; } // the fallback fills the grid
   loadProblem = ''; loadedOnce = true; pubRows = data; rebuildPublic();
   pushProfile(); // re-credit any of your rows that are out of date
@@ -196,6 +201,7 @@ async function openPublic(row, anchor) {
   const data = row.builtin ? { config: row.config } : await fetchConfig(row.id, anchor);
   if (!data) return;
   // a copy: the original stays as its author left it, and the canvas always credits whoever made it (even if that's you)
+  setShareSlug(row.slug || null); // so the Share button can link to it (the original presets stand-ins have no slug)
   applyGradient(data.config, { credit: row.author_name, twitter: row.author_twitter });
   current = null; await refreshMine(); // clears the highlight on the saved list
 }
@@ -255,6 +261,21 @@ $('saveBtn').addEventListener('click', e => {
   saveNew(e.currentTarget);
 });
 
+// After publishing: a confirmation that offers the share link.
+const setPublishedModal = open => {
+  $('publishedModal').hidden = !open;
+  $('publishedShare').textContent = 'Copy share link';
+  if (open) $('publishedShare').focus();
+};
+$('publishedDone').addEventListener('click', () => setPublishedModal(false));
+$('publishedModal').addEventListener('pointerdown', e => { if (e.target === $('publishedModal')) setPublishedModal(false); });
+document.addEventListener('keydown', e => { if (!$('publishedModal').hidden && e.key === 'Escape') { e.stopPropagation(); setPublishedModal(false); } }, true);
+$('publishedShare').addEventListener('click', async () => {
+  const url = `${location.origin}/?g=${shareSlug}`;
+  try { await navigator.clipboard.writeText(url); $('publishedShare').textContent = 'Link copied'; }
+  catch { window.prompt('Copy this link to share the gradient:', url); }
+});
+
 // Publish: always asks first.
 const setPublishModal = open => {
   $('publishModal').hidden = !open;
@@ -269,7 +290,7 @@ $('publishConfirm').addEventListener('click', async () => {
   const anchor = $('publishBtn');
   $('publishError').hidden = true;
   await guarded(anchor, async () => {
-    const { error } = await client.from('gradients').insert({ ...snapshotRow(), user_id: me.id, author_name: authorName(), author_twitter: authorTwitter(), is_public: true });
+    const { data: inserted, error } = await client.from('gradients').insert({ ...snapshotRow(), user_id: me.id, author_name: authorName(), author_twitter: authorTwitter(), is_public: true }).select('slug').single();
     if (error?.code === DUPLICATE) { // unique violation: an identical gradient is already published
       $('publishError').textContent = 'This exact gradient is already in the community. Change something about it to make it unique, then publish.';
       $('publishError').hidden = false;
@@ -277,15 +298,17 @@ $('publishConfirm').addEventListener('click', async () => {
     }
     if (error) throw error;
     setPublishModal(false);
-    showToast(anchor, 'Published');
+    // the canvas is now exactly a community gradient: credit it, hide Publish, and make it shareable
+    setShareSlug(inserted.slug); setCredit(authorName(), authorTwitter()); markCopy();
+    setPublishedModal(true);
     await refreshPublic();
   });
 });
 
 onUser(user => {
-  $('shareSection').hidden = !user; // the Share button is only for signed-in users
   const signedOut = !user && !!me; // a real sign-out, not the initial "nobody yet" call at startup
   me = user; current = null;
+  syncShare(); // the Share button is only for signed-in users
   $('mySignedIn').hidden = !user; $('mySignedOut').hidden = !!user;
   if (!user) { $('myList').innerHTML = ''; if (signedOut) clearSaved(); }
   renderPublic(); // the Delete buttons depend on who is signed in
@@ -323,18 +346,23 @@ for (const id of ['prefName', 'prefTwitter']) $(id).addEventListener('input', ()
 });
 
 // ---------- Share links ----------
-// Sharing saves the canvas if it isn't already (privately, so it also shows in My gradients) and copies a link,
-// /?g=<slug>, that opens exactly this gradient for anyone, signed in or not. share_gradient / gradient_by_slug are
-// database functions (supabase/schema.sql): the slug is the capability, so nothing else becomes browsable.
-$('shareBtn').addEventListener('click', e => guarded(e.currentTarget, async () => {
-  const { config, thumb } = snapshotRow();
-  const { data: slug, error } = await client.rpc('share_gradient', { p_config: config, p_thumb: thumb, p_author: authorName(), p_twitter: authorTwitter() });
-  if (error) throw error;
-  const url = `${location.origin}/?g=${slug}`;
-  try { await navigator.clipboard.writeText(url); showToast(e.currentTarget, 'Link copied'); }
+// Only gradients in the community can be shared: the link is /?g=<slug> of the published row, and sharing never saves
+// anything. So the Share button (signed-in users only) shows while the canvas is an exact copy of a community gradient
+// that has a slug (opened from the Community tab, opened from a share link, or just published), and hides on the first
+// edit. gradient_by_slug (supabase/schema.sql) serves the link to anyone, but only for published rows.
+function syncShare() { $('shareSection').hidden = !(me && shareSlug && pristineCopy); }
+function setShareSlug(slug) {
+  shareSlug = slug || null;
+  try { if (shareSlug) localStorage.setItem(SHARE_KEY, shareSlug); else localStorage.removeItem(SHARE_KEY); } catch {}
+  syncShare();
+}
+onProvenance(pristine => { pristineCopy = pristine; syncShare(); });
+$('shareBtn').addEventListener('click', async e => {
+  const url = `${location.origin}/?g=${shareSlug}`;
+  const anchor = e.currentTarget;
+  try { await navigator.clipboard.writeText(url); showToast(anchor, 'Link copied'); }
   catch { window.prompt('Copy this link to share the gradient:', url); }
-  refreshMine();
-}));
+});
 
 // Opens the gradient a share link points at (called once the app has booted). It lands as a copy, credited to its
 // author, like one from the Community tab.
@@ -346,6 +374,7 @@ export async function openSharedFromUrl() {
     const { data, error } = await c.rpc('gradient_by_slug', { p_slug: slug });
     const row = Array.isArray(data) ? data[0] : data;
     if (error || !row) throw error || new Error('not found');
+    setShareSlug(slug);
     applyGradient(row.config, { credit: row.author_name, twitter: row.author_twitter });
   } catch (err) {
     console.error(err);

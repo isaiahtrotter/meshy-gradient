@@ -61,7 +61,7 @@ function renderCredit(c) {
     el.append(a);
   } else el.append(c.name);
 }
-function setCredit(name, twitter) {
+export function setCredit(name, twitter) {
   const c = name ? { name, twitter: twitter || null } : null;
   renderCredit(c);
   try { if (c) localStorage.setItem(CREDIT_KEY, JSON.stringify(c)); else localStorage.removeItem(CREDIT_KEY); } catch {}

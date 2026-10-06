@@ -28,6 +28,10 @@ let copyHash = stored();
 // (just opened from there, or just saved), there's nothing to save, so the button hides until the first edit.
 let savedHash = (() => { try { return localStorage.getItem(SAVED_KEY); } catch { return null; } })();
 
+const listeners = new Set();
+// cb(pristine) runs on every update: pristine is true while the canvas is an exact copy of a community gradient.
+export const onProvenance = cb => { listeners.add(cb); };
+
 // instant: skip the fade, for the first call on page load.
 function update(instant = false) {
   const btn = $('publishBtn');
@@ -37,6 +41,7 @@ function update(instant = false) {
   // the "By [name]" line only belongs to an exact copy: the first edit removes it, and undoing back to the copy restores it
   const credit = $('frameCredit');
   credit.hidden = !(pristine && credit.firstChild);
+  for (const cb of listeners) cb(pristine);
   const save = $('saveBtn');
   if (instant) save.classList.add('no-anim');
   save.classList.toggle('is-hidden', savedHash !== null && currentHash() === savedHash);

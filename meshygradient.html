@@ -170,6 +170,16 @@ window.addEventListener('error', function () {
     </div>
   </div>
 </div>
+<div id="publishedModal" class="modal-overlay" hidden>
+  <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="publishedTitle">
+    <h2 id="publishedTitle">Your gradient is published</h2>
+    <p>It's now in the community, and anyone can open it from the Community tab. You can also share it with a link. You can delete it from the Community tab whenever you like.</p>
+    <div class="row confirm-actions">
+      <button id="publishedDone" class="topbar-auth-btn signin grow" type="button">Done</button>
+      <button id="publishedShare" class="topbar-auth-btn primary grow" type="button">Copy share link</button>
+    </div>
+  </div>
+</div>
 <div id="authModal" class="modal-overlay" hidden>
   <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
     <h2 id="authModalTitle">Sign in to publish</h2>
