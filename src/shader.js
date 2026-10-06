@@ -53,6 +53,11 @@ export const FS = `
     float cosA = len > 1e-6 ? dot(dv / len, vec2(cos(angle), sin(angle))) : 0.0;
     return max(mix(soft1, soft2, 0.5 + 0.5 * cosA), 1e-4);
   }
+  // Polynomial smooth minimum: like min(a, b) but rounds off the crease where two values cross, by up to k/4.
+  float smin(float a, float b, float k) {
+    float h = max(k - abs(a - b), 0.0) / k;
+    return min(a, b) - h * h * k * 0.25;
+  }
   void main(){
     vec2 uv = gl_FragCoord.xy / uRes; uv.y = 1.0 - uv.y;
     vec2 sc = uRes / max(uRes.x, uRes.y);
@@ -81,7 +86,7 @@ export const FS = `
           float t = len2 > 1e-10 ? clamp(dot(p - P0.xy, AB) / len2, 0.0, 1.0) : 0.0;
           vec2 dv = (p - (P0.xy + t * AB)) / rr;
           float d2 = dot(dv, dv);
-          best = min(best, mix(P0.z, P1.z, t) * log(1.0 + d2));
+          best = smin(best, mix(P0.z, P1.z, t) * log(1.0 + d2), 2.0);
           minD2 = min(minD2, d2);
           P0 = P1;
         }
