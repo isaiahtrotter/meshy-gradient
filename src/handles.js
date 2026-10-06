@@ -88,7 +88,7 @@ function syncStopEls(c, n) {
     s.dot.dataset.stop = s.ring.dataset.stop = i;
     const end = i === 0 || i === last;
     s.dot.classList.toggle('end', end);
-    s.dot.title = end ? 'Drag to move this end of the stroke. Its dotted ring sets the hardness here, pull it in to taper to a point' : 'Drag along the stroke to move. ⌥-click to remove';
+    if (end) s.dot.removeAttribute('title'); else s.dot.title = 'Drag along the stroke to move. ⌥-click to remove';
   });
 }
 function layoutStroke(c, n, cx, cy, dims) {
