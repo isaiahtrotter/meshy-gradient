@@ -166,7 +166,7 @@ async function refreshPublic() {
   if (!client) return;
   const { data, error } = await client.from('gradients').select('id, thumb, author_name, author_twitter, user_id').eq('is_public', true).order('created_at', { ascending: false }).limit(200);
   if (error) { console.error(error); loadProblem = error.message || 'unknown error'; rebuildPublic(); return; } // the fallback fills the grid
-  loadProblem = ''; loadedOnce = true; pubRows = data; rebuildPublic(); syncImportRow();
+  loadProblem = ''; loadedOnce = true; pubRows = data; rebuildPublic();
   pushProfile(); // re-credit any of your rows that are out of date
 }
 async function openPublic(row, anchor) {
@@ -265,31 +265,8 @@ $('publishConfirm').addEventListener('click', async () => {
   });
 });
 
-// The site owner's one-time action: publish the original 8 gradients (featured-gradients.json) into the database as
-// their own, credited to their Settings name and Twitter handle. Repeating it is harmless: identical gradients are
-// rejected by the database's uniqueness rule and counted as already there.
-const OWNER_EMAIL = 'trumpchaos@gmail.com';
-// Shown to the owner's account, or to any signed-in user while nothing at all is published yet (so a first-time setup
-// can't get stuck on an email mismatch; once anything is published, only the owner sees it).
-function syncImportRow() {
-  const owner = !!me?.email && me.email.toLowerCase() === OWNER_EMAIL;
-  $('importRow').hidden = !(me && (owner || (loadedOnce && pubRows.length === 0)));
-}
-$('importOriginalsBtn').addEventListener('click', e => guarded(e.currentTarget, async () => {
-  let added = 0, existing = 0;
-  for (const row of fallbackRows) {
-    const { error } = await client.from('gradients').insert({ config: row.config, thumb: row.thumb, user_id: me.id, author_name: authorName(), author_twitter: authorTwitter(), is_public: true });
-    if (error?.code === DUPLICATE) existing++;
-    else if (error) throw error;
-    else added++;
-  }
-  $('importNote').textContent = `Added ${added}${existing ? `, ${existing} already there` : ''}.`;
-  await refreshPublic();
-}));
-
 onUser(user => {
   me = user; current = null;
-  syncImportRow();
   $('mySignedIn').hidden = !user; $('mySignedOut').hidden = !!user;
   if (!user) $('myList').innerHTML = '';
   syncCurrent(); renderPublic(); // the Delete buttons depend on who is signed in
