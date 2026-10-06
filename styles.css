@@ -74,19 +74,22 @@ body {
   background: var(--ctrl-grad); border: none; color: var(--ink);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.2);
 }
+.app > .stage { grid-column: 1; } .app > .community-tab { grid-column: 2; } .app > .panel { grid-column: 3; } /* the tab is hidden most of the time: pin the columns so the panel never slides into its slot */
 .app { position: relative; display: grid; grid-template-columns: 1fr auto 300px; grid-template-rows: minmax(0, 1fr); flex: 1; min-height: 0; }
 @media (max-width: 820px) {
   body { overflow: auto; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   body input, body textarea { -webkit-user-select: auto; user-select: auto; -webkit-touch-callout: default; }
+  .app > .stage, .app > .panel { grid-column: auto; }
   .app { grid-template-columns: 1fr; grid-template-rows: minmax(52vh, auto) auto; height: auto; flex: none; }
   #cw, #ch { touch-action: none; }
 }
 
 /* Stage */
-/* The bottom padding holds the toolbar: 28px below it + 44px bar + 12px above. layout() reads these paddings. */
+/* The bottom padding holds the toolbar: 28px below it + 44px bar + 12px above; the top holds the Save / Publish buttons
+   above the frame. layout() reads these paddings. */
 .stage {
   position: relative; background: var(--stage); display: grid; place-items: center;
-  padding: 28px 28px 84px; min-height: 0; overflow: hidden; user-select: none; touch-action: none;
+  padding: 44px 28px 84px; min-height: 0; overflow: hidden; user-select: none; touch-action: none;
 }
 .work { display: flex; align-items: center; gap: 24px; will-change: transform; }
 .ref { position: relative; flex: none; box-shadow: 0 30px 60px -20px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.08); }
@@ -715,7 +718,7 @@ kbd {
 @media (prefers-reduced-motion: reduce) { .handle { transition: none; } }
 
 /* ---- Save / Publish buttons on the gradient, the Community tab beside the sidebar, and the publish confirmation ---- */
-.frame-actions { position: absolute; top: 10px; right: 10px; z-index: 6; display: flex; gap: 6px; }
+.frame-actions { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 6; display: flex; gap: 6px; } /* above the frame's top-left corner, in the stage's top padding */
 .stage.previewing .frame-actions { display: none; }
 .frame-btn {
   height: 26px; padding: 0 10px; border: none; border-radius: var(--radius); font: 500 12px/1 var(--font-ui); color: var(--ink);
