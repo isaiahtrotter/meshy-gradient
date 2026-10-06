@@ -5,9 +5,17 @@ import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { $, setStatus } from './dom.js';
 
 const configured = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
-let client = null;
+let client = null, resolveClient;
+// Resolves with the Supabase client once it has loaded (never, if accounts are off), for modules that talk to the database.
+export const whenClient = new Promise(r => { resolveClient = r; });
+// onUser(cb) calls cb with the current user (or null) now and again on every sign-in or sign-out.
+let currentUserNow = null;
+const userListeners = new Set();
+export function onUser(cb) { userListeners.add(cb); cb(currentUserNow); }
 
 function render(user) {
+  currentUserNow = user;
+  for (const cb of userListeners) cb(user);
   const signedIn = !!user;
   $('signInBtn').hidden = signedIn;
   $('signUpBtn').hidden = signedIn;
@@ -40,6 +48,7 @@ if (configured) {
   // loaded lazily so a flaky CDN can never block the editor from booting
   import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
     client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    resolveClient(client);
     client.auth.onAuthStateChange((_event, session) => render(session?.user ?? null));
   }).catch(() => setStatus('Could not load sign-in.', true));
 }

@@ -13,6 +13,7 @@ import './nodeMenu.js';
 import './interaction.js';
 import './keyboard.js';
 import './exporter.js';
+import './gradients.js';
 import './settingsPanel.js';
 import './theme.js';
 import './auth.js';

@@ -30,7 +30,7 @@ function presetScene(p) {
   };
 }
 // A real rendered thumbnail (not a CSS approximation), sized to the preset's own aspect ratio and capped at `size`.
-function renderPresetThumb(p, size = 160) {
+export function renderPresetThumb(p, size = 160, type = 'image/png') {
   const scene = presetScene(p);
   const scale = size / Math.max(scene.w, scene.h);
   const tw = Math.max(1, Math.round(scene.w * scale)), th = Math.max(1, Math.round(scene.h * scale));
@@ -38,12 +38,12 @@ function renderPresetThumb(p, size = 160) {
   const r = makeRenderer(canvas, { preserveDrawingBuffer: true });
   if (!r) return null;
   r.render(tw, th, scene);
-  const url = canvas.toDataURL('image/png');
+  const url = canvas.toDataURL(type, 0.85);
   r.gl.getExtension('WEBGL_lose_context')?.loseContext();
   return url;
 }
 
-function applyPreset(p) {
+export function applyPreset(p) {
   pushUndo();
   if (!isNum(p.seed)) state.seed = Math.random() * 1000;
   applyConfig(p, { reassignIds: true });

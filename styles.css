@@ -689,6 +689,8 @@ button.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--acc
 }
 /* Overrides the generic button:hover border-color below — presets shouldn't highlight their border on hover. */
 .preset:hover { border-color: var(--line); }
+.preset.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.preset.is-public::after { content: 'Public'; position: absolute; left: 3px; bottom: 3px; padding: 1px 4px; border-radius: 3px; font: 500 9px/1.3 var(--font-ui); color: #fff; background: rgba(0,0,0,.55); }
 .preset-skel { background-color: var(--ctrl-bg); animation: skeleton-pulse 1.4s ease-in-out infinite; cursor: default; pointer-events: none; }
 
 .status { display: none; }

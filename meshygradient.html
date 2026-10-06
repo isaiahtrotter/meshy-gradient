@@ -331,6 +331,24 @@ window.addEventListener('error', function () {
       <div class="empty" id="presetsEmpty" hidden>No presets yet — copy a gradient (top right) and send it to Claude to add one.</div>
     </section>
 
+    <section id="mySection">
+      <h2>My gradients</h2>
+      <div class="empty" id="mySignedOut">Sign in to save, edit and share your gradients.</div>
+      <div id="mySignedIn" hidden>
+        <div class="row"><input class="sinput" id="gName" type="text" placeholder="Name" maxlength="80" autocomplete="off"></div>
+        <div class="row"><button id="gSave" class="grow chip" type="button">Save as new</button><button id="gUpdate" class="grow chip" type="button" disabled>Update</button></div>
+        <div class="row" id="gCurrentRow" hidden><button id="gPublic" class="grow chip" type="button">Make public</button><button id="gDelete" class="grow chip" type="button">Delete</button></div>
+        <div class="presets" id="myList"></div>
+        <div class="empty" id="myEmpty" hidden>Nothing saved yet.</div>
+      </div>
+    </section>
+
+    <section id="communitySection">
+      <h2>Community</h2>
+      <div class="presets" id="pubList"></div>
+      <div class="empty" id="pubEmpty">No public gradients yet.</div>
+    </section>
+
     <section>
       <h2>Blend</h2>
       <div class="slider slider--blur"><span class="slider-label">Softness</span><span class="slider-value" id="softVal">0.33</span><input type="range" id="soft" min="0" max="1" step="0.001" value="0.33333" data-min="0.05" data-max="0.2"><div class="slider-edge"></div>

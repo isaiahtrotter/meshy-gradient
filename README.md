@@ -45,7 +45,8 @@ composes handles + panel + draw, so most mutations end with `refreshAll()` from 
 | `controls.js` | canvas size + scrubbers, sliders, align/shuffle/scatter, `syncControlsFromState`, `seedNodes` | state, undo, view, refresh, actions |
 | `presets.js` | fetches `presets.json` (cached), applies presets, picks the default preset, Copy gradient | state, undo, view, refresh, controls |
 | `config.js` | public Supabase URL + anon key (empty = accounts off) | — |
-| `auth.js` | Supabase Auth, Google only: sign in/up (same flow), sign out, swaps the top bar buttons, fills the Settings account row | config, dom |
+| `auth.js` | Supabase Auth, Google only (also exports `whenClient` and `onUser` for the database code): sign in/up (same flow), sign out, swaps the top bar buttons, fills the Settings account row | config, dom |
+| `gradients.js` | saved gradients in the Supabase `gradients` table (schema in `supabase/schema.sql`): save / update / delete your own, make them public; the Community list shows every public one | auth, state, presets |
 | `tooltip.js` | the bottom toolbar's shared hover tooltip (1s delay, then slides between icons); reads `data-tip`/`data-key` off each button | dom (via `document.querySelector`, no imports) |
 | `app.js` | entry: `boot()` fetches presets once, seeds a first-time visit from the default preset (or a few fallback colours if none), wires undo hooks, first layout | everything |
 
