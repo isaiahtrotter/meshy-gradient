@@ -177,11 +177,12 @@ function strokeScreen(n) {
 }
 
 // The new stroke takes the selected node's colour, so selecting a node (or the last stroke) and recolouring it
-// sets the brush colour; with nothing selected it gets a random one.
+// sets the brush colour; with nothing selected it gets the default.
+const STROKE_DEFAULT_COLOR = '#c3cbcd';
 function beginDraw(e, p) {
   if (state.nodes.length >= MAXN) { setStatus(`Limit of ${MAXN} nodes reached.`, true); return; }
   const src = selectedNodes()[0];
-  session.drag = { type: 'draw', snap: snapshot(), raw: [[p.px, p.py]], len: 0, n: null, color: src ? src.color : null };
+  session.drag = { type: 'draw', snap: snapshot(), raw: [[p.px, p.py]], len: 0, n: null, color: src ? src.color : STROKE_DEFAULT_COLOR };
   overlay.setPointerCapture(e.pointerId);
 }
 function moveDraw(drag, e) {
