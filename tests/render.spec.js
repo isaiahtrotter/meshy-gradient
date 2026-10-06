@@ -1,4 +1,4 @@
-// Renderer regression: each fixture gradient must draw pixel-for-pixel like the committed baseline. Update the baselines
+// Renderer regression: each featured gradient must draw pixel-for-pixel like the committed baseline. Update the baselines
 // deliberately with `npm run test:update` when a rendering change is intended.
 
 import { test, expect } from '@playwright/test';

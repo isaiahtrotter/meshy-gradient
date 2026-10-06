@@ -4,9 +4,10 @@
 // the global handler in keyboard.js never sees it.
 
 import { $ } from './dom.js';
+import { cleanHandle } from './constants.js';
 import { updateThemeIndicator } from './theme.js';
 
-const NAME_KEY = 'meshyDisplayName';
+const NAME_KEY = 'meshyDisplayName', TWITTER_KEY = 'meshyTwitter';
 
 // ---------- Avatar: initials of the display name, or a silhouette when there's nothing to initial ----------
 const userIcon = px =>
@@ -34,6 +35,15 @@ nameInput.addEventListener('input', () => {
   renderAvatar(name);
 });
 nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') nameInput.blur(); });
+
+const twitterInput = $('prefTwitter');
+twitterInput.value = localStorage.getItem(TWITTER_KEY) || '';
+twitterInput.addEventListener('input', () => {
+  const h = cleanHandle(twitterInput.value);
+  if (h) localStorage.setItem(TWITTER_KEY, h); else localStorage.removeItem(TWITTER_KEY);
+});
+twitterInput.addEventListener('blur', () => { twitterInput.value = cleanHandle(twitterInput.value) ? '@' + cleanHandle(twitterInput.value) : ''; }); // tidy what was typed
+twitterInput.addEventListener('keydown', e => { if (e.key === 'Enter') twitterInput.blur(); });
 
 // ---------- Sidebar nav: the sliding highlight is sized/positioned off the active button's own box ----------
 const navInd = $('navInd');

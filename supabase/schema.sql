@@ -7,6 +7,7 @@ create table if not exists public.gradients (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
   author_name text,
+  author_twitter text check (author_twitter is null or author_twitter ~ '^[A-Za-z0-9_]{1,15}$'),
   name        text not null default 'Untitled' check (char_length(name) <= 80),
   config      jsonb not null check (octet_length(config::text) <= 400000),
   thumb       text check (thumb is null or char_length(thumb) <= 80000),
@@ -18,6 +19,9 @@ create table if not exists public.gradients (
 );
 
 create index if not exists gradients_user_idx   on public.gradients (user_id, updated_at desc);
+-- For a table created before author_twitter existed: run this line (a no-op otherwise).
+alter table public.gradients add column if not exists author_twitter text check (author_twitter is null or author_twitter ~ '^[A-Za-z0-9_]{1,15}$');
+
 -- For a table created before config_hash existed: run these two lines (a no-op otherwise).
 alter table public.gradients add column if not exists config_hash text generated always as (md5(config::text)) stored;
 

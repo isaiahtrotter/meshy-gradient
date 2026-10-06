@@ -99,8 +99,12 @@ window.addEventListener('error', function () {
           <div class="avatar lg" id="avatarLg" aria-hidden="true"></div>
         </div>
         <div class="srow">
-          <div class="slabel"><b>Display name</b><span>Shown on your profile picture as initials.</span></div>
+          <div class="slabel"><b>Display name</b><span>Shown as initials on your profile picture, and as the author of gradients you publish.</span></div>
           <input class="sinput" id="prefName" type="text" placeholder="Your name" maxlength="40" autocomplete="off">
+        </div>
+        <div class="srow">
+          <div class="slabel"><b>Twitter handle</b><span>Optional. Links your name on the byline of gradients you publish.</span></div>
+          <input class="sinput" id="prefTwitter" type="text" placeholder="@handle" maxlength="60" autocomplete="off" autocapitalize="off" spellcheck="false">
         </div>
         <div class="srow">
           <div class="slabel"><b>Email</b><span id="accountEmailNote">Sign-in isn't set up yet.</span></div>
@@ -157,7 +161,6 @@ window.addEventListener('error', function () {
   <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="publishTitle">
     <h2 id="publishTitle">Publish to the community?</h2>
     <p>Your gradient will be visible to everyone, including people who aren't signed in. You can delete it later from the Community tab.</p>
-    <input class="sinput" id="pubName" type="text" placeholder="Name" maxlength="80" autocomplete="off" aria-label="Gradient name">
     <p class="confirm-error" id="publishError" role="alert" hidden></p>
     <div class="row confirm-actions">
       <button id="publishCancel" class="topbar-auth-btn signin grow" type="button">Cancel</button>
@@ -365,15 +368,13 @@ window.addEventListener('error', function () {
         <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
       </div>
       <div class="empty" id="communityEmpty" hidden>No community gradients yet.</div>
-      <button id="communityBtn" class="topbar-auth-btn signin comm-btn" type="button" aria-expanded="false" aria-controls="communityTab">0 Community Gradients</button>
     </section>
 
     <section id="mySection" data-collapse="my-gradients">
       <h2>My gradients</h2>
       <div class="empty" id="mySignedOut">Sign in to save, edit and share your gradients.</div>
       <div id="mySignedIn" hidden>
-        <div class="row"><input class="sinput" id="gName" type="text" placeholder="Name" maxlength="80" autocomplete="off"></div>
-        <div class="row"><button id="gSave" class="grow chip" type="button">Save as new</button><button id="gUpdate" class="grow chip" type="button" disabled>Update</button></div>
+        <div class="row"><button id="gSave" class="grow chip" type="button">Save this gradient</button></div>
         <div class="row" id="gCurrentRow" hidden><button id="gDelete" class="grow chip" type="button">Delete</button></div>
         <div class="presets" id="myList"></div>
         <div class="empty" id="myEmpty" hidden>Nothing saved yet.</div>

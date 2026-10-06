@@ -11,7 +11,7 @@ import { scheduleSave } from './persistence.js';
 import { syncControlsFromState } from './controls.js';
 import { normalizeNode } from './nodes.js';
 import { makeRenderer } from './renderer.js';
-import { markCopy, markOwn } from './provenance.js';
+import { markCopy, markOwn, refreshProvenance } from './provenance.js';
 
 const GRAIN_TYPES = ['mono', 'duo', 'multi'];
 const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay'];
@@ -46,19 +46,35 @@ export function renderThumb(p, size = 160, type = 'image/png') {
 
 // "By [name]" under the canvas while it holds a gradient someone else published; any other load clears it. Kept in
 // localStorage so it survives a reload along with the gradient itself.
-const CREDIT_KEY = 'meshGradientCredit.v1';
-function setCredit(name) {
+const CREDIT_KEY = 'meshGradientCredit.v2';
+// Builds the line with DOM nodes (names come from other people, so never as HTML). With a Twitter handle the name is a
+// link to that profile, opening in a new tab.
+function renderCredit(c) {
   const el = $('frameCredit');
-  el.textContent = name ? `By ${name}` : ''; el.hidden = !name;
-  try { if (name) localStorage.setItem(CREDIT_KEY, name); else localStorage.removeItem(CREDIT_KEY); } catch {}
+  el.replaceChildren();
+  if (!c?.name) return;
+  el.append('By ');
+  if (c.twitter) {
+    const a = document.createElement('a');
+    a.href = `https://x.com/${encodeURIComponent(c.twitter)}`; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.textContent = c.name; a.title = `@${c.twitter} on Twitter`;
+    el.append(a);
+  } else el.append(c.name);
 }
-try { setCredit(localStorage.getItem(CREDIT_KEY)); } catch {}
+function setCredit(name, twitter) {
+  const c = name ? { name, twitter: twitter || null } : null;
+  renderCredit(c);
+  try { if (c) localStorage.setItem(CREDIT_KEY, JSON.stringify(c)); else localStorage.removeItem(CREDIT_KEY); } catch {}
+  refreshProvenance(); // the byline only shows while the canvas is an exact copy (provenance.js)
+}
+try { renderCredit(JSON.parse(localStorage.getItem(CREDIT_KEY) || 'null')); } catch {}
+refreshProvenance(true);
 
 // own: the gradient is the user's own saved one, so Publish stays available; otherwise it's a copy of someone else's
 // (a community gradient) and Publish waits for the first edit.
-export function applyGradient(p, { credit = null, own = false } = {}) {
+export function applyGradient(p, { credit = null, twitter = null, own = false } = {}) {
   pushUndo();
-  setCredit(credit);
+  setCredit(credit, twitter);
   if (!isNum(p.seed)) state.seed = Math.random() * 1000;
   applyConfig(p, { reassignIds: true });
   state.selected.clear();

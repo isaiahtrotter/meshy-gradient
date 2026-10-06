@@ -22,3 +22,10 @@ export const OCC_SIZE_SCALE = 0.5;
 
 export const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 export const isNum = v => typeof v === 'number' && Number.isFinite(v);
+
+// A Twitter / X handle from whatever the user typed (@name, a profile URL, or just the name): letters, digits and
+// underscores, at most 15, or '' if nothing usable.
+export function cleanHandle(v) {
+  const m = String(v || '').trim().replace(/^https?:\/\/(www\.)?(twitter|x)\.com\//i, '').replace(/^@/, '').match(/^[A-Za-z0-9_]{1,15}/);
+  return m ? m[0] : '';
+}

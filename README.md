@@ -9,6 +9,7 @@ A WebGL mesh-gradient editor. Static ES modules, no build step, deployed on Verc
 |---|---|
 | `meshygradient.html` | Markup only. Loads `styles.css` and `src/app.js` (type=module) |
 | `styles.css` | All styling. Mobile breakpoint is 820px (mirrored in `src/constants.js`) |
+| `featured-gradients.json` | the eight featured community gradients that ship with the app (the original presets), credited to `trumpchaos@gmail.com`; they always appear first in the Community grid and tab, ahead of anything published in the database. Also the renderer test baselines' fixtures |
 | `default-gradient.json` | the gradient a first-time visit starts from (a full gradient config; "Copy gradient" produces the same shape) |
 | `src/` | The app, one concern per module (below) |
 
@@ -147,7 +148,7 @@ Run `npm test` before every push to prod. It starts its own static server, so no
 - `tests/app.spec.js` drives the real page: add, drag, undo/redo, arc/line placement, spread handles, the
   context menu, colour picker, canvas size, sliders, zoom, preview, copy, reload
   persistence, legacy saved shapes, export.
-- `tests/render.spec.js` renders every fixture gradient (`tests/fixtures/eyezayuh-gradients.json`, the original presets) and compares it pixel-for-pixel with the baselines in
+- `tests/render.spec.js` renders every fixture gradient (`featured-gradients.json`) and compares it pixel-for-pixel with the baselines in
   `tests/render.spec.js-snapshots/`. When a rendering change is intended, regenerate them with
   `npm run test:update` and commit the new PNGs. Baselines are per platform; they're generated on macOS.
 - `tests/helpers.js` holds the shared page helpers. The app exposes `window.__meshy.state` for the tests.
@@ -164,7 +165,7 @@ Pure modules (`geometry`, `nodes`, `state`, `undo`, `color`) import cleanly in N
 
 ## Community gradients and the database
 
-Gradients live in the Supabase `gradients` table (`supabase/schema.sql`, run once in the SQL Editor). The original
-presets were moved into it as published gradients by `eyezayuh`: run `supabase/seed_eyezayuh.sql` once, after
-setting the email on its first lines. The same fixtures are kept in `tests/fixtures/eyezayuh-gradients.json` for the
-renderer baselines.
+Gradients people save or publish live in the Supabase `gradients` table (`supabase/schema.sql`, run once in the SQL
+Editor). The Community grid shows the featured gradients from `featured-gradients.json` first, then published ones from
+the table. The Display name in Settings is what published gradients are credited to; changing it re-credits all of
+yours and is stored on the account (`user_metadata.display_name`).

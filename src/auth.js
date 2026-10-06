@@ -25,7 +25,9 @@ function render(user) {
   $('settingsSignOutBtn').hidden = !signedIn;
   $('settingsSignInBtn').hidden = signedIn;
   // first sign-in: seed the display name from the Google profile if the user hasn't typed one
-  const name = user?.user_metadata?.full_name || user?.user_metadata?.name;
+  const name = user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.user_metadata?.name;
+  const tw = user?.user_metadata?.twitter;
+  if (tw && !$('prefTwitter').value) { $('prefTwitter').value = '@' + tw; $('prefTwitter').dispatchEvent(new Event('input')); }
   if (name && !$('prefName').value) { $('prefName').value = name; $('prefName').dispatchEvent(new Event('input')); }
 }
 

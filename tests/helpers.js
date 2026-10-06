@@ -4,8 +4,8 @@ import fs from 'node:fs';
 import { expect } from '@playwright/test';
 
 export const PAGE = '/meshygradient.html';
-// The original eyezayuh gradients (now community gradients in the database): kept here as fixtures for the renderer baselines.
-export const presets = JSON.parse(fs.readFileSync(new URL('./fixtures/eyezayuh-gradients.json', import.meta.url), 'utf8'));
+// The featured community gradients that ship with the app (the original presets), also the renderer baselines' fixtures.
+export const presets = JSON.parse(fs.readFileSync(new URL('../featured-gradients.json', import.meta.url), 'utf8'));
 // The gradient a first-time visit starts from (default-gradient.json at the repo root).
 export const defaultPreset = JSON.parse(fs.readFileSync(new URL('../default-gradient.json', import.meta.url), 'utf8'));
 

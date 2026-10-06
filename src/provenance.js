@@ -1,5 +1,5 @@
 // Whether the canvas still holds an untouched copy of a community gradient (or the starting gradient). While it does, the Publish
-// button stays hidden (there's nothing of yours to publish); the first edit brings it back, and undoing back to the
+// button and the "By [name]" byline under the canvas stay as they are for a copy (Publish hidden, byline shown), because an exact copy of something already out there isn't yours to publish; the first edit brings it back, and undoing back to the
 // copy hides it again. The copy is remembered as a hash of its serialized config, kept in localStorage so a reload
 // doesn't forget it.
 
@@ -31,8 +31,14 @@ function update(instant = false) {
   const pristine = copyHash !== null && currentHash() === copyHash;
   if (instant) btn.classList.add('no-anim');
   btn.classList.toggle('is-hidden', pristine);
+  // the "By [name]" line only belongs to an exact copy: the first edit removes it, and undoing back to the copy restores it
+  const credit = $('frameCredit');
+  credit.hidden = !(pristine && credit.firstChild);
   if (instant) { void btn.offsetWidth; btn.classList.remove('no-anim'); }
 }
+
+// Re-evaluates the Publish button and the byline, e.g. after the byline text changes.
+export const refreshProvenance = (instant = false) => update(instant);
 
 // Call right after loading a gradient that isn't the user's own (a community one).
 export function markCopy({ instant = false } = {}) {

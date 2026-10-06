@@ -7,7 +7,7 @@ import { $ } from './dom.js';
 
 const tab = $('communityTab');
 const TITLES = { community: 'Community', mine: 'My gradients' };
-const BUTTONS = { community: ['communityBtn', 'communityMoreBtn'], mine: ['myMoreBtn'] }; // buttons that mirror the open state in aria-expanded
+const BUTTONS = { community: ['communityMoreBtn'], mine: ['myMoreBtn'] }; // buttons that mirror the open state in aria-expanded
 const listeners = new Set();
 let kind = null;
 
