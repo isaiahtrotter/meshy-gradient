@@ -153,6 +153,17 @@ window.addEventListener('error', function () {
     </div>
   </div>
 </div>
+<div id="publishModal" class="modal-overlay" hidden>
+  <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="publishTitle">
+    <h2 id="publishTitle">Publish to the community?</h2>
+    <p>Your gradient will be visible to everyone, including people who aren't signed in. You can delete it later from the Community tab.</p>
+    <input class="sinput" id="pubName" type="text" placeholder="Name" maxlength="80" autocomplete="off" aria-label="Gradient name">
+    <div class="row confirm-actions">
+      <button id="publishCancel" class="topbar-auth-btn signin grow" type="button">Cancel</button>
+      <button id="publishConfirm" class="topbar-auth-btn primary grow" type="button">Publish</button>
+    </div>
+  </div>
+</div>
 <div class="app">
   <div class="stage" id="stage">
     <div class="work" id="work">
@@ -164,6 +175,10 @@ window.addEventListener('error', function () {
       <canvas id="gl"></canvas>
       <div class="overlay" id="overlay">
         <div class="marquee" id="marquee"></div>
+      </div>
+      <div class="frame-actions" id="frameActions">
+        <button id="saveBtn" class="frame-btn" type="button" title="Save this gradient to your account">Save</button>
+        <button id="publishBtn" class="frame-btn" type="button" title="Publish this gradient to the community">Publish</button>
       </div>
       <div class="skeleton skeleton-canvas" aria-hidden="true"></div>
     </div>
@@ -190,6 +205,13 @@ window.addEventListener('error', function () {
     <button class="icon-btn mobile-redo desktop-hide" id="mobileRedoBtn" title="Redo" disabled><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M15 8H7.5C5 8 3 10 3 12.5C3 15 5 17 7.5 17H12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.5 4.5L15 8L11.5 11.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 
+  <div class="community-tab" id="communityTab" hidden role="complementary" aria-labelledby="ctTitle">
+    <div class="ct-head"><h2 id="ctTitle">Community</h2><button id="ctClose" class="settings-close" type="button" aria-label="Close community">&times;</button></div>
+    <div class="ct-scroll">
+      <div class="ct-grid" id="pubList"></div>
+      <div class="empty" id="pubEmpty">No community gradients yet.</div>
+    </div>
+  </div>
   <aside class="panel">
     <div class="panel-fade panel-fade-top"></div>
     <div class="panel-fade panel-fade-bottom"></div>
@@ -337,16 +359,14 @@ window.addEventListener('error', function () {
       <div id="mySignedIn" hidden>
         <div class="row"><input class="sinput" id="gName" type="text" placeholder="Name" maxlength="80" autocomplete="off"></div>
         <div class="row"><button id="gSave" class="grow chip" type="button">Save as new</button><button id="gUpdate" class="grow chip" type="button" disabled>Update</button></div>
-        <div class="row" id="gCurrentRow" hidden><button id="gPublic" class="grow chip" type="button">Make public</button><button id="gDelete" class="grow chip" type="button">Delete</button></div>
+        <div class="row" id="gCurrentRow" hidden><button id="gDelete" class="grow chip" type="button">Delete</button></div>
         <div class="presets" id="myList"></div>
         <div class="empty" id="myEmpty" hidden>Nothing saved yet.</div>
       </div>
     </section>
 
     <section id="communitySection">
-      <h2>Community</h2>
-      <div class="presets" id="pubList"></div>
-      <div class="empty" id="pubEmpty">No public gradients yet.</div>
+      <button id="communityBtn" class="topbar-auth-btn signin comm-btn" type="button" aria-expanded="false" aria-controls="communityTab">0 Community Gradients</button>
     </section>
 
     <section data-collapse="blend">
