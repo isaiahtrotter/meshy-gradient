@@ -35,8 +35,10 @@ function renderMine(rows) {
   wrap.innerHTML = '';
   $('myEmpty').hidden = rows.length > 0;
   rows.slice(0, GRID_SLOTS).forEach((row, i) => {
+    const cell = document.createElement('div'); cell.className = 'preset-cell';
     const b = document.createElement('button'); b.type = 'button'; b.className = 'preset';
     if (row.thumb) b.style.backgroundImage = `url(${row.thumb})`;
+    cell.appendChild(b);
     if (i === GRID_SLOTS - 1) {
       b.id = 'myMoreBtn'; b.setAttribute('aria-controls', 'communityTab'); b.setAttribute('aria-expanded', String(sideTabKind() === 'mine'));
       b.setAttribute('aria-label', `Show all ${rows.length} saved gradients`);
@@ -47,8 +49,9 @@ function renderMine(rows) {
       b.setAttribute('aria-label', 'Open saved gradient');
       b.classList.toggle('current', current?.id === row.id);
       b.addEventListener('click', () => openMine(row, b));
+      cell.appendChild(deleteButton(row)); // appears while the pointer is over the tile
     }
-    wrap.appendChild(b);
+    wrap.appendChild(cell);
   });
   if (sideTabKind() === 'mine') renderMineTab();
 }
@@ -59,13 +62,15 @@ async function renderMineTab() {
   const ratios = await Promise.all(mineRows.map(r => thumbRatio(r.thumb)));
   if (token !== mineToken) return;
   masonry($('mineTabList'), mineRows.map((row, i) => {
+    const card = document.createElement('div'); card.className = 'ct-card';
     const b = document.createElement('button'); b.type = 'button'; b.className = 'ct-thumb';
     b.style.aspectRatio = `1 / ${ratios[i]}`;
     if (row.thumb) b.style.backgroundImage = `url(${row.thumb})`;
     b.setAttribute('aria-label', 'Open saved gradient');
     b.classList.toggle('current', current?.id === row.id);
     b.addEventListener('click', () => openMine(row, b));
-    return { el: b, ratio: ratios[i] };
+    card.append(b, deleteButton(row));
+    return { el: card, ratio: ratios[i] };
   }), 4);
 }
 async function refreshMine() {
@@ -74,11 +79,22 @@ async function refreshMine() {
   if (error) { fail($('saveBtn'), error); return; }
   if (current && !data.some(r => r.id === current.id)) current = null; // deleted elsewhere
   renderMine(data);
-  syncCurrent();
 }
-// The buttons that only make sense once a saved gradient is open.
-function syncCurrent() {
-  $('gCurrentRow').hidden = !current;
+// The hover-only Delete button on one of your saved gradients.
+function deleteButton(row) {
+  const del = document.createElement('button'); del.type = 'button'; del.className = 'ct-del'; del.textContent = 'Delete';
+  del.setAttribute('aria-label', 'Delete this saved gradient');
+  del.addEventListener('click', e => { e.stopPropagation(); deleteSaved(row, del); });
+  return del;
+}
+async function deleteSaved(row, anchor) {
+  if (!confirm('Delete this saved gradient? This can’t be undone.')) return;
+  await guarded(anchor, async () => {
+    const { error } = await client.from('gradients').delete().eq('id', row.id);
+    if (error) throw error;
+    if (current?.id === row.id) { current = null; clearSaved(); } // it was the one on the canvas: Save is available again
+    await refreshMine();
+  });
 }
 async function fetchConfig(id, anchor) {
   const { data, error } = await client.from('gradients').select('config').eq('id', id).single();
@@ -116,31 +132,36 @@ async function loadFallback() {
   rebuildPublic();
 }
 let renderToken = 0;
+// The Community tab has up to two sections: what you've published (only when you have something), then everyone
+// else's. A card is the thumbnail plus, on your own, a Delete button that appears while the pointer is over it.
 async function renderPublic() {
   const token = ++renderToken;
   const rows = shownRows();
-  $('pubEmpty').hidden = rows.length > 0;
   const ratios = await Promise.all(rows.map(r => thumbRatio(r.thumb)));
   if (token !== renderToken) return; // a newer render started while the thumbnails were measured
-  const items = rows.map((row, i) => {
+  const mineItems = [], otherItems = [];
+  rows.forEach((row, i) => {
     const mine = !!me && row.user_id === me.id;
     const card = document.createElement('div'); card.className = 'ct-card';
     const thumb = document.createElement('button'); thumb.type = 'button'; thumb.className = 'ct-thumb';
     thumb.style.aspectRatio = `1 / ${ratios[i]}`; // the gradient's own shape
     if (row.thumb) thumb.style.backgroundImage = `url(${row.thumb})`;
     thumb.setAttribute('aria-label', 'Open this community gradient');
-    if (mine) { const tag = document.createElement('span'); tag.className = 'ct-yours'; tag.textContent = 'Yours'; thumb.appendChild(tag); }
     thumb.addEventListener('click', () => openPublic(row, thumb));
     card.appendChild(thumb); // thumbnails only: no names, no authors (the author appears under the canvas once you open one)
     if (mine) {
       const del = document.createElement('button'); del.type = 'button'; del.className = 'ct-del'; del.textContent = 'Delete';
-      del.title = 'Remove this from the community';
+      del.setAttribute('aria-label', 'Remove this gradient from the community');
       del.addEventListener('click', () => deletePublished(row, del));
       card.appendChild(del);
     }
-    return { el: card, ratio: ratios[i] };
+    (mine ? mineItems : otherItems).push({ el: card, ratio: ratios[i] });
   });
-  masonry($('pubList'), items, 4);
+  $('pubMineSection').hidden = mineItems.length === 0;
+  $('pubOthersTitle').hidden = mineItems.length === 0; // headings only matter once there are two sections
+  $('pubEmpty').hidden = rows.length > 0;
+  masonry($('pubMineList'), mineItems, 4);
+  masonry($('pubList'), otherItems, 4);
 }
 // The sidebar's Community grid: the first GRID_SLOTS published gradients, the last tile carrying "+N" for the rest.
 function renderCommunityGrid() {
@@ -194,8 +215,8 @@ onSideTabOpen(kind => { if (kind === 'community') refreshPublic(); if (kind === 
 // Runs `task` with the buttons disabled, so a double click can't save twice.
 async function guarded(anchor, task) {
   if (busy || !client || !me) return;
-  busy = true; syncCurrent();
-  try { await task(); } catch (err) { fail(anchor, err); } finally { busy = false; syncCurrent(); }
+  busy = true;
+  try { await task(); } catch (err) { fail(anchor, err); } finally { busy = false; }
 }
 const snapshotRow = () => {
   const config = serializeConfig({ stripIds: true });
@@ -228,13 +249,6 @@ for (const id of ['authModalSignIn', 'authModalSignUp']) $(id).addEventListener(
 $('authModal').addEventListener('pointerdown', e => { if (e.target === $('authModal')) setAuthModal(false); });
 document.addEventListener('keydown', e => { if (!$('authModal').hidden && e.key === 'Escape') { e.stopPropagation(); setAuthModal(false); } }, true);
 
-$('gDelete').addEventListener('click', e => guarded(e.currentTarget, async () => {
-  if (!current || !confirm('Delete this saved gradient? This can’t be undone.')) return;
-  const { error } = await client.from('gradients').delete().eq('id', current.id);
-  if (error) throw error;
-  current = null; clearSaved();
-  await refreshMine();
-}));
 // The small button on the canvas: adds the current gradient to your saved ones.
 $('saveBtn').addEventListener('click', e => {
   if (!me) return needSignIn(e.currentTarget, 'save');
@@ -273,7 +287,7 @@ onUser(user => {
   me = user; current = null;
   $('mySignedIn').hidden = !user; $('mySignedOut').hidden = !!user;
   if (!user) { $('myList').innerHTML = ''; if (signedOut) clearSaved(); }
-  syncCurrent(); renderPublic(); // the Delete buttons depend on who is signed in
+  renderPublic(); // the Delete buttons depend on who is signed in
   if (user) { refreshMine(); refreshPublic(); } // refreshPublic also re-credits any of your rows that are out of date
 });
 whenClient.then(c => { client = c; refreshPublic(); if (me) refreshMine(); });
