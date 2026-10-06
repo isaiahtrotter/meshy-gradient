@@ -7,7 +7,7 @@
 import { serializeConfig } from './state.js';
 import { cleanHandle } from './constants.js';
 import { $, showToast } from './dom.js';
-import { whenClient, onUser, startSignIn, configured } from './auth.js';
+import { whenClient, onUser, startSignIn } from './auth.js';
 import { applyGradient, renderThumb } from './loadGradient.js';
 import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
 import { masonry, thumbRatio } from './masonry.js';
@@ -93,16 +93,34 @@ async function openMine(row, anchor) {
 
 // ---------- Community (published) ----------
 // The community list is every published gradient in the database (the original presets were seeded into it, owned by
-// the site owner's account, so their credit follows that account's name and Twitter handle like any other).
-let pubRows = [];
-function rebuildPublic() { renderPublic(); renderCommunityGrid(); }
+// the site owner's account, so their credit follows that account's name and Twitter handle like any other). If the
+// database can't be read, or has nothing published yet, the original presets (featured-gradients.json) stand in so the
+// grid is never empty; they carry their own config and the credit FALLBACK_AUTHOR.
+const FALLBACK_AUTHOR = 'eyezayuh';
+let pubRows = [], fallbackRows = [], loadProblem = '';
+function rebuildPublic() {
+  $('communityEmpty').textContent = loadProblem ? `Couldn’t load the community list: ${loadProblem}` : 'No community gradients yet.';
+  renderPublic(); renderCommunityGrid();
+}
+const shownRows = () => (pubRows.length ? pubRows : fallbackRows);
+async function loadFallback() {
+  try {
+    const list = await (await fetch('featured-gradients.json', { cache: 'no-cache' })).json();
+    fallbackRows = (Array.isArray(list) ? list : []).map((config, i) => {
+      const { default: _flag, ...cfg } = config;
+      return { id: `original-${i}`, builtin: true, config: cfg, author_name: FALLBACK_AUTHOR, thumb: renderThumb(cfg, 200, 'image/jpeg') };
+    });
+  } catch { fallbackRows = []; }
+  rebuildPublic();
+}
 let renderToken = 0;
 async function renderPublic() {
   const token = ++renderToken;
-  $('pubEmpty').hidden = pubRows.length > 0;
-  const ratios = await Promise.all(pubRows.map(r => thumbRatio(r.thumb)));
+  const rows = shownRows();
+  $('pubEmpty').hidden = rows.length > 0;
+  const ratios = await Promise.all(rows.map(r => thumbRatio(r.thumb)));
   if (token !== renderToken) return; // a newer render started while the thumbnails were measured
-  const items = pubRows.map((row, i) => {
+  const items = rows.map((row, i) => {
     const mine = !!me && row.user_id === me.id;
     const card = document.createElement('div'); card.className = 'ct-card';
     const thumb = document.createElement('button'); thumb.type = 'button'; thumb.className = 'ct-thumb';
@@ -126,14 +144,15 @@ async function renderPublic() {
 function renderCommunityGrid() {
   const wrap = $('communityGrid');
   wrap.innerHTML = '';
-  $('communityEmpty').hidden = pubRows.length > 0;
-  pubRows.slice(0, GRID_SLOTS).forEach((row, i) => {
+  const rows = shownRows();
+  $('communityEmpty').hidden = rows.length > 0 && !loadProblem;
+  rows.slice(0, GRID_SLOTS).forEach((row, i) => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'preset';
     if (row.thumb) b.style.backgroundImage = `url(${row.thumb})`;
     if (i === GRID_SLOTS - 1) {
       b.id = 'communityMoreBtn'; b.setAttribute('aria-controls', 'communityTab'); b.setAttribute('aria-expanded', String(sideTabKind() === 'community'));
-      b.setAttribute('aria-label', `Show all ${pubRows.length} community gradients`);
-      const more = document.createElement('span'); more.className = 'preset-more'; more.textContent = `+${pubRows.length - GRID_SLOTS}`;
+      b.setAttribute('aria-label', `Show all ${rows.length} community gradients`);
+      const more = document.createElement('span'); more.className = 'preset-more'; more.textContent = `+${rows.length - GRID_SLOTS}`;
       b.appendChild(more);
       b.addEventListener('click', () => toggleSideTab('community'));
     } else {
@@ -146,12 +165,13 @@ function renderCommunityGrid() {
 async function refreshPublic() {
   if (!client) return;
   const { data, error } = await client.from('gradients').select('id, thumb, author_name, author_twitter, user_id').eq('is_public', true).order('created_at', { ascending: false }).limit(200);
-  if (error) { console.error(error); rebuildPublic(); return; } // shows the empty message instead of the loading squares
-  pubRows = data; rebuildPublic();
+  if (error) { console.error(error); loadProblem = error.message || 'unknown error'; rebuildPublic(); return; } // the fallback fills the grid
+  loadProblem = ''; pubRows = data; rebuildPublic();
   pushProfile(); // re-credit any of your rows that are out of date
 }
 async function openPublic(row, anchor) {
-  const data = await fetchConfig(row.id, anchor); if (!data) return;
+  const data = row.builtin ? { config: row.config } : await fetchConfig(row.id, anchor);
+  if (!data) return;
   // a copy: the original stays as its author left it, and the canvas always credits whoever made it (even if that's you)
   applyGradient(data.config, { credit: row.author_name, twitter: row.author_twitter });
   current = null; await refreshMine(); // clears the highlight on the saved list
@@ -253,7 +273,7 @@ onUser(user => {
   if (user) { refreshMine(); refreshPublic(); } // refreshPublic also re-credits any of your rows that are out of date
 });
 whenClient.then(c => { client = c; refreshPublic(); if (me) refreshMine(); });
-if (!configured) rebuildPublic(); // accounts are off: replace the loading squares with the empty message
+loadFallback(); // needs no account or database, so the grid fills straight away
 
 // Your display name and Twitter handle (Settings) are what your published gradients are credited to, and they're kept
 // on your account so they follow you to other devices. pushProfile() writes them to the rows: it runs when either

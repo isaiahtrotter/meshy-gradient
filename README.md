@@ -147,7 +147,7 @@ Run `npm test` before every push to prod. It starts its own static server, so no
 - `tests/app.spec.js` drives the real page: add, drag, undo/redo, arc/line placement, spread handles, the
   context menu, colour picker, canvas size, sliders, zoom, preview, copy, reload
   persistence, legacy saved shapes, export.
-- `tests/render.spec.js` renders every fixture gradient (`tests/fixtures/featured-gradients.json`, the original presets) and compares it pixel-for-pixel with the baselines in
+- `tests/render.spec.js` renders every fixture gradient (`featured-gradients.json`, the original presets) and compares it pixel-for-pixel with the baselines in
   `tests/render.spec.js-snapshots/`. When a rendering change is intended, regenerate them with
   `npm run test:update` and commit the new PNGs. Baselines are per platform; they're generated on macOS.
 - `tests/helpers.js` holds the shared page helpers. The app exposes `window.__meshy.state` for the tests.
@@ -170,4 +170,4 @@ under the site owner's account, so they behave like any other. Opening one alway
 canvas, linked to the author's Twitter profile when they have a handle, and the byline lasts until the gradient is
 edited. The Display name and Twitter handle in Settings are what published gradients are credited to; changing them
 (or loading the app with out-of-date rows) re-credits all of yours, and they're stored on the account
-(`user_metadata`). The original presets are kept in `tests/fixtures/featured-gradients.json` for the renderer baselines.
+(`user_metadata`). The original presets live on in `featured-gradients.json`: they stand in for the Community list whenever the database can't be read or has nothing published, and they're the renderer baselines' fixtures.
