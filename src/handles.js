@@ -8,7 +8,7 @@ import { session } from './session.js';
 import { armAngle, armEnds, arcCurves } from './nodes.js';
 import { cumLengths, pointAt, strokeWorld, strokeK } from './stroke.js';
 import { rgbaCss } from './color.js';
-import { shadeFor, circlePoints, linePoints } from './ink.js';
+import { inkFor, circlePoints, linePoints } from './ink.js';
 import { overlay, maxDim, normPos, setStyle } from './dom.js';
 
 // Screen-px sizing at 100% zoom (k=1 → 148px, k=2.2 → 110px, k=40 → 24px); scaled live by session.zoom so the
@@ -102,7 +102,7 @@ function layoutStroke(c, n, cx, cy, dims) {
   for (let i = 1; i < P.length - 1; i++) { const m = mid(P[i], P[i + 1]); d += ` Q ${f(P[i][0])} ${f(P[i][1])} ${f(m[0])} ${f(m[1])}`; }
   d += ` L ${f(P[P.length - 1][0])} ${f(P[P.length - 1][1])}`;
   for (const p of c.path.children) p.setAttribute('d', d);
-  shadeFor(c.path, P.filter((_, i) => i % Math.max(1, Math.round(P.length / 14)) === 0), dims);
+  inkFor(c.path, P.filter((_, i) => i % Math.max(1, Math.round(P.length / 14)) === 0), dims);
   syncStopEls(c, n);
   n.stops.forEach((st, i) => {
     const [sx, sy] = pointAt(P, cum, st.t), { dot, ring } = c.stops[i];
@@ -111,7 +111,7 @@ function layoutStroke(c, n, cx, cy, dims) {
     setStyle(ring, { left: (sx - mid) + 'px', top: (sy - mid) + 'px', width: S + 'px', height: S + 'px' });
     ring.setAttribute('viewBox', `0 0 ${S} ${S}`);
     for (const e of ring.children) { e.setAttribute('cx', mid); e.setAttribute('cy', mid); e.setAttribute('r', R); }
-    shadeFor(ring, circlePoints(sx, sy, R, 10), dims);
+    inkFor(ring, circlePoints(sx, sy, R, 10), dims);
   });
 }
 const setStrokeShown = (c, pathOn, stopsOn) => {
@@ -181,13 +181,13 @@ export function refreshHandles() {
       setStyle(c.arc, { width: dims.w + 'px', height: dims.h + 'px' }); c.arc.setAttribute('viewBox', `0 0 ${dims.w} ${dims.h}`);
       const curves = arcCurves(n, C, dims.m);
       c.arc.querySelector('path').setAttribute('d', curves.map(arcPathD).join(' '));
-      shadeFor(c.arc, curves.flatMap(g => Array.from({ length: 10 }, (_, i) => { const a = g.angleMid - g.halfSpan + 2 * g.halfSpan * i / 9; return [g.cx + g.R * Math.cos(a), g.cy + g.R * Math.sin(a)]; })), dims);
+      inkFor(c.arc, curves.flatMap(g => Array.from({ length: 10 }, (_, i) => { const a = g.angleMid - g.halfSpan + 2 * g.halfSpan * i / 9; return [g.cx + g.R * Math.cos(a), g.cy + g.R * Math.sin(a)]; })), dims);
     } else {
       const place = (dir, len, phi) => {
         const cs = Math.cos(phi), sn = Math.sin(phi), deg = phi * 180 / Math.PI;
         setStyle(c.arms[dir], { left: (cx + gap * cs) + 'px', top: (cy + gap * sn) + 'px', width: Math.max(0, len - gap - 6) + 'px', transform: `rotate(${deg}deg)` });
         setStyle(c.hs[dir], { left: (cx + len * cs) + 'px', top: (cy + len * sn) + 'px' });
-        shadeFor(c.arms[dir], linePoints(cx + gap * cs, cy + gap * sn, cx + len * cs, cy + len * sn), dims);
+        inkFor(c.arms[dir], linePoints(cx + gap * cs, cy + gap * sn, cx + len * cs, cy + len * sn), dims);
       };
       place('r', armLen(n.sr, 'r'), armAngle(n, 'r')); place('l', armLen(n.sl, 'l'), armAngle(n, 'l'));
       if (isCircle) { place('b', armLen(n.sb, 'b'), armAngle(n, 'b')); place('t', armLen(n.st, 't'), armAngle(n, 't')); }
@@ -199,7 +199,7 @@ export function refreshHandles() {
     for (const sel of ['.dots', '.grab']) { const e = c.ring.querySelector(sel); e.setAttribute('cx', mid); e.setAttribute('cy', mid); e.setAttribute('r', R); }
     c.ind.setAttribute('cx', mid); c.ind.setAttribute('cy', mid); c.ind.setAttribute('r', Ri);
     c.ind.style.setProperty('--circ', 2 * Math.PI * Ri);
-    shadeFor(c.ring, circlePoints(cx, cy, R), dims);
+    inkFor(c.ring, circlePoints(cx, cy, R), dims);
   }
   for (const [id, el] of handleEls) if (!live.has(id)) { el.remove(); handleEls.delete(id); }
   for (const [id, c] of ctlEls) {

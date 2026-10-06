@@ -1,11 +1,11 @@
-// Keeps the overlay's white dotted rings and axis lines legible on any part of the gradient: where the gradient
-// beneath one is too light for white, the line gets a drop shadow (the `shade` class) instead of changing colour.
-// After each render the gradient is copied down to a tiny 2D canvas (it has to happen in the same task as the
-// render, before the browser presents the WebGL buffer); handles.js then asks shadeFor() with the points an element
-// covers, and the CSS fades the shadow in and out.
+// Picks light or dark ink for the overlay's dotted rings and axis lines, so they stay readable on any part of the
+// gradient. After each render the gradient is copied down to a tiny 2D canvas (it has to happen in the same task as
+// the render, before the browser presents the WebGL buffer); handles.js then asks inkFor() with the points an
+// element covers. The choice is written as --line-ink on the element, and the CSS transitions the colour change.
 
 const SAMPLE_W = 96;
-const SHADE_ABOVE = 0.55, SHADE_BELOW = 0.47; // a gap between the two, so a line sitting on the boundary doesn't flicker
+const LIGHT = '#ffffff', DARK = '#16161c';
+const DARK_ABOVE = 0.58, LIGHT_BELOW = 0.48; // a gap between the two, so a line sitting on the boundary doesn't flicker
 
 const cvs = document.createElement('canvas');
 const ctx = cvs.getContext('2d', { willReadFrequently: true });
@@ -22,8 +22,8 @@ export function captureInk(source) {
   for (let i = 0; i < lum.length; i++) lum[i] = (0.2126 * d[i * 4] + 0.7152 * d[i * 4 + 1] + 0.0722 * d[i * 4 + 2]) / 255;
 }
 
-// Toggles the element's shadow from the average brightness under `pts` ([x, y] in frame px; dims is maxDim()).
-export function shadeFor(el, pts, dims) {
+// Sets the element's ink from the average brightness under `pts` ([x, y] in frame px; dims is maxDim()).
+export function inkFor(el, pts, dims) {
   if (!lum) return;
   let sum = 0, n = 0;
   for (const [x, y] of pts) {
@@ -31,8 +31,11 @@ export function shadeFor(el, pts, dims) {
     sum += lum[v * mw + u]; n++;
   }
   if (!n) return;
-  const avg = sum / n, shade = el.classList.contains('shade') ? avg > SHADE_BELOW : avg > SHADE_ABOVE;
-  el.classList.toggle('shade', shade);
+  const avg = sum / n, wasDark = el._inkDark === true;
+  const dark = wasDark ? avg > LIGHT_BELOW : avg > DARK_ABOVE;
+  if (dark === el._inkDark) return;
+  el._inkDark = dark;
+  el.style.setProperty('--line-ink', dark ? DARK : LIGHT);
 }
 
 export const circlePoints = (cx, cy, r, n = 16) => Array.from({ length: n }, (_, i) => [cx + r * Math.cos(i / n * 2 * Math.PI), cy + r * Math.sin(i / n * 2 * Math.PI)]);
