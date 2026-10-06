@@ -88,7 +88,8 @@ function syncStopEls(c, n) {
     s.dot.dataset.stop = s.ring.dataset.stop = i;
     const end = i === 0 || i === last;
     s.dot.classList.toggle('end', end);
-    if (end) s.dot.removeAttribute('title'); else s.dot.title = 'Drag along the stroke to move. ⌥-click to remove';
+    s.dot.classList.toggle('selected', !end && session.stopSel?.id === n.id && session.stopSel.i === i);
+    if (end) s.dot.removeAttribute('title'); else s.dot.title = 'Drag along the stroke to move. Click to select, then Delete (or ⌥-click) to remove';
   });
 }
 function layoutStroke(c, n, cx, cy, dims) {
@@ -169,6 +170,7 @@ export function refreshHandles() {
     const gap = 9; // flush against the 20px main node
     if (isStroke) {
       layoutStroke(c, n, cx, cy, dims);
+      setStrokeShown(c, true, !drawing); // stop dots are created by the layout, after the first show/hide above
       if (drawing) continue;
     } else if (isArc) {
       const C = { x: cx, y: cy }, { l: P1, r: P2 } = armEnds(n, C, dims.m);

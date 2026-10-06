@@ -1,6 +1,7 @@
 // Small whole-selection actions shared by the keyboard, the panel buttons, and the menus.
 
 import { state, selectedNodes, removeNodes, selectAll } from './state.js';
+import { session } from './session.js';
 import { pushUndo } from './undo.js';
 import { flipNode } from './nodes.js';
 import { refreshAll } from './refresh.js';
@@ -10,6 +11,17 @@ export function deleteSelected() {
   pushUndo();
   removeNodes(new Set(state.selected));
   refreshAll();
+}
+// Removes the selected hardness stop, if there is one on a selected stroke. Returns whether it did.
+export function deleteSelectedStop() {
+  const sel = session.stopSel; if (!sel) return false;
+  const n = state.nodes.find(x => x.id === sel.id);
+  session.stopSel = null;
+  if (!n || n.type !== 'stroke' || !state.selected.has(n.id) || sel.i <= 0 || sel.i >= n.stops.length - 1) { refreshAll(); return false; }
+  pushUndo();
+  n.stops.splice(sel.i, 1);
+  refreshAll();
+  return true;
 }
 export function selectAllNodes() { selectAll(); refreshAll(); }
 export function clearSelection() { state.selected.clear(); refreshAll(); }

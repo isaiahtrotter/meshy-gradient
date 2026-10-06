@@ -4,10 +4,11 @@ import { state } from './state.js';
 import { session } from './session.js';
 import { stage } from './dom.js';
 import { undo, redo } from './undo.js';
+import { refreshAll } from './refresh.js';
 import { view, setZoom, resetZoom } from './view.js';
 import { setPreview, setPlacement } from './modes.js';
 import { setSampling } from './sampling.js';
-import { deleteSelected, selectAllNodes, clearSelection, nudgeSelected, flipSelected, moveOccludeLayer } from './actions.js';
+import { deleteSelected, deleteSelectedStop, selectAllNodes, clearSelection, nudgeSelected, flipSelected, moveOccludeLayer } from './actions.js';
 
 // Placement-mode shortcuts, one per bottom-toolbar tool; 'circle' is the default (null) placement, so its key
 // just selects it rather than toggling — there's nothing "below" it to toggle back to. 'p' (pencil) used to
@@ -33,12 +34,13 @@ document.addEventListener('keydown', e => {
   if (mod && e.key === '[') { e.preventDefault(); moveOccludeLayer(-1); return; }
   if (mod && e.key === ']') { e.preventDefault(); moveOccludeLayer(1); return; }
   if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat && !session.previewing) { setSpaceHeld(true); setPreview(true); } }
-  else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
+  else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); if (!deleteSelectedStop()) deleteSelected(); }
   else if (mod && key === 'a') { e.preventDefault(); selectAllNodes(); }
   else if (e.key === 'Escape') {
     if (session.placing) setPlacement(null);
     else if (session.sampling) setSampling(false);
     else if (session.previewing) setPreview(false);
+    else if (session.stopSel) { session.stopSel = null; refreshAll(); }
     else clearSelection();
   }
   else if (e.shiftKey && !mod && (key === 'h' || key === 'v')) { e.preventDefault(); flipSelected(key === 'h' ? 'x' : 'y'); } // before plain H (preview)

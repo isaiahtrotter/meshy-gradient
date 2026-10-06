@@ -27,6 +27,7 @@ const marquee = document.getElementById('marquee');
 
 overlay.addEventListener('pointerdown', e => {
   if (e.button !== 0) return;
+  if (!e.target.closest('.stop-dot')) session.stopSel = null; // a click anywhere but on a stop deselects it
   const p = normPos(e);
   const sh = e.target.closest('.spread-handle');
   if (sh) {
@@ -205,6 +206,7 @@ function beginStopMove(e, n, i) {
   if (!n) return;
   const interior = i > 0 && i < n.stops.length - 1;
   if (e.altKey) { if (interior) { pushUndo(); n.stops.splice(i, 1); refreshAll(); } return; }
+  session.stopSel = interior ? { id: n.id, i } : null;
   session.drag = { type: 'stopMove', n, i, snap: snapshot(), moved: false, pinned: !interior, pts0: interior ? null : n.pts.map(q => [q[0], q[1]]) };
   overlay.setPointerCapture(e.pointerId);
 }
@@ -238,6 +240,7 @@ function addStopAt(e, p, n) {
   const i = n.stops.findIndex(s => s.t >= t);
   if (i <= 0 || t - n.stops[i - 1].t < STOP_GAP || n.stops[i].t - t < STOP_GAP) return;
   n.stops.splice(i, 0, { t, m: round4(stopFactor(n.stops, t)) });
+  session.stopSel = { id: n.id, i };
   session.drag = { type: 'stopMove', n, i, snap, moved: true, pinned: false };
   overlay.setPointerCapture(e.pointerId);
   refreshAll();

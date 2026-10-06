@@ -309,6 +309,7 @@ body {
 .stroke-path .hit { stroke: transparent; stroke-width: 14px; pointer-events: stroke; cursor: copy; }
 .stop-dot { position: absolute; z-index: 1; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #fff; display: none; cursor: grab; box-shadow: 0 2px 4px rgba(0,0,0,.3); }
 .stop-dot::before { content: ''; position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%); }
+.stop-dot.selected { background: var(--accent); box-shadow: 0 0 0 2px #fff, 0 2px 4px rgba(0,0,0,.3); }
 .stop-dot.end { cursor: grab; width: 14px; height: 14px; margin: -7px 0 0 -7px; }
 .stop-dot.end::before { width: 28px; height: 28px; }
 .stop-ring { position: absolute; z-index: 1; display: none; overflow: visible; pointer-events: none; }
