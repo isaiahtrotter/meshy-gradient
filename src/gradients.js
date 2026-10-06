@@ -163,6 +163,7 @@ async function refreshPublic() {
   const { data, error } = await client.from('gradients').select('id, thumb, author_name, author_twitter, user_id').eq('is_public', true).order('created_at', { ascending: false }).limit(200);
   if (error) { console.error(error); return; }
   dbRows = data; rebuildPublic();
+  pushProfile(); // re-credit any of your rows that are out of date
 }
 async function openPublic(row, anchor) {
   const data = row.builtin ? { config: row.config } : await fetchConfig(row.id, anchor); // featured gradients carry their config
@@ -265,23 +266,32 @@ onUser(user => {
   $('mySignedIn').hidden = !user; $('mySignedOut').hidden = !!user;
   if (!user) $('myList').innerHTML = '';
   syncCurrent(); renderPublic(); // the Delete buttons depend on who is signed in
-  if (user) refreshMine();
+  if (user) { refreshMine(); refreshPublic(); } // refreshPublic also re-credits any of your rows that are out of date
 });
 whenClient.then(c => { client = c; refreshPublic(); if (me) refreshMine(); });
 loadFeatured(); // needs no account or database, so the Community grid fills straight away
 
-// Changing the display name or Twitter handle in Settings re-credits every gradient you've published, and is kept on
-// your account so it follows you to other devices.
+// Your display name and Twitter handle (Settings) are what your published gradients are credited to, and they're kept
+// on your account so they follow you to other devices. pushProfile() writes them to the rows: it runs when either
+// changes, and also whenever your published rows are out of date (e.g. they were published before the handle existed,
+// or from another device), since an unchanged Settings field fires no event. `lastPushed` stops a failed update looping.
+let lastPushed = '';
+async function pushProfile() {
+  if (!client || !me) return;
+  const name = authorName(), twitter = cleanHandle($('prefTwitter').value) || null;
+  if (!name) return;
+  const combo = JSON.stringify([me.id, name, twitter]);
+  const stale = dbRows.some(r => r.user_id === me.id && (r.author_name !== name || (r.author_twitter || null) !== twitter));
+  if (!stale || combo === lastPushed) return;
+  lastPushed = combo;
+  const { error } = await client.from('gradients').update({ author_name: name, author_twitter: twitter }).eq('user_id', me.id);
+  if (error) { console.error(error); return; }
+  client.auth.updateUser({ data: { display_name: name, twitter } }).catch(() => {});
+  refreshPublic();
+}
 let profileTimer = 0;
 for (const id of ['prefName', 'prefTwitter']) $(id).addEventListener('input', () => {
   clearTimeout(profileTimer);
-  profileTimer = setTimeout(async () => {
-    if (!client || !me) return;
-    const name = authorName(), twitter = cleanHandle($('prefTwitter').value) || null;
-    if (!name) return;
-    const { error } = await client.from('gradients').update({ author_name: name, author_twitter: twitter }).eq('user_id', me.id);
-    if (error) { console.error(error); return; }
-    client.auth.updateUser({ data: { display_name: name, twitter } }).catch(() => {});
-    refreshPublic();
-  }, 700);
+  lastPushed = ''; // an edit is always worth pushing
+  profileTimer = setTimeout(pushProfile, 700);
 });
