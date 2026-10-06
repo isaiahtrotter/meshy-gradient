@@ -789,3 +789,8 @@ section[data-collapse] > h2[hidden] { display: none; }
 /* The top bar's Share section (visible only while signed in): the button plus its own divider. */
 .topbar-section { display: flex; align-items: center; gap: 10px; }
 .topbar-section[hidden] { display: none; }
+
+/* the red confirm button for destructive actions */
+.topbar-auth-btn.danger { background: #c53030; border: 1px solid #e05252; color: #fff; }
+.topbar-auth-btn.danger:hover { filter: brightness(1.1); }
+.topbar-auth-btn[hidden] { display: none; }

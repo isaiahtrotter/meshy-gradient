@@ -170,6 +170,17 @@ window.addEventListener('error', function () {
     </div>
   </div>
 </div>
+<div id="confirmModal" class="modal-overlay" hidden>
+  <div class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+    <h2 id="confirmTitle"></h2>
+    <p id="confirmText"></p>
+    <input class="sinput" id="confirmField" type="text" readonly hidden aria-label="Link">
+    <div class="row confirm-actions">
+      <button id="confirmCancel" class="topbar-auth-btn signin grow" type="button">Cancel</button>
+      <button id="confirmOk" class="topbar-auth-btn primary grow" type="button">Confirm</button>
+    </div>
+  </div>
+</div>
 <div id="publishedModal" class="modal-overlay" hidden>
   <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="publishedTitle">
     <h2 id="publishedTitle">Your gradient is published</h2>

@@ -12,6 +12,7 @@ import { applyGradient, renderThumb, setCredit } from './loadGradient.js';
 import { markSaved, clearSaved, markCopy, onProvenance } from './provenance.js';
 import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
 import { masonry, thumbRatio } from './masonry.js';
+import { askConfirm } from './confirm.js';
 
 let client = null, me = null;
 let current = null; // the saved gradient that's open on the canvas (so it can be deleted): { id }, or null
@@ -92,7 +93,7 @@ function deleteButton(row) {
   return del;
 }
 async function deleteSaved(row, anchor) {
-  if (!confirm('Delete this saved gradient? This can’t be undone.')) return;
+  if (!await askConfirm({ title: 'Delete this saved gradient?', text: 'This can’t be undone.', confirmLabel: 'Delete', danger: true })) return;
   await guarded(anchor, async () => {
     const { error } = await client.from('gradients').delete().eq('id', row.id);
     if (error) throw error;
@@ -206,7 +207,7 @@ async function openPublic(row, anchor) {
   current = null; await refreshMine(); // clears the highlight on the saved list
 }
 async function deletePublished(row, anchor) {
-  if (!confirm('Remove this gradient from the community? This can’t be undone.')) return;
+  if (!await askConfirm({ title: 'Remove this gradient from the community?', text: 'Everyone will lose access to it, and any share links to it will stop working. This can’t be undone.', confirmLabel: 'Remove', danger: true })) return;
   await guarded(anchor, async () => {
     const { error } = await client.from('gradients').delete().eq('id', row.id);
     if (error) throw error;
@@ -273,7 +274,7 @@ document.addEventListener('keydown', e => { if (!$('publishedModal').hidden && e
 $('publishedShare').addEventListener('click', async () => {
   const url = `${location.origin}/?g=${shareSlug}`;
   try { await navigator.clipboard.writeText(url); $('publishedShare').textContent = 'Link copied'; }
-  catch { window.prompt('Copy this link to share the gradient:', url); }
+  catch { askConfirm({ title: 'Copy this link', text: 'Your browser blocked copying automatically. Select the link below and copy it.', field: url, confirmLabel: 'Done', cancelLabel: null }); }
 });
 
 // Publish: always asks first.
@@ -361,7 +362,7 @@ $('shareBtn').addEventListener('click', async e => {
   const url = `${location.origin}/?g=${shareSlug}`;
   const anchor = e.currentTarget;
   try { await navigator.clipboard.writeText(url); showToast(anchor, 'Link copied'); }
-  catch { window.prompt('Copy this link to share the gradient:', url); }
+  catch { askConfirm({ title: 'Copy this link', text: 'Your browser blocked copying automatically. Select the link below and copy it.', field: url, confirmLabel: 'Done', cancelLabel: null }); }
 });
 
 // Opens the gradient a share link points at (called once the app has booted). It lands as a copy, credited to its
