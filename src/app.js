@@ -13,7 +13,6 @@ import './nodeMenu.js';
 import './interaction.js';
 import './keyboard.js';
 import './exporter.js';
-import './vectorExport.js';
 import './settingsPanel.js';
 import './theme.js';
 import './auth.js';
