@@ -58,17 +58,22 @@ export function resample(pts, n) {
 // Raw pointer samples (px) → a smooth path of at most MAX_STROKE_PTS points roughly `spacing` px apart. The
 // samples are first made dense and even (3px), then box-filtered with a window that narrows toward the ends so the
 // stroke still starts and stops exactly where the pointer did.
-const DENSE_PX = 3, SMOOTH_RADIUS = 5;
+const DENSE_PX = 3, SMOOTH_RADIUS = 10, SMOOTH_PASSES = 3;
 export function smoothStroke(raw, spacing) {
   if (raw.length < 2) return raw.map(p => [p[0], p[1]]);
   const len = cumLengths(raw)[raw.length - 1];
   const dense = resample(raw, clamp(Math.round(len / DENSE_PX), 2, 4000));
-  const smooth = dense.map((p, i) => {
-    const r = Math.min(SMOOTH_RADIUS, i, dense.length - 1 - i);
-    let x = 0, y = 0;
-    for (let j = -r; j <= r; j++) { x += dense[i + j][0]; y += dense[i + j][1]; }
-    return [x / (2 * r + 1), y / (2 * r + 1)];
-  });
+  // a few passes of the box filter approximate a gaussian: no flat runs or kinks survive the jitter of a hand
+  let smooth = dense;
+  for (let pass = 0; pass < SMOOTH_PASSES; pass++) {
+    const src = smooth;
+    smooth = src.map((p, i) => {
+      const r = Math.min(SMOOTH_RADIUS, i, src.length - 1 - i);
+      let x = 0, y = 0;
+      for (let j = -r; j <= r; j++) { x += src[i + j][0]; y += src[i + j][1]; }
+      return [x / (2 * r + 1), y / (2 * r + 1)];
+    });
+  }
   return resample(smooth, clamp(Math.round(len / spacing) + 1, 2, MAX_STROKE_PTS));
 }
 

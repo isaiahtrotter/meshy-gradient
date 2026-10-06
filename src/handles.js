@@ -94,7 +94,11 @@ function syncStopEls(c, n) {
 function layoutStroke(c, n, cx, cy, dims) {
   const P = strokeWorld(n, { x: cx, y: cy }, dims.m), cum = cumLengths(P);
   setStyle(c.path, { width: dims.w + 'px', height: dims.h + 'px' }); c.path.setAttribute('viewBox', `0 0 ${dims.w} ${dims.h}`);
-  const d = 'M ' + P.map(([x, y]) => x.toFixed(1) + ' ' + y.toFixed(1)).join(' L ');
+  // quadratic curves through the segment midpoints, so the drawn line has no corners
+  const f = v => v.toFixed(1), mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  let d = `M ${f(P[0][0])} ${f(P[0][1])}`;
+  for (let i = 1; i < P.length - 1; i++) { const m = mid(P[i], P[i + 1]); d += ` Q ${f(P[i][0])} ${f(P[i][1])} ${f(m[0])} ${f(m[1])}`; }
+  d += ` L ${f(P[P.length - 1][0])} ${f(P[P.length - 1][1])}`;
   for (const p of c.path.children) p.setAttribute('d', d);
   syncStopEls(c, n);
   n.stops.forEach((st, i) => {
