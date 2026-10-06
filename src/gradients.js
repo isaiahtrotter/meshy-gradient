@@ -184,6 +184,7 @@ $('saveBtn').addEventListener('click', e => {
 // Publish: always asks first.
 const setPublishModal = open => {
   $('publishModal').hidden = !open;
+  $('publishError').hidden = true;
   if (open) { $('pubName').value = $('gName').value.trim(); $('pubName').focus(); }
 };
 $('publishBtn').addEventListener('click', e => { if (!me) return needSignIn(e.currentTarget, 'publish'); setPublishModal(true); });
@@ -191,16 +192,21 @@ $('publishCancel').addEventListener('click', () => setPublishModal(false));
 $('publishModal').addEventListener('pointerdown', e => { if (e.target === $('publishModal')) setPublishModal(false); });
 document.addEventListener('keydown', e => { if (!$('publishModal').hidden && e.key === 'Escape') { e.stopPropagation(); setPublishModal(false); } }, true);
 $('pubName').addEventListener('keydown', e => { if (e.key === 'Enter') $('publishConfirm').click(); });
-$('publishConfirm').addEventListener('click', async e => {
+$('publishConfirm').addEventListener('click', async () => {
   const anchor = $('publishBtn');
+  $('publishError').hidden = true;
   await guarded(anchor, async () => {
     const { error } = await client.from('gradients').insert({ ...snapshotRow($('pubName').value), user_id: me.id, author_name: authorName(), is_public: true });
+    if (error?.code === '23505') { // unique violation: an identical gradient is already published
+      $('publishError').textContent = 'This exact gradient is already in the community. Change something about it to make it unique, then publish.';
+      $('publishError').hidden = false;
+      return;
+    }
     if (error) throw error;
     setPublishModal(false);
     showToast(anchor, 'Published');
     await refreshPublic();
   });
-  setPublishModal(false);
 });
 
 onUser(user => {

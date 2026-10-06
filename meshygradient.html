@@ -158,6 +158,7 @@ window.addEventListener('error', function () {
     <h2 id="publishTitle">Publish to the community?</h2>
     <p>Your gradient will be visible to everyone, including people who aren't signed in. You can delete it later from the Community tab.</p>
     <input class="sinput" id="pubName" type="text" placeholder="Name" maxlength="80" autocomplete="off" aria-label="Gradient name">
+    <p class="confirm-error" id="publishError" role="alert" hidden></p>
     <div class="row confirm-actions">
       <button id="publishCancel" class="topbar-auth-btn signin grow" type="button">Cancel</button>
       <button id="publishConfirm" class="topbar-auth-btn primary grow" type="button">Publish</button>
