@@ -314,7 +314,7 @@ window.addEventListener('error', function () {
       </div>
     </section>
 
-    <section id="presetSection">
+    <section id="presetSection" data-collapse="presets">
       <h2>Presets</h2>
       <!-- Placeholder squares reserving the grid's footprint until fetchPresets() (src/presets.js) resolves and
            renderPresets() replaces them with real thumbnails in place, so that swap can't shift the sections below. -->
@@ -331,7 +331,7 @@ window.addEventListener('error', function () {
       <div class="empty" id="presetsEmpty" hidden>No presets yet — copy a gradient (top right) and send it to Claude to add one.</div>
     </section>
 
-    <section id="mySection">
+    <section id="mySection" data-collapse="my-gradients">
       <h2>My gradients</h2>
       <div class="empty" id="mySignedOut">Sign in to save, edit and share your gradients.</div>
       <div id="mySignedIn" hidden>
@@ -349,7 +349,7 @@ window.addEventListener('error', function () {
       <div class="empty" id="pubEmpty">No public gradients yet.</div>
     </section>
 
-    <section>
+    <section data-collapse="blend">
       <h2>Blend</h2>
       <div class="slider slider--blur"><span class="slider-label">Softness</span><span class="slider-value" id="softVal">0.33</span><input type="range" id="soft" min="0" max="1" step="0.001" value="0.33333" data-min="0.05" data-max="0.2"><div class="slider-edge"></div>
         <div class="slider-blur-fx" aria-hidden="true">
@@ -361,7 +361,7 @@ window.addEventListener('error', function () {
       <div class="slider"><span class="slider-label">Blend mode</span><span class="slider-value word" id="blendModeVal">Normal</span><input type="range" id="blendMode" min="0" max="4" step="1" value="0"><div class="adj-glow" data-for="blendMode"></div><div class="slider-edge"></div></div>
     </section>
 
-    <section>
+    <section data-collapse="grain">
       <h2>Grain</h2>
       <div class="row" id="grainType">
         <button type="button" class="chip grow" data-grain-type="mono" aria-pressed="true">Mono</button>
@@ -382,7 +382,7 @@ window.addEventListener('error', function () {
       <div class="help">Or paste / drop an image. It sits beside the canvas. Press <kbd>I</kbd> with a node selected to sample a color from it.</div>
     </section>
 
-    <section>
+    <section data-collapse="color">
       <h2>Color</h2>
       <div class="slider"><span class="slider-label">Hue</span><span class="slider-value" id="adjHueVal">0</span><input type="range" id="adjHue" min="-180" max="180" step="1" value="0"><div class="adj-glow" data-for="hue"></div><div class="slider-edge"></div></div>
       <div class="slider"><span class="slider-label">Saturation</span><span class="slider-value" id="adjSatVal">1.00</span><input type="range" id="adjSat" min="0" max="2" step="0.01" value="1"><div class="adj-glow" data-for="sat"></div><div class="slider-edge"></div></div>

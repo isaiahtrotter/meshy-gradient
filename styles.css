@@ -374,6 +374,16 @@ body.loading .skeleton { opacity: 1; }
 @media (min-width: 821px) { .desktop-hide { display: none !important; } }
 section { display: flex; flex-direction: column; gap: 12px; }
 section[hidden] { display: none; }
+/* Collapsible panel sections (src/collapse.js): the heading is the toggle, and a collapsed section shows only it. */
+section[data-collapse] > h2 { display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; -webkit-user-select: none; border-radius: 4px; }
+section[data-collapse] > h2::after {
+  content: ''; width: 6px; height: 6px; margin-right: 3px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: translateY(-1px) rotate(45deg); transition: transform .15s ease; flex: none;
+}
+section[data-collapse].collapsed > h2::after { transform: translateX(-1px) rotate(-45deg); }
+section[data-collapse] > h2:hover { color: var(--ink); }
+section[data-collapse] > h2:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+section[data-collapse].collapsed > :not(h2) { display: none !important; }
 section h2 {
   font: 500 12px/1.2 var(--font-ui); letter-spacing: .05em; text-transform: uppercase;
   color: color-mix(in srgb, var(--ink) 60%, transparent); margin: 0;

@@ -14,6 +14,7 @@ import './interaction.js';
 import './keyboard.js';
 import './exporter.js';
 import './gradients.js';
+import './collapse.js';
 import './settingsPanel.js';
 import './theme.js';
 import './auth.js';
