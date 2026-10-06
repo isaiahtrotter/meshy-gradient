@@ -8,7 +8,8 @@ create table if not exists public.gradients (
   user_id     uuid not null default auth.uid() references auth.users (id) on delete cascade,
   author_name text,
   author_twitter text check (author_twitter is null or author_twitter ~ '^[A-Za-z0-9_]{1,15}$'),
-  name        text not null default 'Untitled' check (char_length(name) <= 80),
+  -- a short public id for sharing a gradient (a link can point at it); generated here, never typed by users
+  slug        text not null default substr(replace(gen_random_uuid()::text, '-', ''), 1, 10),
   config      jsonb not null check (octet_length(config::text) <= 400000),
   thumb       text check (thumb is null or char_length(thumb) <= 80000),
   is_public   boolean not null default false,
@@ -19,6 +20,12 @@ create table if not exists public.gradients (
 );
 
 create index if not exists gradients_user_idx   on public.gradients (user_id, updated_at desc);
+-- For a table created before gradients had a slug and lost their name: run these (each is a no-op once done).
+-- Existing rows each get their own slug.
+alter table public.gradients add column if not exists slug text not null default substr(replace(gen_random_uuid()::text, '-', ''), 1, 10);
+create unique index if not exists gradients_slug_key on public.gradients (slug);
+alter table public.gradients drop column if exists name;
+
 -- For a table created before author_twitter existed: run this line (a no-op otherwise).
 alter table public.gradients add column if not exists author_twitter text check (author_twitter is null or author_twitter ~ '^[A-Za-z0-9_]{1,15}$');
 
@@ -58,3 +65,8 @@ drop policy if exists "delete own" on public.gradients;
 create policy "delete own" on public.gradients
   for delete to authenticated
   using (auth.uid() = user_id);
+
+-- Owners may change only how a gradient is credited and whether it's public, never its id, owner, slug or content
+-- fingerprint. (The app only ever updates author_name and author_twitter.)
+revoke update on public.gradients from authenticated;
+grant update (author_name, author_twitter, is_public, thumb, config, updated_at) on public.gradients to authenticated;
