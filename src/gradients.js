@@ -44,7 +44,7 @@ function renderMine(rows) {
     if (row.thumb) b.style.backgroundImage = `url(${row.thumb})`;
     cell.appendChild(b);
     if (i === GRID_SLOTS - 1) {
-      b.id = 'myMoreBtn'; b.setAttribute('aria-controls', 'communityTab'); b.setAttribute('aria-expanded', String(sideTabKind() === 'mine'));
+      b.classList.add('preset--more'); b.id = 'myMoreBtn'; b.setAttribute('aria-controls', 'communityTab'); b.setAttribute('aria-expanded', String(sideTabKind() === 'mine'));
       b.setAttribute('aria-label', `Show all ${rows.length} saved gradients`);
       const more = document.createElement('span'); more.className = 'preset-more'; more.textContent = `+${rows.length - GRID_SLOTS}`;
       b.appendChild(more);
@@ -184,7 +184,7 @@ function renderCommunityGrid() {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'preset';
     if (row.thumb) b.style.backgroundImage = `url(${row.thumb})`;
     if (i === GRID_SLOTS - 1) {
-      b.id = 'communityMoreBtn'; b.setAttribute('aria-controls', 'communityTab'); b.setAttribute('aria-expanded', String(sideTabKind() === 'community'));
+      b.classList.add('preset--more'); b.id = 'communityMoreBtn'; b.setAttribute('aria-controls', 'communityTab'); b.setAttribute('aria-expanded', String(sideTabKind() === 'community'));
       b.setAttribute('aria-label', `Show all ${rows.length} community gradients`);
       const more = document.createElement('span'); more.className = 'preset-more'; more.textContent = `+${rows.length - GRID_SLOTS}`;
       b.appendChild(more);
