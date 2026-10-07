@@ -97,13 +97,15 @@ window.addEventListener('error', function () {
       <button id="settingsClose" class="settings-close" type="button" aria-label="Close settings">&times;</button>
       <section class="ssec active" data-tab="account">
         <h2>Account</h2>
-        <div class="sfield">
-          <label class="slabel" for="prefName"><b>Display name</b><span>Shown as the author of gradients you publish.</span></label>
-          <input class="sinput" id="prefName" type="text" placeholder="Your name" maxlength="40" autocomplete="off">
-        </div>
-        <div class="sfield">
-          <label class="slabel" for="prefTwitter"><b>Twitter handle</b><span>Optional. Links your name on gradients you publish.</span></label>
-          <input class="sinput" id="prefTwitter" type="text" placeholder="@handle" maxlength="60" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="sfield-row">
+          <div class="sfield">
+            <label class="slabel" for="prefName"><b>Display name</b><span>Shown as the author of gradients you publish.</span></label>
+            <input class="sinput" id="prefName" type="text" placeholder="Your name" maxlength="40" autocomplete="off">
+          </div>
+          <div class="sfield">
+            <label class="slabel" for="prefTwitter"><b>Twitter handle</b><span>Optional. Links your name on gradients you publish.</span></label>
+            <input class="sinput" id="prefTwitter" type="text" placeholder="@handle" maxlength="60" autocomplete="off" autocapitalize="off" spellcheck="false">
+          </div>
         </div>
         <div class="sfield">
           <label class="slabel" for="accountEmail"><b>Email</b><span id="accountEmailNote">Sign-in isn't set up yet.</span></label>
