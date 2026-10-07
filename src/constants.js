@@ -3,7 +3,8 @@
 export const MAXN = 40;               // uniform slots in the shader; an unlinked arc/line uses two
 export const MAX_STROKE_PTS = 192;     // points per brush stroke; the columns of the renderer's stroke texture
 export const MAX_GRAD_STOPS = 8;      // stops per node's linear gradient; the columns of the renderer's gradient-stop texture
-export const HARD_K_MIN = 1, HARD_K_MAX = 40; // the range the hardness rings drag through
+export const HARD_K_MIN = 1, HARD_K_MAX = 40; // the range the hardness rings drag through (circles)
+export const LINE_K_MAX = 5000;             // lines, arcs and strokes can go far harder, down to a hairline
 export const MOBILE_BREAKPOINT = 820; // must match the @media (max-width) in styles.css
 export const CANVAS_MIN = 150, CANVAS_MAX = 8192, EXPORT_MAX = 16384;
 // a brush stroke's stop hardness reaches far past the rings' range so a tip can narrow to a point

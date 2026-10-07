@@ -2,7 +2,7 @@
 // badge, and for strokes the drawn path plus a dot and small dotted ring per hardness stop. refreshHandles()
 // creates what's missing, positions everything, and removes elements for deleted nodes.
 
-import { PX_PER_SPREAD, ARM_MIN, HARD_K_MIN, HARD_K_MAX, STROKE_K_MAX, clamp } from './constants.js';
+import { PX_PER_SPREAD, ARM_MIN, HARD_K_MIN, HARD_K_MAX, STROKE_K_MAX, LINE_K_MAX, clamp } from './constants.js';
 import { state } from './state.js';
 import { session } from './session.js';
 import { armAngle, armEnds, arcCurves } from './nodes.js';
@@ -15,7 +15,9 @@ import { overlay, maxDim, normPos, setStyle } from './dom.js';
 // screen-px radius back to the same reference space before inverting, so a live drag (real on-screen px,
 // which already vary with zoom on their own) stays consistent with whatever's currently rendered.
 export const hardToRadius = k => (15 + 400 / (k + 2)) * session.zoom;
-export const radiusToHard = R => clamp(400 / Math.max(1, R / session.zoom - 15) - 2, HARD_K_MIN, HARD_K_MAX);
+export const radiusToHard = (R, kMax = HARD_K_MAX) => clamp(400 / Math.max(0.04, R / session.zoom - 15) - 2, HARD_K_MIN, kMax);
+// the hardest a node's main ring may go: only circles stop at HARD_K_MAX, the thin kinds keep going
+export const hardMax = n => (n.type === 'circle' ? HARD_K_MAX : LINE_K_MAX);
 // the same idea at a smaller size for a stroke's stop rings: k=1 → 40px, k=2.2 → 31px, k=40 → 10px (at 100% zoom)
 export const stopHardToRadius = k => (8 + 96 / (k + 2)) * session.zoom;
 export const stopRadiusToHard = R => clamp(96 / Math.max(0.01, R / session.zoom - 8) - 2, HARD_K_MIN, STROKE_K_MAX);

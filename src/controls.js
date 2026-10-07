@@ -155,8 +155,22 @@ $('grainType').addEventListener('click', e => {
   pushUndo();
   state.grainType = b.dataset.grainType;
   for (const btn of $('grainType').querySelectorAll('button[data-grain-type]')) btn.setAttribute('aria-pressed', String(btn === b));
+  syncGrainColors();
   draw();
 });
+
+// Grain colours: Mono shows one swatch, Duo two, Multi none (it's random RGB). Each is a native colour input laid over
+// its field; clicking one opens the shared colour picker (colorPanel.js).
+const GRAIN_FIELDS = { mono: ['mono'], duo: ['duoA', 'duoB'], multi: [] };
+export function syncGrainColors() {
+  $('grainColors').hidden = GRAIN_FIELDS[state.grainType].length === 0; // Multi has none: no empty row, no extra gap
+  for (const f of $('grainColors').querySelectorAll('.grain-field')) {
+    const key = f.dataset.grainColor, hex = state.grainColors[key];
+    f.hidden = !GRAIN_FIELDS[state.grainType].includes(key);
+    f.querySelector('.gc-swatch').style.background = hex;
+    f.querySelector('.gc-hex').textContent = hex.slice(1).toUpperCase();
+  }
+}
 
 // Animates a range input's handle (and readout) to a new value; used when a preset lands, and to reset a
 // slider to its default on right-click (below). glow-active shows the same hover-preview glow a real drag would.
@@ -195,6 +209,7 @@ export function syncControlsFromState({ animate = false } = {}) {
   // ripple as that slider does instead of snapping immediately, ahead of the animation reaching them.
   const grainDelay = SLIDERS.findIndex(s => s.id === 'grain') * 25;
   if (animate === 'ripple') grainTypeTimer = setTimeout(setGrainTypeButtons, grainDelay); else setGrainTypeButtons();
+  syncGrainColors();
   SLIDERS.forEach((s, i) => {
     const el = $(s.id), target = s.get();
     if (animate === 'ripple') animateSliderTo(el, target, { delay: i * 25, onFrame: v => { setOut(s.out, s.fmt(v)); } });

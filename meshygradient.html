@@ -321,7 +321,102 @@ window.addEventListener('error', function () {
           <span class="dim-suffix">%</span>
         </div>
         <button id="delBtn" class="danger desktop-hide" disabled>Delete</button>
-        <div class="picker" id="colorPicker" hidden>
+
+      </div>
+      <div class="slider" id="occSoft1Row" hidden><span class="slider-label">Blur start</span><span class="slider-value" id="occSoft1Val">3px</span><input type="range" id="occSoft1" min="0" max="120" step="1" value="3"><div class="slider-edge"></div></div>
+      <div class="slider" id="occSoft2Row" hidden><span class="slider-label">Blur end</span><span class="slider-value" id="occSoft2Val">3px</span><input type="range" id="occSoft2" min="0" max="120" step="1" value="3"><div class="slider-edge"></div></div>
+      <div class="slider" id="occAngleRow" hidden><span class="slider-label">Blur angle</span><span class="slider-value" id="occAngleVal">0</span><input type="range" id="occAngle" min="-180" max="180" step="1" value="0"><div class="slider-edge"></div></div>
+      <div class="row desktop-hide">
+        <button id="selAll" class="grow chip">Select all</button>
+        <button id="undoBtn" class="grow chip" disabled>Undo</button>
+      </div>
+    </section>
+
+    <section id="communitySection" data-collapse="community">
+      <h2>Community gradients</h2>
+      <!-- Placeholder squares reserving the grid's footprint until the community list loads (src/gradients.js), so the
+           swap can't shift the sections below. -->
+      <div class="presets" id="communityGrid">
+        <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
+        <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
+      </div>
+      <div class="empty" id="communityEmpty" hidden>No community gradients yet.</div>
+    </section>
+
+    <section id="mySection" data-collapse="my-gradients">
+      <h2>My gradients</h2>
+      <div class="empty" id="mySignedOut">Sign in to save, edit and share your gradients.</div>
+      <div id="mySignedIn" hidden>
+        <div class="presets" id="myList"></div>
+      </div>
+    </section>
+
+
+    <section data-collapse="blend">
+      <h2>Blend</h2>
+      <div class="slider slider--blur"><span class="slider-label">Softness</span><span class="slider-value" id="softVal">0.33</span><input type="range" id="soft" min="0" max="1" step="0.001" value="0.33333" data-min="0.05" data-max="0.2"><div class="slider-edge"></div>
+        <div class="slider-blur-fx" aria-hidden="true">
+          <div class="blur-layer l1"><div class="blur-twin"><span class="slider-label">Softness</span><span class="slider-value" data-mirror="softVal">0.33</span><div class="slider-edge"></div></div></div>
+          <div class="blur-layer l2"><div class="blur-twin"><span class="slider-label">Softness</span><span class="slider-value" data-mirror="softVal">0.33</span><div class="slider-edge"></div></div></div>
+          <div class="blur-layer l3"><div class="blur-twin"><span class="slider-label">Softness</span><span class="slider-value" data-mirror="softVal">0.33</span><div class="slider-edge"></div></div></div>
+        </div>
+      </div>
+      <div class="slider"><span class="slider-label">Blend mode</span><span class="slider-value word" id="blendModeVal">Normal</span><input type="range" id="blendMode" min="0" max="4" step="1" value="0"><div class="adj-glow" data-for="blendMode"></div><div class="slider-edge"></div></div>
+    </section>
+
+    <section data-collapse="grain">
+      <h2>Grain</h2>
+      <div class="row" id="grainType">
+        <button type="button" class="chip grow" data-grain-type="mono" aria-pressed="true">Mono</button>
+        <button type="button" class="chip grow" data-grain-type="duo" aria-pressed="false">Duo</button>
+        <button type="button" class="chip grow" data-grain-type="multi" aria-pressed="false">Multi</button>
+      </div>
+      <div class="row grain-colors" id="grainColors">
+        <div class="dim-field grain-field" role="button" tabindex="0" data-grain-color="mono" title="Grain color"><span class="gc-swatch"></span><span class="gc-hex">FFFFFF</span></div>
+        <div class="dim-field grain-field" role="button" tabindex="0" data-grain-color="duoA" title="First grain color" hidden><span class="gc-swatch"></span><span class="gc-hex">FFFF00</span></div>
+        <div class="dim-field grain-field" role="button" tabindex="0" data-grain-color="duoB" title="Second grain color" hidden><span class="gc-swatch"></span><span class="gc-hex">0000FF</span></div>
+      </div>
+      <div class="slider"><span class="slider-label">Opacity</span><span class="slider-value" id="grainVal">0.13</span><input type="range" id="grain" min="0" max="1" step="0.001" value="0.13333" data-min="0" data-max="0.15"><div class="adj-glow" data-for="grain"></div><div class="slider-edge"></div></div>
+      <div class="slider"><span class="slider-label">Grain size</span><span class="slider-value" id="grainSizeVal">1.0</span><input type="range" id="grainSize" min="1" max="8" step="0.05" value="1"><div class="adj-glow" data-for="grainSize"></div><div class="slider-edge"></div></div>
+      <div class="slider"><span class="slider-label">Density</span><span class="slider-value" id="densityVal">1.4</span><input type="range" id="density" min="0" max="2" step="0.05" value="1.4"><div class="adj-glow" data-for="density"></div><div class="slider-edge"></div></div>
+    </section>
+
+    <section class="desktop-hide">
+      <h2>Reference</h2>
+      <div class="row">
+        <button id="refBtn" class="grow">Add image</button>
+        <input type="file" id="refFile" accept="image/*" hidden>
+      </div>
+      <div class="help">Or paste / drop an image. It sits beside the canvas. Press <kbd>I</kbd> with a node selected to sample a color from it.</div>
+    </section>
+
+    <section data-collapse="color">
+      <h2>Color</h2>
+      <div class="slider"><span class="slider-label">Hue</span><span class="slider-value" id="adjHueVal">0</span><input type="range" id="adjHue" min="-180" max="180" step="1" value="0"><div class="adj-glow" data-for="hue"></div><div class="slider-edge"></div></div>
+      <div class="slider"><span class="slider-label">Saturation</span><span class="slider-value" id="adjSatVal">1.00</span><input type="range" id="adjSat" min="0" max="2" step="0.01" value="1"><div class="adj-glow" data-for="sat"></div><div class="slider-edge"></div></div>
+      <div class="slider"><span class="slider-label">Brightness</span><span class="slider-value" id="adjBriVal">1.00</span><input type="range" id="adjBri" min="0.2" max="1.8" step="0.01" value="1"><div class="adj-glow" data-for="bri"></div><div class="slider-edge"></div></div>
+      <div class="slider"><span class="slider-label">Temperature</span><span class="slider-value" id="adjTempVal">0</span><input type="range" id="adjTemp" min="-100" max="100" step="1" value="0"><div class="adj-glow" data-for="temp"></div><div class="slider-edge"></div></div>
+    </section>
+
+    <section data-collapse="export">
+      <h2>Export</h2>
+      <div class="row">
+        <div class="dim-field"><span class="dim-prefix" id="ewScrub">W</span><input type="number" id="ew" min="150" max="16384" step="1" value="3200" disabled></div>
+        <div class="dim-field"><span class="dim-prefix">H</span><input type="number" id="eh" disabled></div>
+      </div>
+      <div class="row" id="scales">
+        <button class="chip grow" data-s="1" aria-pressed="false">1×</button>
+        <button class="chip grow" data-s="2" aria-pressed="true">2×</button>
+        <button class="chip grow" data-s="3" aria-pressed="false">3×</button>
+        <button class="chip grow" data-s="4" aria-pressed="false">4×</button>
+      </div>
+      <div class="row"><button id="exportBtn" class="primary grow">Export JPG</button></div>
+      <div class="status" id="status"></div>
+    </section>
+    </div>
+    <div class="picker" id="colorPicker" hidden>
           <div class="picker-tabs" id="pickerTabs">
             <button type="button" class="picker-tab" id="pickerTabSolid" aria-pressed="true" title="Solid color">
               <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" fill="currentColor"/></svg>
@@ -379,95 +474,6 @@ window.addEventListener('error', function () {
             </button>
           </div>
         </div>
-      </div>
-      <div class="slider" id="occSoft1Row" hidden><span class="slider-label">Blur start</span><span class="slider-value" id="occSoft1Val">3px</span><input type="range" id="occSoft1" min="0" max="120" step="1" value="3"><div class="slider-edge"></div></div>
-      <div class="slider" id="occSoft2Row" hidden><span class="slider-label">Blur end</span><span class="slider-value" id="occSoft2Val">3px</span><input type="range" id="occSoft2" min="0" max="120" step="1" value="3"><div class="slider-edge"></div></div>
-      <div class="slider" id="occAngleRow" hidden><span class="slider-label">Blur angle</span><span class="slider-value" id="occAngleVal">0</span><input type="range" id="occAngle" min="-180" max="180" step="1" value="0"><div class="slider-edge"></div></div>
-      <div class="row desktop-hide">
-        <button id="selAll" class="grow chip">Select all</button>
-        <button id="undoBtn" class="grow chip" disabled>Undo</button>
-      </div>
-    </section>
-
-    <section id="communitySection" data-collapse="community">
-      <h2>Community gradients</h2>
-      <!-- Placeholder squares reserving the grid's footprint until the community list loads (src/gradients.js), so the
-           swap can't shift the sections below. -->
-      <div class="presets" id="communityGrid">
-        <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
-        <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
-        <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
-        <div class="preset preset-skel" aria-hidden="true"></div><div class="preset preset-skel" aria-hidden="true"></div>
-      </div>
-      <div class="empty" id="communityEmpty" hidden>No community gradients yet.</div>
-    </section>
-
-    <section id="mySection" data-collapse="my-gradients">
-      <h2>My gradients</h2>
-      <div class="empty" id="mySignedOut">Sign in to save, edit and share your gradients.</div>
-      <div id="mySignedIn" hidden>
-        <div class="presets" id="myList"></div>
-      </div>
-    </section>
-
-
-    <section data-collapse="blend">
-      <h2>Blend</h2>
-      <div class="slider slider--blur"><span class="slider-label">Softness</span><span class="slider-value" id="softVal">0.33</span><input type="range" id="soft" min="0" max="1" step="0.001" value="0.33333" data-min="0.05" data-max="0.2"><div class="slider-edge"></div>
-        <div class="slider-blur-fx" aria-hidden="true">
-          <div class="blur-layer l1"><div class="blur-twin"><span class="slider-label">Softness</span><span class="slider-value" data-mirror="softVal">0.33</span><div class="slider-edge"></div></div></div>
-          <div class="blur-layer l2"><div class="blur-twin"><span class="slider-label">Softness</span><span class="slider-value" data-mirror="softVal">0.33</span><div class="slider-edge"></div></div></div>
-          <div class="blur-layer l3"><div class="blur-twin"><span class="slider-label">Softness</span><span class="slider-value" data-mirror="softVal">0.33</span><div class="slider-edge"></div></div></div>
-        </div>
-      </div>
-      <div class="slider"><span class="slider-label">Blend mode</span><span class="slider-value word" id="blendModeVal">Normal</span><input type="range" id="blendMode" min="0" max="4" step="1" value="0"><div class="adj-glow" data-for="blendMode"></div><div class="slider-edge"></div></div>
-    </section>
-
-    <section data-collapse="grain">
-      <h2>Grain</h2>
-      <div class="row" id="grainType">
-        <button type="button" class="chip grow" data-grain-type="mono" aria-pressed="true">Mono</button>
-        <button type="button" class="chip grow" data-grain-type="duo" aria-pressed="false">Duo</button>
-        <button type="button" class="chip grow" data-grain-type="multi" aria-pressed="false">Multi</button>
-      </div>
-      <div class="slider"><span class="slider-label">Opacity</span><span class="slider-value" id="grainVal">0.13</span><input type="range" id="grain" min="0" max="1" step="0.001" value="0.13333" data-min="0" data-max="0.15"><div class="adj-glow" data-for="grain"></div><div class="slider-edge"></div></div>
-      <div class="slider"><span class="slider-label">Grain size</span><span class="slider-value" id="grainSizeVal">1.0</span><input type="range" id="grainSize" min="1" max="8" step="0.05" value="1"><div class="adj-glow" data-for="grainSize"></div><div class="slider-edge"></div></div>
-      <div class="slider"><span class="slider-label">Density</span><span class="slider-value" id="densityVal">1.4</span><input type="range" id="density" min="0" max="2" step="0.05" value="1.4"><div class="adj-glow" data-for="density"></div><div class="slider-edge"></div></div>
-    </section>
-
-    <section class="desktop-hide">
-      <h2>Reference</h2>
-      <div class="row">
-        <button id="refBtn" class="grow">Add image</button>
-        <input type="file" id="refFile" accept="image/*" hidden>
-      </div>
-      <div class="help">Or paste / drop an image. It sits beside the canvas. Press <kbd>I</kbd> with a node selected to sample a color from it.</div>
-    </section>
-
-    <section data-collapse="color">
-      <h2>Color</h2>
-      <div class="slider"><span class="slider-label">Hue</span><span class="slider-value" id="adjHueVal">0</span><input type="range" id="adjHue" min="-180" max="180" step="1" value="0"><div class="adj-glow" data-for="hue"></div><div class="slider-edge"></div></div>
-      <div class="slider"><span class="slider-label">Saturation</span><span class="slider-value" id="adjSatVal">1.00</span><input type="range" id="adjSat" min="0" max="2" step="0.01" value="1"><div class="adj-glow" data-for="sat"></div><div class="slider-edge"></div></div>
-      <div class="slider"><span class="slider-label">Brightness</span><span class="slider-value" id="adjBriVal">1.00</span><input type="range" id="adjBri" min="0.2" max="1.8" step="0.01" value="1"><div class="adj-glow" data-for="bri"></div><div class="slider-edge"></div></div>
-      <div class="slider"><span class="slider-label">Temperature</span><span class="slider-value" id="adjTempVal">0</span><input type="range" id="adjTemp" min="-100" max="100" step="1" value="0"><div class="adj-glow" data-for="temp"></div><div class="slider-edge"></div></div>
-    </section>
-
-    <section data-collapse="export">
-      <h2>Export</h2>
-      <div class="row">
-        <div class="dim-field"><span class="dim-prefix" id="ewScrub">W</span><input type="number" id="ew" min="150" max="16384" step="1" value="3200" disabled></div>
-        <div class="dim-field"><span class="dim-prefix">H</span><input type="number" id="eh" disabled></div>
-      </div>
-      <div class="row" id="scales">
-        <button class="chip grow" data-s="1" aria-pressed="false">1×</button>
-        <button class="chip grow" data-s="2" aria-pressed="true">2×</button>
-        <button class="chip grow" data-s="3" aria-pressed="false">3×</button>
-        <button class="chip grow" data-s="4" aria-pressed="false">4×</button>
-      </div>
-      <div class="row"><button id="exportBtn" class="primary grow">Export JPG</button></div>
-      <div class="status" id="status"></div>
-    </section>
-    </div>
   </aside>
 </div>
 

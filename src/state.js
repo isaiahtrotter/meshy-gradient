@@ -3,11 +3,16 @@
 import { MAXN, CANVAS_MIN, CANVAS_MAX, clamp, isNum } from './constants.js';
 import { normalizeNode, createNode } from './nodes.js';
 
+// Grain colours. Mono's single colour tints the speckle (white is the plain light/dark speckle); Duo mixes two (the
+// defaults, yellow and blue, are exactly the old fixed Duo look). Multi has no colours: it's random RGB.
+export const GRAIN_COLOR_DEFAULTS = { mono: '#ffffff', duoA: '#ffff00', duoB: '#0000ff' };
+
 export const state = {
   w: 1600, h: 1000,
   nodes: [],
   selected: new Set(),
   soft: 0.1, grain: 0.02, grainSize: 1, grainType: 'mono', density: 1.4,
+  grainColors: { ...GRAIN_COLOR_DEFAULTS },
   adj: { hue: 0, sat: 1, bri: 1, temp: 0 }, // temp: -100 cool .. 100 warm
   blendMode: 'normal',
   seed: Math.random() * 1000,
@@ -64,7 +69,10 @@ export function setCanvasSize(w, h) {
 
 // Everything that describes a gradient (saved state, the database and the first-visit default all share this shape).
 export function serializeConfig({ stripIds } = {}) {
+  // grain colours are only written when they differ from the defaults, so existing gradients serialize exactly as before
+  const customGrain = Object.keys(GRAIN_COLOR_DEFAULTS).some(k => state.grainColors[k] !== GRAIN_COLOR_DEFAULTS[k]);
   return {
+    ...(customGrain ? { grainColors: { ...state.grainColors } } : {}),
     w: state.w, h: state.h,
     nodes: stripIds ? state.nodes.map(({ id, ...rest }) => rest) : state.nodes,
     soft: state.soft, grain: state.grain, grainSize: state.grainSize,
@@ -73,6 +81,12 @@ export function serializeConfig({ stripIds } = {}) {
   };
 }
 const GRAIN_TYPES = ['mono', 'duo', 'multi'];
+// A valid grain-colour set from whatever was saved: bad or missing entries fall back to the defaults.
+export function cleanGrainColors(raw) {
+  const out = { ...GRAIN_COLOR_DEFAULTS };
+  for (const k of Object.keys(out)) if (typeof raw?.[k] === 'string' && /^#[0-9a-f]{6}$/i.test(raw[k])) out[k] = raw[k].toLowerCase();
+  return out;
+}
 const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay'];
 export function applyConfig(s, { reassignIds } = {}) {
   if (isNum(s.w) && isNum(s.h)) setCanvasSize(s.w, s.h);
@@ -84,6 +98,7 @@ export function applyConfig(s, { reassignIds } = {}) {
   if (isNum(s.grainSize)) state.grainSize = clamp(s.grainSize, 1, 8);
   state.grainType = GRAIN_TYPES.includes(s.grainType) ? s.grainType : 'mono';
   state.density = isNum(s.density) ? clamp(s.density, 0, 2) : 1.4;
+  state.grainColors = cleanGrainColors(s.grainColors);
   if (s.adj && typeof s.adj === 'object') {
     if (isNum(s.adj.hue)) state.adj.hue = clamp(s.adj.hue, -180, 180);
     if (isNum(s.adj.sat)) state.adj.sat = clamp(s.adj.sat, 0, 2);

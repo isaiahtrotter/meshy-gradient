@@ -2,7 +2,7 @@
 // thumbnail of one. The first-visit default is default-gradient.json.
 
 import { isNum } from './constants.js';
-import { state, applyConfig } from './state.js';
+import { state, applyConfig, cleanGrainColors } from './state.js';
 import { pushUndo } from './undo.js';
 import { $, setStatus } from './dom.js';
 import { layout } from './view.js';
@@ -25,6 +25,7 @@ function gradientScene(p) {
     grainSize: isNum(p.grainSize) ? p.grainSize : 1,
     grainType: GRAIN_TYPES.includes(p.grainType) ? p.grainType : 'mono',
     density: isNum(p.density) ? p.density : 1.4,
+    grainColors: cleanGrainColors(p.grainColors),
     adj: { hue: isNum(p.adj?.hue) ? p.adj.hue : 0, sat: isNum(p.adj?.sat) ? p.adj.sat : 1, bri: isNum(p.adj?.bri) ? p.adj.bri : 1, temp: isNum(p.adj?.temp) ? p.adj.temp : 0 },
     blendMode: BLEND_MODES.includes(p.blendMode) ? p.blendMode : (p.linear ? 'linear' : 'normal'),
     seed: isNum(p.seed) ? p.seed : 0,

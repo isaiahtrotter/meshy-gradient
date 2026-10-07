@@ -28,7 +28,7 @@ export function makeRenderer(canvas, opts) {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
   const U = {};
-  for (const n of ['uRes', 'uCount', 'uSoft', 'uGrain', 'uGrainSize', 'uSeed', 'uBlendMode', 'uRefW', 'uGrainType', 'uDensity', 'uNode', 'uNode2', 'uTh2', 'uType', 'uColor', 'uAdj', 'uNode3', 'uPts', 'uOcc', 'uOccSoft1', 'uOccSoft2', 'uOccAngle', 'uGrad', 'uGradInfo', 'uGradCount', 'uGradEase', 'uGradStopT', 'uGradStops']) U[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uRes', 'uCount', 'uSoft', 'uGrain', 'uGrainSize', 'uSeed', 'uBlendMode', 'uRefW', 'uGrainType', 'uDensity', 'uGrainM', 'uGrainA', 'uGrainB', 'uNode', 'uNode2', 'uTh2', 'uType', 'uColor', 'uAdj', 'uNode3', 'uPts', 'uOcc', 'uOccSoft1', 'uOccSoft2', 'uOccAngle', 'uGrad', 'uGradInfo', 'uGradCount', 'uGradEase', 'uGradStopT', 'uGradStops']) U[n] = gl.getUniformLocation(prog, n);
 
   const nodeArr = new Float32Array(MAXN * 4), node2Arr = new Float32Array(MAXN * 4), colArr = new Float32Array(MAXN * 4);
   const th2Arr = new Float32Array(MAXN), typeArr = new Float32Array(MAXN), node3Arr = new Float32Array(MAXN * 2);
@@ -157,6 +157,8 @@ export function makeRenderer(canvas, opts) {
       gl.uniform1f(U.uSoft, s.soft / 0.2); gl.uniform1f(U.uGrain, s.grain); gl.uniform1f(U.uGrainSize, s.grainSize);
       gl.uniform1f(U.uSeed, s.seed); gl.uniform1f(U.uBlendMode, BLEND_MODE_INDEX[s.blendMode] || 0); gl.uniform1f(U.uRefW, s.w);
       gl.uniform1f(U.uGrainType, GRAIN_TYPE_INDEX[s.grainType] || 0); gl.uniform1f(U.uDensity, s.density);
+      const gcol = s.grainColors || {};
+      gl.uniform3fv(U.uGrainM, hexToRgb(gcol.mono || '#ffffff')); gl.uniform3fv(U.uGrainA, hexToRgb(gcol.duoA || '#ffff00')); gl.uniform3fv(U.uGrainB, hexToRgb(gcol.duoB || '#0000ff'));
       gl.uniform4f(U.uAdj, s.adj.hue * Math.PI / 180, s.adj.sat, s.adj.bri, (s.adj.temp || 0) / 100);
       gl.uniform4fv(U.uNode, nodeArr); gl.uniform4fv(U.uNode2, node2Arr); gl.uniform2fv(U.uNode3, node3Arr);
       gl.uniform1fv(U.uTh2, th2Arr); gl.uniform1fv(U.uType, typeArr); gl.uniform4fv(U.uColor, colArr);

@@ -8,7 +8,7 @@ import { MAX_GRAD_STOPS, clamp } from './constants.js';
 import { $ } from './dom.js';
 import { refreshHandles } from './handles.js';
 import { draw } from './view.js';
-import { attachScrub } from './controls.js';
+import { attachScrub, syncGrainColors } from './controls.js';
 
 let colorSnap = null;
 function beginColorEdit() { if (!colorSnap) colorSnap = snapshot(); }
@@ -121,8 +121,8 @@ export function refreshSelectionPanel() {
       $('gradAngle').value = first.gradAngle; fillSlider($('gradAngle')); $('gradAngleVal').textContent = Math.round(first.gradAngle) + '°';
     }
     $('gradEaseRow').querySelectorAll('.ease-tab').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.ease === first.gradEase)));
-    if (!pickerDragging) syncPickerFromColor(first.grad ? first.gradStops[activeStop].color : first.color, first.a);
-  } else { $('selHex').value = ''; closePicker(); }
+    if (!pickerDragging && !grainKey) syncPickerFromColor(first.grad ? first.gradStops[activeStop].color : first.color, first.a);
+  } else { $('selHex').value = ''; if (!grainKey) closePicker(); }
   $('occSoft1Row').hidden = occSel.length === 0;
   $('occSoft2Row').hidden = occSel.length === 0;
   $('occAngleRow').hidden = occSel.length === 0;
@@ -139,6 +139,11 @@ export function refreshSelectionPanel() {
 // Applies a colour (and optional alpha) to the selection. In solid mode (stopIdx null) that's `color`; in
 // gradient mode it's `stops[stopIdx].color`. `commit` closes the pending undo entry.
 export function setSelectedColor(hex, commit, alpha, stopIdx) {
+  if (grainKey) { // the picker is editing a grain colour, not the selection
+    state.grainColors[grainKey] = hex.toLowerCase(); syncGrainColors(); draw();
+    if (commit && colorSnap) { pushUndo(colorSnap); colorSnap = null; }
+    return;
+  }
   for (const n of selectedNodes()) {
     if (stopIdx != null) { const st = n.gradStops[Math.min(stopIdx, n.gradStops.length - 1)]; if (st) st.color = hex; }
     else n.color = hex;
@@ -521,7 +526,7 @@ function syncPickerFromColor(hex, a) {
 // with the swatch button — it no longer lives inside the panel's own scroll flow, so it can't clip against or
 // overlap the sections below it.
 function positionPicker() {
-  const panel = document.querySelector('.panel'), swatch = $('selSwatch');
+  const panel = document.querySelector('.panel'), swatch = grainKey ? grainAnchor : $('selSwatch');
   const panelRect = panel.getBoundingClientRect(), swatchRect = swatch.getBoundingClientRect();
   const picker = $('colorPicker');
   picker.style.left = '-9999px'; picker.style.visibility = 'hidden';
@@ -532,14 +537,37 @@ function positionPicker() {
 }
 function openPicker() {
   if ($('selSwatch').disabled) return;
+  setGrainMode(null);
   svZoom = SV_FULL_ZOOM; svAnim = null; svClosing = null; svMorphing = false;
   $('colorPicker').hidden = false; pickerOpen = true; $('selSwatch').setAttribute('aria-expanded', 'true');
   refreshSelectionPanel();
   renderSVSquare(); positionPickerThumbs(); positionPicker();
 }
-function closePicker() { $('colorPicker').hidden = true; pickerOpen = false; $('selSwatch').setAttribute('aria-expanded', 'false'); }
+function closePicker() { $('colorPicker').hidden = true; pickerOpen = false; $('selSwatch').setAttribute('aria-expanded', 'false'); setGrainMode(null); }
+
+// The same picker also edits the grain colours (Mono / Duo): grain mode shows just the square and the hue slider and
+// sends every change to state.grainColors instead of the selected nodes.
+let grainKey = null, grainAnchor = null;
+function setGrainMode(key, anchor = null) {
+  grainKey = key; grainAnchor = anchor;
+  $('colorPicker').classList.toggle('picker--grain', key !== null);
+}
+function toggleGrainPicker(field) {
+  const key = field.dataset.grainColor;
+  if (pickerOpen && grainKey === key) { closePicker(); return; }
+  svZoom = SV_FULL_ZOOM; svAnim = null; svClosing = null; svMorphing = false;
+  setGrainMode(key, field);
+  $('selSwatch').setAttribute('aria-expanded', 'false');
+  $('colorPicker').hidden = false; pickerOpen = true;
+  syncPickerFromColor(state.grainColors[key], 1);
+  renderSVSquare(); positionPickerThumbs(); positionPicker();
+}
+for (const field of document.querySelectorAll('.grain-field')) {
+  field.addEventListener('click', e => { e.stopPropagation(); toggleGrainPicker(field); });
+  field.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGrainPicker(field); } });
+}
 $('selSwatch').addEventListener('click', e => { e.stopPropagation(); pickerOpen ? closePicker() : openPicker(); });
-document.addEventListener('pointerdown', e => { if (pickerOpen && !e.target.closest('.picker') && !e.target.closest('#selSwatch')) closePicker(); });
+document.addEventListener('pointerdown', e => { if (pickerOpen && !e.target.closest('.picker') && !e.target.closest('#selSwatch') && !e.target.closest('.grain-field')) closePicker(); });
 document.addEventListener('keydown', e => { if (pickerOpen && e.key === 'Escape') { e.stopPropagation(); closePicker(); } }, true);
 window.addEventListener('resize', () => { if (pickerOpen) { renderSVSquare(); positionPicker(); } });
 

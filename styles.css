@@ -532,31 +532,33 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
    from the handle outward rather than one blur strength cross-fading with sharpness. Only on hover/drag,
    with the same opacity + ease-out transition every other slider's handle effect uses. --pct-frac (set with
    --pct in sliderFill) is the unitless copy that lets the mask centre be positioned in px maths relative to
-   the slider, not the wider layer box. */
+   the slider, not the wider layer box.
+   Each layer's mask also fades vertically (the replica's blur bleeds 14px above and below the pill), so the effect
+   dissolves there instead of being cut off by the layer's edge; the effect is held at half strength. */
 .slider--blur { overflow: visible; }
 .slider-blur-fx {
-  position: absolute; inset: -4px -16px; z-index: 3; pointer-events: none;
+  position: absolute; inset: -14px -16px; z-index: 3; pointer-events: none;
   --x: calc(16px + (100% - 32px) * var(--pct-frac, 0) + var(--handle-shift));
   opacity: 0; transition: opacity .15s ease-out;
 }
-#soft:hover ~ .slider-blur-fx, #soft:active ~ .slider-blur-fx, #soft.glow-active ~ .slider-blur-fx { opacity: 1; }
+#soft:hover ~ .slider-blur-fx, #soft:active ~ .slider-blur-fx, #soft.glow-active ~ .slider-blur-fx { opacity: .5; } /* half the original strength */
 .slider-blur-fx .blur-layer { position: absolute; inset: 0; }
 .slider-blur-fx .blur-twin {
-  position: absolute; top: 4px; bottom: 4px; left: 16px; right: 16px; border-radius: var(--radius);
+  position: absolute; top: 14px; bottom: 14px; left: 16px; right: 16px; border-radius: var(--radius);
   background: linear-gradient(to right, transparent var(--pct), var(--ctrl-bg) var(--pct)), var(--ctrl-grad);
 }
 .slider-blur-fx .l1 .blur-twin { filter: blur(4px); }
 .slider-blur-fx .l2 .blur-twin { filter: blur(9px); }
 .slider-blur-fx .l3 .blur-twin { filter: blur(16px); }
 .slider-blur-fx .l1 {
-  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 85px), #000 calc(var(--x) - 40px), #000 calc(var(--x) + 40px), transparent calc(var(--x) + 85px));
-  mask-image: linear-gradient(to right, transparent calc(var(--x) - 85px), #000 calc(var(--x) - 40px), #000 calc(var(--x) + 40px), transparent calc(var(--x) + 85px)); }
+  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 85px), #000 calc(var(--x) - 40px), #000 calc(var(--x) + 40px), transparent calc(var(--x) + 85px)), linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent calc(var(--x) - 85px), #000 calc(var(--x) - 40px), #000 calc(var(--x) + 40px), transparent calc(var(--x) + 85px)), linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); mask-composite: intersect; }
 .slider-blur-fx .l2 {
-  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 58px), #000 calc(var(--x) - 18px), #000 calc(var(--x) + 18px), transparent calc(var(--x) + 58px));
-  mask-image: linear-gradient(to right, transparent calc(var(--x) - 58px), #000 calc(var(--x) - 18px), #000 calc(var(--x) + 18px), transparent calc(var(--x) + 58px)); }
+  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 58px), #000 calc(var(--x) - 18px), #000 calc(var(--x) + 18px), transparent calc(var(--x) + 58px)), linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent calc(var(--x) - 58px), #000 calc(var(--x) - 18px), #000 calc(var(--x) + 18px), transparent calc(var(--x) + 58px)), linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); mask-composite: intersect; }
 .slider-blur-fx .l3 {
-  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 34px), #000 calc(var(--x) - 6px), #000 calc(var(--x) + 6px), transparent calc(var(--x) + 34px));
-  mask-image: linear-gradient(to right, transparent calc(var(--x) - 34px), #000 calc(var(--x) - 6px), #000 calc(var(--x) + 6px), transparent calc(var(--x) + 34px)); }
+  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 34px), #000 calc(var(--x) - 6px), #000 calc(var(--x) + 6px), transparent calc(var(--x) + 34px)), linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent calc(var(--x) - 34px), #000 calc(var(--x) - 6px), #000 calc(var(--x) + 6px), transparent calc(var(--x) + 34px)), linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); mask-composite: intersect; }
 .checker { background-color: #fff; background-image: linear-gradient(45deg, #c8c8c8 25%, transparent 25%), linear-gradient(-45deg, #c8c8c8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c8c8c8 75%), linear-gradient(-45deg, transparent 75%, #c8c8c8 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; }
 .swatch { position: relative; width: 34px; height: 32px; padding: 0; border: none; border-radius: var(--radius); cursor: pointer; flex: none; overflow: hidden; }
 .swatch:hover { border-color: transparent; filter: none; }
@@ -745,7 +747,7 @@ kbd {
   border-left: 1px solid var(--line); font-family: var(--font-ui); color: var(--ink);
 }
 .community-tab[hidden] { display: none; }
-.ct-head { position: relative; flex: none; padding: 20px 20px 12px; }
+.ct-head { position: relative; flex: none; padding: 20px 20px 24px; } /* 24px below the title, the same as between the sections */
 .ct-head h2 { margin: 0; font: 600 15px/1.2 var(--font-ui); color: var(--ink); text-transform: none; letter-spacing: 0; }
 .ct-head .settings-close { top: 14px; right: 14px; }
 .ct-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 20px 20px; }
@@ -800,3 +802,18 @@ section[data-collapse] > h2[hidden] { display: none; }
 
 /* an empty place in My gradients, waiting for a saved gradient */
 .preset-empty { aspect-ratio: 1 / 1; border-radius: var(--radius); border: 1px dashed color-mix(in srgb, var(--ink) 22%, transparent); }
+
+/* Grain colours: one swatch for Mono, two for Duo, none for Multi (controls.js shows the right ones). Clicking one opens the same
+   colour picker used for nodes (colorPanel.js). */
+.grain-colors { gap: 8px; }
+.grain-field { position: relative; cursor: pointer; }
+.grain-field[hidden] { display: none; }
+.gc-swatch { flex: none; width: 18px; height: 18px; border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
+.gc-hex { font: 400 14px/1 var(--font-ui); color: var(--ink); text-transform: uppercase; font-variant-numeric: tabular-nums; pointer-events: none; }
+/* the shared colour picker, in grain mode: just the square and the hue slider */
+.picker--grain > :not(.sv-wrap):not(.hue-track) { display: none !important; }
+.grain-field:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* hover for the secondary buttons (Sign in, Cancel, Done, Publish...), like the primary ones have */
+.topbar-auth-btn.signin, .frame-btn { transition: filter .12s ease-out, opacity .15s ease-out, transform .15s ease-out, visibility 0s linear 0s; }
+.topbar-auth-btn.signin:hover:not(:disabled), .frame-btn:not(.primary):hover:not(:disabled) { filter: brightness(1.25); }

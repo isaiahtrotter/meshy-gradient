@@ -17,7 +17,7 @@ import { cumLengths, pointAt, nearestT, smoothStroke, strokeFromPath, recenterSt
 import { wrapAngle } from './geometry.js';
 import { stage, overlay, work, normPos, maxDim, frameRect, setStatus } from './dom.js';
 import { view, applyPan, draw } from './view.js';
-import { handleEls, hardToRadius, radiusToHard, stopHardToRadius, stopRadiusToHard, armScale, updateHardIndicator, refreshHandles } from './handles.js';
+import { handleEls, hardMax, hardToRadius, radiusToHard, stopHardToRadius, stopRadiusToHard, armScale, updateHardIndicator, refreshHandles } from './handles.js';
 import { refreshSelectionPanel } from './colorPanel.js';
 import { refreshAll, refreshSelection } from './refresh.js';
 import { colorAtCanvasPoint } from './sampling.js';
@@ -135,8 +135,8 @@ function moveHard(drag, p, e) {
   const n = drag.n, d = maxDim(), dx = p.px - n.x * d.w, dy = p.py - n.y * d.h;
   const dist = Math.hypot(dx, dy), angle = Math.atan2(dy, dx);
   const delta = dist - drag.lastDist; drag.lastDist = dist;
-  drag.r = Math.min(hardToRadius(HARD_K_MIN), Math.max(hardToRadius(HARD_K_MAX), drag.r + delta)); // clamped every frame: no overshoot to retrace
-  n.k = Math.round(radiusToHard(drag.r) * 10) / 10;
+  drag.r = Math.min(hardToRadius(HARD_K_MIN), Math.max(hardToRadius(hardMax(n)), drag.r + delta)); // clamped every frame: no overshoot to retrace
+  n.k = Math.round(radiusToHard(drag.r, hardMax(n)) * 10) / 10;
   // orbiting around the ring rotates the whole arm cross by the same delta, preserving every arm's angle
   // relative to the others — th/th2 when linked, each arm's own stored angle (ar/al/at/ab) when unlinked
   let rot = wrapAngle(angle - drag.startAngle), indAngle;

@@ -29,7 +29,7 @@ export const VS = `attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }
 
 export const FS = `
   precision highp float;
-  uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uBlendMode, uRefW, uGrainType, uDensity;
+  uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uBlendMode, uRefW, uGrainType, uDensity; uniform vec3 uGrainM, uGrainA, uGrainB;
   uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec4 uAdj; uniform vec2 uNode3[${MAXN}]; uniform float uOcc[${MAXN}]; uniform float uOccSoft1[${MAXN}]; uniform float uOccSoft2[${MAXN}]; uniform float uOccAngle[${MAXN}];
   uniform float uGrad[${MAXN}]; uniform vec4 uGradInfo[${MAXN}]; uniform float uGradCount[${MAXN}]; uniform float uGradEase[${MAXN}];
   uniform float uGradStopT[${MAXN * MAXG}]; uniform sampler2D uGradStops;
@@ -290,7 +290,8 @@ export const FS = `
     // density: fraction of cells that carry grain at all, so higher density reads as heavier speckle coverage
     float coverage = clamp(uDensity, 0.0, 2.0) * 0.5;
     float mask = step(1.0 - coverage, hash(cell + uSeed + 91.13));
-    vec3 g = uGrainType > 1.5 ? vec3(nR, nG, nB) : (uGrainType > 0.5 ? vec3(nR, nR, nG) : vec3(nR));
+    // mono tints one noise channel with its colour (white = plain speckle); duo mixes two noise channels, one per colour
+    vec3 g = uGrainType > 1.5 ? vec3(nR, nG, nB) : (uGrainType > 0.5 ? nR * uGrainA + nG * uGrainB : vec3(nR) * uGrainM);
     col += (g - 0.5) * uGrain * mask;
     gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
   }`;
