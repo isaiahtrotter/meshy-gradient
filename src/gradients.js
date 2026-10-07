@@ -7,7 +7,7 @@
 import { serializeConfig } from './state.js';
 import { cleanHandle } from './constants.js';
 import { $, showToast } from './dom.js';
-import { whenClient, onUser, startSignIn } from './auth.js';
+import { whenClient, onUser, startSignIn, configured } from './auth.js';
 import { applyGradient, renderThumb, setCredit } from './loadGradient.js';
 import { markSaved, clearSaved, markCopy, onProvenance } from './provenance.js';
 import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
@@ -126,6 +126,11 @@ async function openMine(row, anchor) {
 // database can't be read, or has nothing published yet, the original presets (featured-gradients.json) stand in so the
 // grid is never empty; they carry their own config and the credit FALLBACK_AUTHOR.
 const FALLBACK_AUTHOR = 'eyezayuh';
+// Until the database has answered (or failed, or 8 seconds have passed) the community grid and tab show skeleton
+// placeholders instead of anything real, so the original-presets stand-ins never flash before the real list arrives.
+let settled = !configured;
+const SKELETON_RATIOS = [0.8, 1.25, 1, 1.4, 0.9, 1.1, 1.3, 0.85]; // heights / widths, so the tab's placeholders look like masonry
+setTimeout(() => { if (!settled) { settled = true; rebuildPublic(); } }, 8000);
 let pubRows = [], fallbackRows = [], loadProblem = '', loadedOnce = false;
 function rebuildPublic() {
   $('communityEmpty').textContent = loadProblem ? `Couldn’t load the community list: ${loadProblem}` : 'No published gradients found in the database yet.';
@@ -147,6 +152,11 @@ let renderToken = 0;
 // else's. A card is the thumbnail plus, on your own, a Delete button that appears while the pointer is over it.
 async function renderPublic() {
   const token = ++renderToken;
+  if (!settled) { // skeletons while loading
+    $('pubMineSection').hidden = true; $('pubOthersTitle').hidden = true; $('pubEmpty').hidden = true;
+    masonry($('pubList'), SKELETON_RATIOS.map(r => { const el = document.createElement('div'); el.className = 'ct-skel'; el.style.aspectRatio = `1 / ${r}`; el.setAttribute('aria-hidden', 'true'); return { el, ratio: r }; }), 4);
+    return;
+  }
   const rows = shownRows();
   const ratios = await Promise.all(rows.map(r => thumbRatio(r.thumb)));
   if (token !== renderToken) return; // a newer render started while the thumbnails were measured
@@ -178,6 +188,11 @@ async function renderPublic() {
 function renderCommunityGrid() {
   const wrap = $('communityGrid');
   wrap.innerHTML = '';
+  if (!settled) { // skeleton squares while loading
+    $('communityEmpty').hidden = true;
+    for (let i = 0; i < GRID_SLOTS; i++) { const sk = document.createElement('div'); sk.className = 'preset preset-skel'; sk.setAttribute('aria-hidden', 'true'); wrap.appendChild(sk); }
+    return;
+  }
   const rows = shownRows();
   $('communityEmpty').hidden = !loadProblem && (pubRows.length > 0 || !loadedOnce); // also explains why the original gradients are standing in
   rows.slice(0, GRID_SLOTS).forEach((row, i) => {
@@ -199,6 +214,7 @@ function renderCommunityGrid() {
 async function refreshPublic() {
   if (!client) return;
   const { data, error } = await client.from('gradients').select('id, slug, thumb, author_name, author_twitter, user_id').eq('is_public', true).order('created_at', { ascending: false }).limit(200);
+  settled = true;
   if (error) { console.error(error); loadProblem = error.message || 'unknown error'; rebuildPublic(); return; } // the fallback fills the grid
   loadProblem = ''; loadedOnce = true; pubRows = data; rebuildPublic();
   pushProfile(); // re-credit any of your rows that are out of date
@@ -356,19 +372,23 @@ for (const id of ['prefName', 'prefTwitter']) $(id).addEventListener('input', ()
 // anything. So the Share button (signed-in users only) shows while the canvas is an exact copy of a community gradient
 // that has a slug (opened from the Community tab, opened from a share link, or just published), and hides on the first
 // edit. gradient_by_slug (supabase/schema.sql) serves the link to anyone, but only for published rows.
-function syncShare() { $('shareSection').hidden = !(me && shareSlug && pristineCopy); }
+function syncShare() {
+  const canShare = !!(shareSlug && pristineCopy);
+  $('shareSection').hidden = !(me && canShare);                    // the top bar icon: signed-in users
+  $('shareFrameBtn').classList.toggle('is-hidden', !canShare);     // the "Share" button where Publish would be: anyone
+}
 function setShareSlug(slug) {
   shareSlug = slug || null;
   try { if (shareSlug) localStorage.setItem(SHARE_KEY, shareSlug); else localStorage.removeItem(SHARE_KEY); } catch {}
   syncShare();
 }
 onProvenance(pristine => { pristineCopy = pristine; syncShare(); });
-$('shareBtn').addEventListener('click', async e => {
+async function copyShareLink(anchor) {
   const url = `${location.origin}/?g=${shareSlug}`;
-  const anchor = e.currentTarget;
   try { await navigator.clipboard.writeText(url); showToast(anchor, 'Link copied'); }
   catch { askConfirm({ title: 'Copy this link', text: 'Your browser blocked copying automatically. Select the link below and copy it.', field: url, confirmLabel: 'Done', cancelLabel: null }); }
-});
+}
+for (const id of ['shareBtn', 'shareFrameBtn']) $(id).addEventListener('click', e => copyShareLink(e.currentTarget));
 
 // Opens the gradient a share link points at (called once the app has booted). It lands as a copy, credited to its
 // author, like one from the Community tab.

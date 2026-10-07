@@ -822,3 +822,11 @@ section[data-collapse] > h2[hidden] { display: none; }
 /* The +N tile: the gradient is clipped to inside the border, so the tile's normal 1px border is left as the other tiles
    have it (nothing of the gradient shows under or around it) and the dark overlay sits only over the gradient. */
 .preset.preset--more { background-clip: padding-box; background-color: transparent; }
+
+/* Publish and Share take the same place above the canvas: Publish while the gradient is yours to publish, Share while it is
+   an exact copy of a community gradient (see gradients.js), each fading in over the other. */
+.frame-slot { display: grid; justify-items: start; } /* start, not stretch: each button is as wide as its own text plus the same padding */
+.frame-slot > .frame-btn { grid-area: 1 / 1; }
+
+/* Placeholder cards in the Community tab while the list loads (the sidebar grid uses .preset-skel). */
+.ct-skel { border-radius: var(--radius); background-color: var(--ctrl-bg); animation: skeleton-pulse 1.4s ease-in-out infinite; }
