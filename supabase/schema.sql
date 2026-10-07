@@ -101,3 +101,47 @@ end;
 $$;
 revoke all on function public.delete_my_account() from public;
 grant execute on function public.delete_my_account() to authenticated;
+
+-- ---------- Likes ----------
+-- Anyone can like a published gradient, signed in or not. A "voter" is a text id: 'u:<account id>' when signed in,
+-- 'd:<random>' for a browser that isn't. The table has row-level security on and no policies, so browsers can't touch it
+-- directly; they go through the three functions below. (A determined visitor can mint extra device ids, so treat the
+-- count as a popularity hint, not a vote.)
+create table if not exists public.gradient_likes (
+  gradient_id uuid not null references public.gradients (id) on delete cascade,
+  voter       text not null check (char_length(voter) between 3 and 80),
+  created_at  timestamptz not null default now(),
+  primary key (gradient_id, voter)
+);
+alter table public.gradient_likes enable row level security;
+
+create or replace function public.like_counts()
+returns table (gradient_id uuid, n bigint)
+language sql stable security definer set search_path = public
+as $$
+  select l.gradient_id, count(*) from public.gradient_likes l join public.gradients g on g.id = l.gradient_id where g.is_public group by l.gradient_id;
+$$;
+create or replace function public.my_likes(p_voter text)
+returns table (gradient_id uuid)
+language sql stable security definer set search_path = public
+as $$
+  select l.gradient_id from public.gradient_likes l where l.voter = p_voter;
+$$;
+create or replace function public.set_like(p_gradient uuid, p_voter text, p_liked boolean)
+returns void
+language plpgsql security definer set search_path = public
+as $$
+begin
+  if p_liked then
+    insert into public.gradient_likes (gradient_id, voter) select g.id, p_voter from public.gradients g where g.id = p_gradient and g.is_public on conflict do nothing;
+  else
+    delete from public.gradient_likes where gradient_id = p_gradient and voter = p_voter;
+  end if;
+end;
+$$;
+revoke all on function public.like_counts() from public;
+revoke all on function public.my_likes(text) from public;
+revoke all on function public.set_like(uuid, text, boolean) from public;
+grant execute on function public.like_counts() to anon, authenticated;
+grant execute on function public.my_likes(text) to anon, authenticated;
+grant execute on function public.set_like(uuid, text, boolean) to anon, authenticated;

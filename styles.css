@@ -761,16 +761,30 @@ kbd {
 .ct-thumb:hover { border-color: var(--line); }
 /* the Delete button on your own published gradients: only while the pointer (or keyboard focus) is on the card */
 .ct-del {
-  position: absolute; top: 5px; right: 5px; height: 20px; padding: 0 7px; border: none; border-radius: 5px;
-  font: 500 10px/1 var(--font-ui); color: #fff; background: rgba(0,0,0,.65); cursor: pointer;
+  position: absolute; top: 5px; left: 5px; width: 20px; height: 20px; padding: 0; border: none; border-radius: 5px;
+  font: 400 15px/1 var(--font-ui); display: flex; align-items: center; justify-content: center; color: #fff; background: rgba(0,0,0,.65); cursor: pointer;
   opacity: 0; transition: opacity .12s ease-out;
 }
 .ct-card:hover .ct-del, .ct-card:focus-within .ct-del, .preset-cell:hover .ct-del, .preset-cell:focus-within .ct-del { opacity: 1; }
 .ct-del:hover { background: #c53030; }
 @media (hover: none) { .ct-del { opacity: 1; } } /* touch screens have no hover */
+/* like button: bottom-left of a card; the count only exists once there's a like, and an unliked card shows just the heart on hover */
+.ct-like {
+  height: 20px; padding: 0 6px; border: none; border-radius: 5px; display: flex; align-items: center; gap: 4px;
+  font: 500 10px/1 var(--font-ui); color: rgba(255,255,255,.8); background: rgba(0,0,0,.65); cursor: pointer; opacity: 0; transition: opacity .12s ease-out;
+}
+.ct-actions { position: absolute; bottom: 5px; left: 5px; display: flex; gap: 4px; }
+.ct-bm { height: 20px; width: 22px; padding: 0; border: none; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.8); background: rgba(0,0,0,.65); cursor: pointer; opacity: 0; transition: opacity .12s ease-out; }
+.ct-like.has-likes, .ct-like.liked, .ct-card:hover .ct-like, .ct-card:focus-within .ct-like, .ct-card:hover .ct-bm, .ct-card:focus-within .ct-bm { opacity: 1; }
+.ct-like:hover, .ct-like.liked, .ct-bm:hover { color: #fff; } /* a liked heart stays white */
+@media (hover: none) { .ct-like, .ct-bm { opacity: 1; } }
+.ct-sort { display: flex; gap: 4px; margin-bottom: 12px; }
+.ct-sort button { height: 24px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: transparent; font: 500 11px/1 var(--font-ui); color: var(--ink-2); cursor: pointer; }
+.ct-sort button:hover { color: var(--ink); }
+.ct-sort button[aria-pressed="true"] { background: var(--ctrl-bg); color: var(--ink); }
 .preset-cell { position: relative; min-width: 0; }
 .preset-cell .preset { display: block; }
-.preset-cell .ct-del { height: 18px; padding: 0 6px; font-size: 9px; top: 4px; right: 4px; } /* smaller on the small sidebar tiles */
+.preset-cell .ct-del { width: 18px; height: 18px; font-size: 13px; top: 4px; left: 4px; } /* smaller on the small sidebar tiles */
 /* the Community tab's sections follow the sidebar's rhythm: 12px between a heading and its content (the global
    section rule), 24px between sections */
 .ct-sections { display: flex; flex-direction: column; gap: 24px; }

@@ -33,6 +33,7 @@ function fail(anchor, error) {
 // The sidebar grids work like this: the sidebar shows the first GRID_SLOTS saved gradients, and once there are that many the
 // last tile carries "+N" for the rest and opens them all in the side tab.
 const GRID_SLOTS = 8;
+const COLS = 2; // columns in the side tab's grids
 let mineRows = [];
 function renderMine(rows) {
   mineRows = rows;
@@ -81,7 +82,7 @@ async function renderMineTab() {
     b.addEventListener('click', () => openMine(row, b));
     card.append(b, deleteButton(row));
     return { el: card, ratio: ratios[i] };
-  }), 4);
+  }), COLS);
 }
 async function refreshMine() {
   if (!client || !me) return;
@@ -92,7 +93,7 @@ async function refreshMine() {
 }
 // The hover-only Delete button on one of your saved gradients.
 function deleteButton(row) {
-  const del = document.createElement('button'); del.type = 'button'; del.className = 'ct-del'; del.textContent = 'Delete';
+  const del = document.createElement('button'); del.type = 'button'; del.className = 'ct-del'; del.textContent = '×';
   del.setAttribute('aria-label', 'Delete this saved gradient');
   del.addEventListener('click', e => { e.stopPropagation(); deleteSaved(row, del); });
   return del;
@@ -136,7 +137,103 @@ function rebuildPublic() {
   $('communityEmpty').textContent = loadProblem ? `Couldn’t load the community list: ${loadProblem}` : 'No published gradients found in the database yet.';
   renderPublic(); renderCommunityGrid();
 }
-const shownRows = () => (pubRows.length ? pubRows : fallbackRows);
+const baseRows = () => (pubRows.length ? pubRows : fallbackRows);
+// the sort order applied to a list of rows
+const arrange = rows => {
+  if (sortMode !== 'liked') return rows;
+  return rows.map((r, i) => [r, i]).sort((a, b) => likeCount(b[0]) - likeCount(a[0]) || a[1] - b[1]).map(x => x[0]); // stable: ties stay newest first
+};
+const shownRows = () => arrange(baseRows());
+
+// ---------- Likes ----------
+// Anyone can like a community gradient, signed in or not. A like belongs to a "voter": your account id when signed in,
+// otherwise a random id kept in this browser. The table is closed to direct access; three functions in schema.sql
+// (like_counts, my_likes, set_like) are the only way in. If they aren't installed yet, likes just stay hidden.
+const VOTER_KEY = 'meshGradientVoter.v1', SORT_KEY = 'meshGradientSort.v1';
+let likeCounts = new Map(), myLikes = new Set(), likesOk = true;
+let sortMode = (() => { try { return localStorage.getItem(SORT_KEY) === 'liked' ? 'liked' : 'newest'; } catch { return 'newest'; } })();
+const voterId = () => {
+  if (me) return `u:${me.id}`;
+  let id = null;
+  try { id = localStorage.getItem(VOTER_KEY); } catch {}
+  if (!id) {
+    id = `d:${crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)}`; // randomUUID needs a secure context
+    try { localStorage.setItem(VOTER_KEY, id); } catch {}
+  }
+  return id;
+};
+const likeCount = row => likeCounts.get(row.id) || 0;
+const HEART = '<svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17.2 3.1 10.6C1.2 8.7 1.3 5.7 3.3 4.1c1.8-1.4 4.2-1 5.6.7L10 6.1l1.1-1.3c1.4-1.7 3.8-2.1 5.6-.7 2 1.6 2.1 4.6.2 6.5L10 17.2Z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+function paintLike(btn, row) {
+  const n = likeCount(row), liked = myLikes.has(row.id);
+  btn.classList.toggle('liked', liked);
+  btn.classList.toggle('has-likes', n > 0);
+  btn.setAttribute('aria-pressed', String(liked));
+  btn.setAttribute('aria-label', liked ? 'Unlike this gradient' : 'Like this gradient');
+  btn.innerHTML = HEART + (n > 0 ? `<span>${n}</span>` : ''); // the number only shows once someone has liked it
+}
+function likeButton(row) {
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ct-like';
+  paintLike(btn, row);
+  btn.addEventListener('click', e => { e.stopPropagation(); toggleLike(row, btn); });
+  return btn;
+}
+async function toggleLike(row, btn) {
+  if (!client || !likesOk) return;
+  const want = !myLikes.has(row.id), prev = likeCount(row);
+  if (want) myLikes.add(row.id); else myLikes.delete(row.id);
+  likeCounts.set(row.id, Math.max(0, prev + (want ? 1 : -1)));
+  paintLike(btn, row); // the grid isn't re-sorted until the next render, so cards don't jump under the pointer
+  const { error } = await client.rpc('set_like', { p_gradient: row.id, p_voter: voterId(), p_liked: want });
+  if (error) {
+    console.error(error);
+    if (want) myLikes.delete(row.id); else myLikes.add(row.id);
+    likeCounts.set(row.id, prev);
+    paintLike(btn, row);
+    showToast(btn, 'Couldn’t save your like');
+  }
+}
+// The bookmark next to the heart copies a community gradient into your saved ones (signed-out visitors get the sign-in popup).
+const BOOKMARK = '<svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 3h9a1 1 0 0 1 1 1v13l-5.5-3.8L4.5 17V4a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+function bookmarkButton(row) {
+  const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ct-bm'; btn.innerHTML = BOOKMARK;
+  btn.setAttribute('aria-label', 'Save to my gradients');
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (!me) return needSignIn(btn, 'save');
+    saveCommunity(row, btn);
+  });
+  return btn;
+}
+async function saveCommunity(row, anchor) {
+  await guarded(anchor, async () => {
+    const data = row.builtin ? { config: row.config } : await fetchConfig(row.id, anchor);
+    if (!data) return;
+    const { error } = await client.from('gradients').insert({ config: data.config, thumb: row.thumb || null, user_id: me.id, author_name: authorName(), author_twitter: authorTwitter(), is_public: false });
+    if (error?.code === DUPLICATE) { showToast(anchor, 'Already saved'); return; }
+    if (error) throw error;
+    showToast(anchor, 'Saved');
+    await refreshMine();
+  });
+}
+async function loadLikes() {
+  if (!client) return;
+  try { // likes are optional: whatever goes wrong here must never stop the gradients themselves from showing
+    const [counts, mine] = await Promise.all([client.rpc('like_counts'), client.rpc('my_likes', { p_voter: voterId() })]);
+    if (counts.error || mine.error) { likesOk = false; console.warn('Likes unavailable:', (counts.error || mine.error).message); return; }
+    likesOk = true;
+    likeCounts = new Map(counts.data.map(r => [r.gradient_id, Number(r.n)]));
+    myLikes = new Set(mine.data.map(r => r.gradient_id));
+  } catch (err) { likesOk = false; console.warn('Likes unavailable:', err); }
+}
+const sortBtns = [...document.querySelectorAll('[data-sort]')];
+function syncSort() { for (const b of sortBtns) b.setAttribute('aria-pressed', String(b.dataset.sort === sortMode)); }
+for (const b of sortBtns) b.addEventListener('click', () => {
+  sortMode = b.dataset.sort;
+  try { localStorage.setItem(SORT_KEY, sortMode); } catch {}
+  syncSort(); rebuildPublic();
+});
+syncSort();
 async function loadFallback() {
   try {
     const list = await (await fetch('featured-gradients.json', { cache: 'no-cache' })).json();
@@ -149,20 +246,23 @@ async function loadFallback() {
 }
 let renderToken = 0;
 // The Community tab has up to two sections: what you've published (only when you have something), then everyone
-// else's. A card is the thumbnail plus, on your own, a Delete button that appears while the pointer is over it.
+// else's. A card is the thumbnail plus, on your own, an × button that appears while the pointer is over it.
 async function renderPublic() {
   const token = ++renderToken;
   if (!settled) { // skeletons while loading
     $('pubMineSection').hidden = true; $('pubOthersTitle').hidden = true; $('pubEmpty').hidden = true;
-    masonry($('pubList'), SKELETON_RATIOS.map(r => { const el = document.createElement('div'); el.className = 'ct-skel'; el.style.aspectRatio = `1 / ${r}`; el.setAttribute('aria-hidden', 'true'); return { el, ratio: r }; }), 4);
+    masonry($('pubList'), SKELETON_RATIOS.map(r => { const el = document.createElement('div'); el.className = 'ct-skel'; el.style.aspectRatio = `1 / ${r}`; el.setAttribute('aria-hidden', 'true'); return { el, ratio: r }; }), COLS);
     return;
   }
-  const rows = shownRows();
+  // your own published gradients are never re-sorted: the controls belong to "Published by others"
+  const isMine = r => !!me && r.user_id === me.id;
+  const all = baseRows();
+  const rows = [...all.filter(isMine), ...arrange(all.filter(r => !isMine(r)))];
   const ratios = await Promise.all(rows.map(r => thumbRatio(r.thumb)));
   if (token !== renderToken) return; // a newer render started while the thumbnails were measured
   const mineItems = [], otherItems = [];
   rows.forEach((row, i) => {
-    const mine = !!me && row.user_id === me.id;
+    const mine = isMine(row);
     const card = document.createElement('div'); card.className = 'ct-card';
     const thumb = document.createElement('button'); thumb.type = 'button'; thumb.className = 'ct-thumb';
     thumb.style.aspectRatio = `1 / ${ratios[i]}`; // the gradient's own shape
@@ -170,8 +270,12 @@ async function renderPublic() {
     thumb.setAttribute('aria-label', 'Open this community gradient');
     thumb.addEventListener('click', () => openPublic(row, thumb));
     card.appendChild(thumb); // thumbnails only: no names, no authors (the author appears under the canvas once you open one)
+    const actions = document.createElement('div'); actions.className = 'ct-actions'; // bottom-left: heart, then bookmark
+    if (!row.builtin) actions.appendChild(likeButton(row));
+    actions.appendChild(bookmarkButton(row));
+    card.appendChild(actions);
     if (mine) {
-      const del = document.createElement('button'); del.type = 'button'; del.className = 'ct-del'; del.textContent = 'Delete';
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'ct-del'; del.textContent = '×';
       del.setAttribute('aria-label', 'Remove this gradient from the community');
       del.addEventListener('click', () => deletePublished(row, del));
       card.appendChild(del);
@@ -180,9 +284,9 @@ async function renderPublic() {
   });
   $('pubMineSection').hidden = mineItems.length === 0;
   $('pubOthersTitle').hidden = mineItems.length === 0; // headings only matter once there are two sections
-  $('pubEmpty').hidden = rows.length > 0;
-  masonry($('pubMineList'), mineItems, 4);
-  masonry($('pubList'), otherItems, 4);
+  $('pubEmpty').hidden = otherItems.length > 0;
+  masonry($('pubMineList'), mineItems, COLS);
+  masonry($('pubList'), otherItems, COLS);
 }
 // The sidebar's Community grid: the first GRID_SLOTS published gradients, the last tile carrying "+N" for the rest.
 function renderCommunityGrid() {
@@ -213,10 +317,14 @@ function renderCommunityGrid() {
 }
 async function refreshPublic() {
   if (!client) return;
-  const { data, error } = await client.from('gradients').select('id, slug, thumb, author_name, author_twitter, user_id').eq('is_public', true).order('created_at', { ascending: false }).limit(200);
+  const [{ data, error }] = await Promise.all([
+    client.from('gradients').select('id, slug, thumb, author_name, author_twitter, user_id').eq('is_public', true).order('created_at', { ascending: false }).limit(200),
+    loadLikes(),
+  ]);
   settled = true;
   if (error) { console.error(error); loadProblem = error.message || 'unknown error'; rebuildPublic(); return; } // the fallback fills the grid
-  loadProblem = ''; loadedOnce = true; pubRows = data; rebuildPublic();
+  loadProblem = ''; loadedOnce = true; pubRows = data;
+  rebuildPublic();
   pushProfile(); // re-credit any of your rows that are out of date
 }
 async function openPublic(row, anchor) {
