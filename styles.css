@@ -728,6 +728,9 @@ kbd {
 .frame-actions { position: absolute; bottom: calc(100% + 8px); left: 0; z-index: 6; display: flex; gap: 4px; } /* above the frame's top-left corner, in the stage's top padding */
 .stage.previewing .frame-actions { display: none; }
 .frame-credit { position: absolute; top: calc(100% + 5px); left: 0; max-width: 100%; font: 400 11px/17px var(--font-ui); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; }
+.frame-credit { transition: opacity .15s ease-out, visibility 0s linear 0s; }
+.frame-credit.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .15s ease-out, visibility 0s linear .15s; } /* the byline fades out over 150ms when the gradient is edited */
+.frame-credit.no-anim { transition: none; }
 .frame-credit a { color: var(--ink-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; } /* a linked name is always underlined (the 17px line leaves room for it inside the clipped box) */
 .frame-credit a:hover { color: var(--ink); }
 .stage.previewing .frame-credit { display: none; }

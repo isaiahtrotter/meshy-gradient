@@ -40,7 +40,9 @@ function update(instant = false) {
   btn.classList.toggle('is-hidden', pristine);
   // the "By [name]" line only belongs to an exact copy: the first edit removes it, and undoing back to the copy restores it
   const credit = $('frameCredit');
-  credit.hidden = !(pristine && credit.firstChild);
+  if (instant) credit.classList.add('no-anim');
+  credit.classList.toggle('is-hidden', !(pristine && credit.firstChild));
+  if (instant) { void credit.offsetWidth; credit.classList.remove('no-anim'); }
   for (const cb of listeners) cb(pristine);
   const save = $('saveBtn');
   if (instant) save.classList.add('no-anim');
