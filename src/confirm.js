@@ -32,4 +32,5 @@ export function askConfirm({ title, text, confirmLabel = 'Confirm', cancelLabel 
 $('confirmOk').addEventListener('click', () => close(true));
 $('confirmCancel').addEventListener('click', () => close(false));
 $('confirmModal').addEventListener('pointerdown', e => { if (e.target === $('confirmModal')) close(false); });
-document.addEventListener('keydown', e => { if (!$('confirmModal').hidden && e.key === 'Escape') { e.stopPropagation(); close(false); } }, true);
+// stopImmediatePropagation: the other Escape handlers on document (Settings, the side tab) must not also see this key
+document.addEventListener('keydown', e => { if (!$('confirmModal').hidden && e.key === 'Escape') { e.stopImmediatePropagation(); close(false); } }, true);

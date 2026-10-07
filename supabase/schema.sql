@@ -85,3 +85,19 @@ as $$
 $$;
 revoke all on function public.gradient_by_slug(text) from public;
 grant execute on function public.gradient_by_slug(text) to anon, authenticated;
+
+-- ---------- Deleting an account ----------
+-- Lets a signed-in user delete their own account from Settings. Removing the auth user cascades (the user_id foreign key
+-- above is `on delete cascade`) to every gradient they saved or published. The function runs with elevated rights
+-- because browsers can't delete auth users directly, but it can only ever delete the caller's own account.
+create or replace function public.delete_my_account()
+returns void
+language plpgsql security definer set search_path = public, auth
+as $$
+begin
+  if auth.uid() is null then raise exception 'Not signed in'; end if;
+  delete from auth.users where id = auth.uid();
+end;
+$$;
+revoke all on function public.delete_my_account() from public;
+grant execute on function public.delete_my_account() to authenticated;

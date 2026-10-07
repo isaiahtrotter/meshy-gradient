@@ -25,7 +25,7 @@ const stored = () => { try { return localStorage.getItem(KEY); } catch { return 
 
 let copyHash = stored();
 // The same idea for the Save button: while the canvas is exactly a gradient that's already in the user's saved list
-// (just opened from there, or just saved), there's nothing to save, so the button hides until the first edit.
+// (just opened from there, or just saved), there's nothing to save, so the button greys out (not clickable) until the first edit.
 let savedHash = (() => { try { return localStorage.getItem(SAVED_KEY); } catch { return null; } })();
 
 const listeners = new Set();
@@ -44,10 +44,11 @@ function update(instant = false) {
   credit.classList.toggle('is-hidden', !(pristine && credit.firstChild));
   if (instant) { void credit.offsetWidth; credit.classList.remove('no-anim'); }
   for (const cb of listeners) cb(pristine);
-  const save = $('saveBtn');
-  if (instant) save.classList.add('no-anim');
-  save.classList.toggle('is-hidden', savedHash !== null && currentHash() === savedHash);
-  if (instant) { void btn.offsetWidth; btn.classList.remove('no-anim'); save.classList.remove('no-anim'); }
+  // Save greys out (disabled, so not clickable) while the canvas is exactly one of the user's saved gradients
+  const save = $('saveBtn'), alreadySaved = savedHash !== null && currentHash() === savedHash;
+  save.disabled = alreadySaved;
+  save.title = alreadySaved ? 'This gradient is already in your saved list' : 'Save this gradient to your account';
+  if (instant) { void btn.offsetWidth; btn.classList.remove('no-anim'); }
 }
 
 // Re-evaluates the Publish button and the byline, e.g. after the byline text changes.
@@ -65,7 +66,7 @@ export function markOwn() {
   try { localStorage.removeItem(KEY); localStorage.removeItem(SAVED_KEY); } catch {}
   update();
 }
-// The canvas is now exactly a gradient in the user's saved list (opened from it, or just saved): hide Save until an edit.
+// The canvas is now exactly a gradient in the user's saved list (opened from it, or just saved): grey Save out until an edit.
 export function markSaved() {
   savedHash = currentHash();
   try { localStorage.setItem(SAVED_KEY, savedHash); } catch {}

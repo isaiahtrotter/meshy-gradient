@@ -72,4 +72,4 @@ function setOpen(on) {
 $('settingsBtn').addEventListener('click', () => setOpen(!open));
 $('settingsClose').addEventListener('click', () => setOpen(false));
 $('settingsModal').addEventListener('pointerdown', e => { if (e.target === $('settingsModal')) setOpen(false); });
-document.addEventListener('keydown', e => { if (open && e.key === 'Escape') { e.stopPropagation(); setOpen(false); } }, true);
+document.addEventListener('keydown', e => { if (open && e.key === 'Escape' && $('confirmModal').hidden) { e.stopPropagation(); setOpen(false); } }, true); // a confirm dialog on top gets the Escape first
