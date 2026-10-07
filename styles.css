@@ -709,8 +709,8 @@ button.chip[aria-pressed="true"] { border-color: var(--accent); color: var(--acc
 .preset.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .preset.is-public::after { content: 'Public'; position: absolute; left: 3px; bottom: 3px; padding: 1px 4px; border-radius: 3px; font: 500 9px/1.3 var(--font-ui); color: #fff; background: rgba(0,0,0,.55); }
 .preset-more {
-  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; border-radius: inherit;
-  background: rgba(0,0,0,.5); color: #fff; font: 600 14px/1 var(--font-ui); letter-spacing: .01em; pointer-events: none;
+  position: absolute; inset: -1px; display: flex; align-items: center; justify-content: center; border-radius: inherit; /* -1px: cover the tile's 1px border too */
+  background: var(--field); color: #fff; font: 600 14px/1 var(--font-ui); letter-spacing: .01em; pointer-events: none;
 }
 .ct-thumb.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .preset-skel { background-color: var(--ctrl-bg); animation: skeleton-pulse 1.4s ease-in-out infinite; cursor: default; pointer-events: none; }
@@ -803,17 +803,18 @@ section[data-collapse] > h2[hidden] { display: none; }
 /* an empty place in My gradients, waiting for a saved gradient */
 .preset-empty { aspect-ratio: 1 / 1; border-radius: var(--radius); border: 1px dashed color-mix(in srgb, var(--ink) 22%, transparent); }
 
-/* Grain colours: one swatch for Mono, two for Duo, none for Multi (controls.js shows the right ones). Clicking one opens the same
-   colour picker used for nodes (colorPanel.js). */
+/* Grain colours: one field for Mono, two for Duo, none for Multi (controls.js shows the right ones). Each is the same
+   swatch + hex field a selected node has; the swatch opens the same colour picker (colorPanel.js). */
 .grain-colors { gap: 8px; }
-.grain-field { position: relative; cursor: pointer; }
+.grain-field { position: relative; }
 .grain-field[hidden] { display: none; }
-.gc-swatch { flex: none; width: 18px; height: 18px; border-radius: 5px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.25); }
-.gc-hex { font: 400 14px/1 var(--font-ui); color: var(--ink); text-transform: uppercase; font-variant-numeric: tabular-nums; pointer-events: none; }
 /* the shared colour picker, in grain mode: just the square and the hue slider */
 .picker--grain > :not(.sv-wrap):not(.hue-track) { display: none !important; }
-.grain-field:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* hover for the secondary buttons (Sign in, Cancel, Done, Publish...), like the primary ones have */
-.topbar-auth-btn.signin, .frame-btn { transition: filter .12s ease-out, opacity .15s ease-out, transform .15s ease-out, visibility 0s linear 0s; }
-.topbar-auth-btn.signin:hover:not(:disabled), .frame-btn:not(.primary):hover:not(:disabled) { filter: brightness(1.25); }
+.topbar-auth-btn.signin, .frame-btn { transition: filter .12s ease-out, box-shadow .12s ease-out, opacity .15s ease-out, transform .15s ease-out, visibility 0s linear 0s; }
+.topbar-auth-btn.signin:hover:not(:disabled) { filter: brightness(1.25); }
+/* The canvas buttons use a tint (inset shadow) instead of a filter: a filter promotes the button to its own compositing
+   layer, and on the zoomed canvas that made the text jitter between sub-pixel positions on hover. */
+.frame-btn:not(.primary):hover:not(:disabled) { box-shadow: inset 0 0 0 40px rgba(255,255,255,.12), inset 0 0 0 1px rgba(255,255,255,.2), 0 2px 6px rgba(0,0,0,.25); }
+.frame-btn.primary:hover { filter: none; box-shadow: inset 0 0 0 40px rgba(255,255,255,.12), 0 2px 6px rgba(0,0,0,.25); }

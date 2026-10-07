@@ -167,8 +167,9 @@ export function syncGrainColors() {
   for (const f of $('grainColors').querySelectorAll('.grain-field')) {
     const key = f.dataset.grainColor, hex = state.grainColors[key];
     f.hidden = !GRAIN_FIELDS[state.grainType].includes(key);
-    f.querySelector('.gc-swatch').style.background = hex;
-    f.querySelector('.gc-hex').textContent = hex.slice(1).toUpperCase();
+    f.querySelector('.swatch').style.setProperty('--sw', hex);
+    const input = f.querySelector('.gc-hex');
+    if (document.activeElement !== input) input.value = hex.slice(1).toUpperCase(); // never rewrite what's being typed
   }
 }
 

@@ -374,9 +374,18 @@ window.addEventListener('error', function () {
         <button type="button" class="chip grow" data-grain-type="multi" aria-pressed="false">Multi</button>
       </div>
       <div class="row grain-colors" id="grainColors">
-        <div class="dim-field grain-field" role="button" tabindex="0" data-grain-color="mono" title="Grain color"><span class="gc-swatch"></span><span class="gc-hex">FFFFFF</span></div>
-        <div class="dim-field grain-field" role="button" tabindex="0" data-grain-color="duoA" title="First grain color" hidden><span class="gc-swatch"></span><span class="gc-hex">FFFF00</span></div>
-        <div class="dim-field grain-field" role="button" tabindex="0" data-grain-color="duoB" title="Second grain color" hidden><span class="gc-swatch"></span><span class="gc-hex">0000FF</span></div>
+        <div class="dim-field color-field grain-field" data-grain-color="mono">
+          <button type="button" class="swatch checker" style="--sw:#ffffff" title="Grain color" aria-label="Grain color" aria-haspopup="true" aria-expanded="false"></button>
+          <input type="text" class="grow gc-hex" value="FFFFFF" spellcheck="false" maxlength="6" placeholder="RRGGBB" title="Hex color" aria-label="Grain color (hex)">
+        </div>
+        <div class="dim-field color-field grain-field" data-grain-color="duoA" hidden>
+          <button type="button" class="swatch checker" style="--sw:#ffff00" title="First grain color" aria-label="First grain color" aria-haspopup="true" aria-expanded="false"></button>
+          <input type="text" class="grow gc-hex" value="FFFF00" spellcheck="false" maxlength="6" placeholder="RRGGBB" title="Hex color" aria-label="First grain color (hex)">
+        </div>
+        <div class="dim-field color-field grain-field" data-grain-color="duoB" hidden>
+          <button type="button" class="swatch checker" style="--sw:#0000ff" title="Second grain color" aria-label="Second grain color" aria-haspopup="true" aria-expanded="false"></button>
+          <input type="text" class="grow gc-hex" value="0000FF" spellcheck="false" maxlength="6" placeholder="RRGGBB" title="Hex color" aria-label="Second grain color (hex)">
+        </div>
       </div>
       <div class="slider"><span class="slider-label">Opacity</span><span class="slider-value" id="grainVal">0.13</span><input type="range" id="grain" min="0" max="1" step="0.001" value="0.13333" data-min="0" data-max="0.15"><div class="adj-glow" data-for="grain"></div><div class="slider-edge"></div></div>
       <div class="slider"><span class="slider-label">Grain size</span><span class="slider-value" id="grainSizeVal">1.0</span><input type="range" id="grainSize" min="1" max="8" step="0.05" value="1"><div class="adj-glow" data-for="grainSize"></div><div class="slider-edge"></div></div>

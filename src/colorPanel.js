@@ -563,8 +563,19 @@ function toggleGrainPicker(field) {
   renderSVSquare(); positionPickerThumbs(); positionPicker();
 }
 for (const field of document.querySelectorAll('.grain-field')) {
-  field.addEventListener('click', e => { e.stopPropagation(); toggleGrainPicker(field); });
-  field.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGrainPicker(field); } });
+  const swatch = field.querySelector('.swatch'), input = field.querySelector('.gc-hex'), key = field.dataset.grainColor;
+  swatch.addEventListener('click', e => { e.stopPropagation(); toggleGrainPicker(field); });
+  // typing a hex works like the node's hex field: it applies as soon as it's valid, and one undo step covers the edit
+  const applyTyped = commit => {
+    const parsed = parseHexInput(input.value);
+    if (!parsed) { if (commit) syncGrainColors(); return; }
+    beginColorEdit();
+    state.grainColors[key] = parsed.hex.toLowerCase(); syncGrainColors(); draw();
+    if (commit) { if (colorSnap) { pushUndo(colorSnap); colorSnap = null; } if (pickerOpen && grainKey === key) syncPickerFromColor(parsed.hex, 1); }
+  };
+  input.addEventListener('input', () => applyTyped(false));
+  input.addEventListener('change', () => applyTyped(true));
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
 }
 $('selSwatch').addEventListener('click', e => { e.stopPropagation(); pickerOpen ? closePicker() : openPicker(); });
 document.addEventListener('pointerdown', e => { if (pickerOpen && !e.target.closest('.picker') && !e.target.closest('#selSwatch') && !e.target.closest('.grain-field')) closePicker(); });
