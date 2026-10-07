@@ -70,17 +70,24 @@ function createControls(n) {
 function ensureStrokeControls(c, n) {
   if (c.path) return;
   c.path = document.createElementNS(SVG_NS, 'svg'); c.path.setAttribute('class', 'stroke-path');
-  c.path.innerHTML = '<path class="hit"><title>Click to add a hardness stop</title></path><path class="line"/>';
+  c.path.innerHTML = '<path class="hit"></path><path class="line"/>';
   c.path.querySelector('.hit').dataset.id = n.id;
   c.stops = [];
   // under the main ring, so where the two cross the ring still rotates instead of adding a stop
   overlay.insertBefore(c.path, c.ring);
 }
+export function aimStopIndicator(ring, p) {
+  const ind = ring.querySelector('.indicator'); if (!ind || ring._cx == null) return;
+  ind.style.setProperty('--deg', Math.atan2(p.py - ring._cy, p.px - ring._cx) * 180 / Math.PI);
+}
 function syncStopEls(c, n) {
   while (c.stops.length < n.stops.length) {
     const dot = document.createElement('div'); dot.className = 'stop-dot'; dot.dataset.id = n.id;
     const ring = document.createElementNS(SVG_NS, 'svg'); ring.setAttribute('class', 'stop-ring'); ring.dataset.id = n.id;
-    ring.innerHTML = '<circle class="dots"/><circle class="grab"/>';
+    ring.innerHTML = '<circle class="dots"/><circle class="indicator"/><circle class="grab"/>';
+    // same hover as the node's main ring: the arc handle tracks the pointer around the circle
+    ring.querySelector('.grab').addEventListener('pointerenter', ev => aimStopIndicator(ring, normPos(ev)));
+    ring.querySelector('.grab').addEventListener('pointermove', ev => aimStopIndicator(ring, normPos(ev)));
     overlay.appendChild(ring); overlay.appendChild(dot);
     c.stops.push({ dot, ring });
   }
@@ -91,7 +98,7 @@ function syncStopEls(c, n) {
     const end = i === 0 || i === last;
     s.dot.classList.toggle('end', end);
     s.dot.classList.toggle('selected', !end && session.stopSel?.id === n.id && session.stopSel.i === i);
-    if (end) s.dot.removeAttribute('title'); else s.dot.title = 'Drag along the stroke to move. Click to select, then Delete (or ⌥-click) to remove';
+    if (end) s.dot.removeAttribute('title'); else s.dot.title = 'Drag along the stroke to move (hold ⌥ or Ctrl to duplicate). Click to select, then Delete to remove';
   });
 }
 function layoutStroke(c, n, cx, cy, dims) {
@@ -110,7 +117,9 @@ function layoutStroke(c, n, cx, cy, dims) {
     const R = stopHardToRadius(strokeK(n, st.t)), S = R * 2 + 12, mid = S / 2;
     setStyle(ring, { left: (sx - mid) + 'px', top: (sy - mid) + 'px', width: S + 'px', height: S + 'px' });
     ring.setAttribute('viewBox', `0 0 ${S} ${S}`);
-    for (const e of ring.children) { e.setAttribute('cx', mid); e.setAttribute('cy', mid); e.setAttribute('r', R); }
+    for (const e of ring.children) { e.setAttribute('cx', mid); e.setAttribute('cy', mid); e.setAttribute('r', e.classList.contains('indicator') ? R + 5 : R); }
+    ring.querySelector('.indicator').style.setProperty('--circ', 2 * Math.PI * (R + 5));
+    ring._cx = sx; ring._cy = sy;
   });
 }
 const setStrokeShown = (c, pathOn, stopsOn) => {

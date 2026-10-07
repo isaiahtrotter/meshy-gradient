@@ -17,7 +17,7 @@ import { cumLengths, pointAt, nearestT, smoothStroke, strokeFromPath, recenterSt
 import { wrapAngle } from './geometry.js';
 import { stage, overlay, work, normPos, maxDim, frameRect, setStatus } from './dom.js';
 import { view, applyPan, draw } from './view.js';
-import { handleEls, hardMax, hardToRadius, radiusToHard, stopHardToRadius, stopRadiusToHard, armScale, updateHardIndicator, refreshHandles } from './handles.js';
+import { aimStopIndicator, handleEls, hardMax, hardToRadius, radiusToHard, stopHardToRadius, stopRadiusToHard, armScale, updateHardIndicator, refreshHandles } from './handles.js';
 import { refreshSelectionPanel } from './colorPanel.js';
 import { refreshAll, refreshSelection } from './refresh.js';
 import { colorAtCanvasPoint } from './sampling.js';
@@ -201,14 +201,34 @@ function moveDraw(drag, e) {
   Object.assign(drag.n, strokeFromPath(smoothStroke(drag.raw, STROKE_SPACING_PX), maxDim()));
 }
 
-// End stops are pinned to the ends of the path; the ones between slide along it, and ⌥-click removes them.
+// End stops are pinned to the ends of the path; the ones between slide along it (hold alt/ctrl to drag a copy instead); Delete removes the selected one.
 function beginStopMove(e, n, i) {
   if (!n) return;
   const interior = i > 0 && i < n.stops.length - 1;
-  if (e.altKey) { if (interior) { pushUndo(); n.stops.splice(i, 1); refreshAll(); } return; }
   session.stopSel = interior ? { id: n.id, i } : null;
-  session.drag = { type: 'stopMove', n, i, snap: snapshot(), moved: false, pinned: !interior, pts0: interior ? null : n.pts.map(q => [q[0], q[1]]), x0: n.x, y0: n.y };
+  session.drag = { type: 'stopMove', n, i, stop: n.stops[i], t0: n.stops[i].t, dup: false, cloneRef: null, snap: snapshot(), moved: false, pinned: !interior, pts0: interior ? null : n.pts.map(q => [q[0], q[1]]), x0: n.x, y0: n.y };
+  stage.classList.add('hard-dragging');
   overlay.setPointerCapture(e.pointerId);
+  updateStopDuplicate(e.altKey || e.ctrlKey);
+}
+// Alt/ctrl during a stop drag works like it does for nodes, and can be pressed or released at any point: while held
+// the original stays put and a copy follows the pointer (and may slide past other stops); letting go drops the copy
+// and the original resumes following the pointer.
+function updateStopDuplicate(active) {
+  const drag = session.drag;
+  if (!drag || drag.type !== 'stopMove' || drag.pinned || active === drag.dup) return;
+  const { n } = drag, orig = drag.orig ??= drag.stop;
+  if (active) {
+    orig.t = drag.t0;
+    const clone = { t: drag.t0, m: orig.m };
+    n.stops.push(clone); n.stops.sort((a, b) => a.t - b.t);
+    drag.cloneRef = clone; drag.stop = clone;
+  } else {
+    n.stops.splice(n.stops.indexOf(drag.cloneRef), 1);
+    drag.cloneRef = null; drag.stop = orig;
+  }
+  drag.dup = active; drag.i = n.stops.indexOf(drag.stop);
+  session.stopSel = { id: n.id, i: drag.i };
 }
 // Dragging an end of the path moves that end to the pointer. The points near it follow with a smooth falloff
 // over the first quarter of the path, so the stroke bends instead of kinking at the end point.
@@ -229,8 +249,14 @@ function moveEnd(drag, p) {
 }
 function moveStop(drag, p) {
   if (drag.pinned) { moveEnd(drag, p); return; }
-  const { n, i } = drag, { P, cum } = strokeScreen(n);
-  const t = round4(clamp(nearestT(P, cum, [p.px, p.py]).t, n.stops[i - 1].t + STOP_GAP, n.stops[i + 1].t - STOP_GAP));
+  const { n } = drag, { P, cum } = strokeScreen(n), raw = nearestT(P, cum, [p.px, p.py]).t;
+  if (drag.dup) { // the copy isn't boxed in by its neighbours: it re-sorts as it passes them
+    const t = round4(clamp(raw, STOP_GAP, 1 - STOP_GAP));
+    if (t !== drag.stop.t) { drag.stop.t = t; n.stops.sort((a, b) => a.t - b.t); drag.i = n.stops.indexOf(drag.stop); session.stopSel = { id: n.id, i: drag.i }; }
+    if (t !== drag.t0) drag.moved = true;
+    return;
+  }
+  const i = drag.i, t = round4(clamp(raw, n.stops[i - 1].t + STOP_GAP, n.stops[i + 1].t - STOP_GAP));
   if (t !== n.stops[i].t) { n.stops[i].t = t; drag.moved = true; }
 }
 // Clicking the path adds a stop there, carrying the hardness the stroke already has at that point (so nothing
@@ -242,21 +268,38 @@ function addStopAt(e, p, n) {
   if (i <= 0 || t - n.stops[i - 1].t < STOP_GAP || n.stops[i].t - t < STOP_GAP) return;
   n.stops.splice(i, 0, { t, m: round4(stopFactor(n.stops, t)) });
   session.stopSel = { id: n.id, i };
-  session.drag = { type: 'stopMove', n, i, snap, moved: true, pinned: false };
+  session.drag = { type: 'stopMove', n, i, stop: n.stops[i], t0: n.stops[i].t, dup: false, cloneRef: null, snap, moved: true, pinned: false };
+  stage.classList.add('hard-dragging');
   overlay.setPointerCapture(e.pointerId);
   refreshAll();
 }
+// Hovering the path swaps the cursor for a ghost stop that rides the line under the pointer; clicking places a real
+// one there (addStopAt), and the cursor is back as soon as the ghost goes. Hidden while dragging or near an existing stop.
+const ghostStop = document.createElement('div');
+ghostStop.className = 'stop-dot ghost'; overlay.appendChild(ghostStop);
+function hideGhost() { ghostStop.classList.remove('on'); overlay.classList.remove('ghost-blocked'); }
+overlay.addEventListener('pointermove', e => {
+  const hit = !session.drag && e.target.closest?.('.stroke-path .hit'), n = hit && nodeById(+hit.dataset.id);
+  if (!n) { hideGhost(); return; }
+  const p = normPos(e), { P, cum } = strokeScreen(n), t = round4(nearestT(P, cum, [p.px, p.py]).t);
+  const i = n.stops.findIndex(s => s.t >= t);
+  if (i <= 0 || t - n.stops[i - 1].t < STOP_GAP || n.stops[i].t - t < STOP_GAP) { hideGhost(); overlay.classList.add('ghost-blocked'); return; } // too close to a stop: bring the real cursor back
+  const [sx, sy] = pointAt(P, cum, t);
+  ghostStop.style.left = sx + 'px'; ghostStop.style.top = sy + 'px'; ghostStop.classList.add('on'); overlay.classList.remove('ghost-blocked');
+});
+overlay.addEventListener('pointerleave', hideGhost);
+overlay.addEventListener('pointerdown', hideGhost, true);
 function beginStopHard(e, p, ring, n, i) {
   if (!n) return;
   const { P, cum } = strokeScreen(n), [sx, sy] = pointAt(P, cum, n.stops[i].t);
-  session.drag = { type: 'stopHard', n, i, snap: snapshot(), moved: false, sx, sy, r: stopHardToRadius(strokeK(n, n.stops[i].t)), lastDist: Math.hypot(p.px - sx, p.py - sy) };
-  ring.classList.add('active');
+  session.drag = { type: 'stopHard', ring, n, i, snap: snapshot(), moved: false, sx, sy, r: stopHardToRadius(strokeK(n, n.stops[i].t)), lastDist: Math.hypot(p.px - sx, p.py - sy) };
+  ring.classList.add('active'); stage.classList.add('hard-dragging');
   overlay.setPointerCapture(e.pointerId);
 }
 // Same feel as the main ring: moving away from the stop softens, toward it hardens. The stop stores a multiplier
 // on the node's k, so the value set here is k / n.k.
 function moveStopHard(drag, p) {
-  drag.moved = true;
+  drag.moved = true; aimStopIndicator(drag.ring, p);
   const dist = Math.hypot(p.px - drag.sx, p.py - drag.sy);
   drag.r = clamp(drag.r + dist - drag.lastDist, stopHardToRadius(STROKE_K_MAX), stopHardToRadius(HARD_K_MIN)); drag.lastDist = dist;
   const k = Math.round(stopRadiusToHard(drag.r) * 10) / 10;
@@ -275,7 +318,7 @@ stage.addEventListener('pointermove', e => {
   if (drag.type === 'spread') { moveSpread(drag, p, e); refreshHandles(); draw(); }
   else if (drag.type === 'hard') { moveHard(drag, p, e); refreshHandles(); draw(); }
   else if (drag.type === 'draw') { moveDraw(drag, e); refreshSelection(); draw(); }
-  else if (drag.type === 'stopMove') { moveStop(drag, p); refreshHandles(); draw(); }
+  else if (drag.type === 'stopMove') { updateStopDuplicate(e.altKey || e.ctrlKey); moveStop(drag, p); refreshHandles(); draw(); }
   else if (drag.type === 'stopHard') { moveStopHard(drag, p); refreshHandles(); draw(); }
   else if (drag.type === 'move') {
     updateDuplicateMode(e.altKey || e.ctrlKey);
@@ -300,7 +343,8 @@ function endDrag(e) {
   if (!drag) return;
   if (drag.type === 'pan') { stage.classList.remove('panning'); session.drag = null; return; }
   if (drag.type === 'spread' || drag.type === 'hard' || drag.type === 'stopMove' || drag.type === 'stopHard') {
-    if (drag.moved) pushUndo(drag.snap);
+    if (drag.type === 'stopMove' && drag.dup && !drag.moved) { drag.n.stops.splice(drag.n.stops.indexOf(drag.cloneRef), 1); session.stopSel = null; } // a copy that never moved is dropped
+    else if (drag.moved) pushUndo(drag.snap);
     overlay.querySelectorAll('.hard-ring.active, .stop-ring.active').forEach(el => el.classList.remove('active')); stage.classList.remove('hard-dragging');
   }
   if (drag.type === 'draw' && drag.n) pushUndo(drag.snap);
