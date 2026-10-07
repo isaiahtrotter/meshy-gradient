@@ -228,11 +228,15 @@ export function seedNodes(colours) {
 const shuffleArr = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } };
 $('shuffle').addEventListener('click', () => {
   pushUndo();
-  const target = targetNodes(), cols = target.map(n => n.color);
+  const target = targetNodes();
+  // A gradient node's fill comes from its gradStops, so its plain `color` isn't shown: leave it out of the shuffle
+  // (it would only swap with the visible solid colours and dull them), and shuffle the solid nodes' colours among
+  // themselves.
+  const solid = target.filter(n => !n.grad), cols = solid.map(n => n.color);
   shuffleArr(cols);
-  target.forEach((n, i) => { n.color = cols[i]; });
-  // Gradient nodes' fill comes from gradStops, not `color` — shuffle each stop's colour among all stops
-  // across every gradient node in the target too, so a gradient's ramp doesn't stay frozen.
+  solid.forEach((n, i) => { n.color = cols[i]; });
+  // Gradient nodes: shuffle each stop's colour among all stops across every gradient node in the target, so a
+  // gradient's ramp doesn't stay frozen.
   const gradNodes = target.filter(n => n.grad);
   const stopCols = gradNodes.flatMap(n => n.gradStops.map(s => s.color));
   shuffleArr(stopCols);
