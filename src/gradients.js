@@ -4,14 +4,14 @@
 //                                ones that are yours carry a Delete button. Publishing never touches your saved copy.
 // Row-level security in the database is what enforces who can do what; this file only drives the UI.
 
-import { serializeConfig } from './state.js';
+import { serializeConfig, state } from './state.js';
 import { cleanHandle } from './constants.js';
 import { $, showToast } from './dom.js';
 import { whenClient, onUser, startSignIn, configured } from './auth.js';
 import { applyGradient, renderThumb, setCredit } from './loadGradient.js';
 import { markSaved, clearSaved, markCopy, onProvenance } from './provenance.js';
 import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
-import { masonry, thumbRatio } from './masonry.js';
+import { masonry, relayout, thumbRatio } from './masonry.js';
 import { askConfirm } from './confirm.js';
 
 let client = null, me = null;
@@ -33,7 +33,24 @@ function fail(anchor, error) {
 // The sidebar grids work like this: the sidebar shows the first GRID_SLOTS saved gradients, and once there are that many the
 // last tile carries "+N" for the rest and opens them all in the side tab.
 const GRID_SLOTS = 8;
-const COLS = 2; // columns in the side tab's grids
+// Columns in the side tab's grids: the button in its header toggles 2 <-> 3, and the choice is remembered.
+// an SVG cross rather than the × character, so it centers exactly in its square (a text glyph sits off-center)
+const X_ICON = '<svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><path d="M1 1l6 6M7 1L1 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>';
+const COLS_KEY = 'meshGradientCols.v1', COL_CYCLE = [2, 3];
+let COLS = (() => { try { const n = Number(localStorage.getItem(COLS_KEY)); return COL_CYCLE.includes(n) ? n : 3; } catch { return 3; } })();
+const colsBtn = $('ctCols');
+function paintCols() { // the icon is a row of as many small squares as there are columns
+  const n = COLS, g = 2, w = (16 - g * (n - 1)) / n;
+  colsBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">${Array.from({ length: n }, (_, i) => `<rect x="${i * (w + g)}" y="3" width="${w}" height="10" rx="1" fill="currentColor"/>`).join('')}</svg>`;
+  colsBtn.setAttribute('aria-label', `${n} gradients per row (click to change)`);
+}
+colsBtn.addEventListener('click', () => {
+  COLS = COL_CYCLE[(COL_CYCLE.indexOf(COLS) + 1) % COL_CYCLE.length];
+  try { localStorage.setItem(COLS_KEY, String(COLS)); } catch {}
+  paintCols();
+  for (const id of ['pubMineList', 'pubList', 'mineTabList']) relayout($(id), COLS);
+});
+paintCols();
 let mineRows = [];
 function renderMine(rows) {
   mineRows = rows;
@@ -93,12 +110,13 @@ async function refreshMine() {
 }
 // The hover-only Delete button on one of your saved gradients.
 function deleteButton(row) {
-  const del = document.createElement('button'); del.type = 'button'; del.className = 'ct-del'; del.textContent = '×';
+  const del = document.createElement('button'); del.type = 'button'; del.className = 'ct-del'; del.innerHTML = X_ICON;
   del.setAttribute('aria-label', 'Delete this saved gradient');
   del.addEventListener('click', e => { e.stopPropagation(); deleteSaved(row, del); });
   return del;
 }
 async function deleteSaved(row, anchor) {
+  if (row.pending) return;
   if (!await askConfirm({ title: 'Delete this saved gradient?', text: 'This can’t be undone.', confirmLabel: 'Delete', danger: true })) return;
   await guarded(anchor, async () => {
     const { error } = await client.from('gradients').delete().eq('id', row.id);
@@ -113,6 +131,7 @@ async function fetchConfig(id, anchor) {
   return data;
 }
 async function openMine(row, anchor) {
+  if (row.pending) return; // still being saved
   const data = await fetchConfig(row.id, anchor); if (!data) return;
   setShareSlug(null);
   applyGradient(data.config, { own: true });
@@ -146,22 +165,12 @@ const arrange = rows => {
 const shownRows = () => arrange(baseRows());
 
 // ---------- Likes ----------
-// Anyone can like a community gradient, signed in or not. A like belongs to a "voter": your account id when signed in,
-// otherwise a random id kept in this browser. The table is closed to direct access; three functions in schema.sql
-// (like_counts, my_likes, set_like) are the only way in. If they aren't installed yet, likes just stay hidden.
-const VOTER_KEY = 'meshGradientVoter.v1', SORT_KEY = 'meshGradientSort.v1';
+// Only signed-in users can like. A like belongs to your account (the database reads it from your session, so it can't be
+// forged for someone else); everyone, signed in or not, sees the counts. The table is closed to direct access; three
+// functions in schema.sql (like_counts, my_likes, set_like) are the only way in. If they aren't installed, likes stay hidden.
+const SORT_KEY = 'meshGradientSort.v1';
 let likeCounts = new Map(), myLikes = new Set(), likesOk = true;
 let sortMode = (() => { try { return localStorage.getItem(SORT_KEY) === 'liked' ? 'liked' : 'newest'; } catch { return 'newest'; } })();
-const voterId = () => {
-  if (me) return `u:${me.id}`;
-  let id = null;
-  try { id = localStorage.getItem(VOTER_KEY); } catch {}
-  if (!id) {
-    id = `d:${crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)}`; // randomUUID needs a secure context
-    try { localStorage.setItem(VOTER_KEY, id); } catch {}
-  }
-  return id;
-};
 const likeCount = row => likeCounts.get(row.id) || 0;
 const HEART = '<svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17.2 3.1 10.6C1.2 8.7 1.3 5.7 3.3 4.1c1.8-1.4 4.2-1 5.6.7L10 6.1l1.1-1.3c1.4-1.7 3.8-2.1 5.6-.7 2 1.6 2.1 4.6.2 6.5L10 17.2Z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
 function paintLike(btn, row) {
@@ -175,24 +184,57 @@ function paintLike(btn, row) {
 function likeButton(row) {
   const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ct-like';
   paintLike(btn, row);
-  btn.addEventListener('click', e => { e.stopPropagation(); toggleLike(row, btn); });
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    if (!me) return needSignIn(btn, 'like');
+    toggleLike(row, btn);
+  });
   return btn;
 }
 async function toggleLike(row, btn) {
-  if (!client || !likesOk) return;
+  if (!client || !likesOk || !me) return;
   const want = !myLikes.has(row.id), prev = likeCount(row);
   if (want) myLikes.add(row.id); else myLikes.delete(row.id);
   likeCounts.set(row.id, Math.max(0, prev + (want ? 1 : -1)));
-  paintLike(btn, row); // the grid isn't re-sorted until the next render, so cards don't jump under the pointer
-  const { error } = await client.rpc('set_like', { p_gradient: row.id, p_voter: voterId(), p_liked: want });
+  likeUIChanged(); // the heart and count update at once, and under "Most liked" the card glides to its new place
+  likeInflight++;
+  const { error } = await client.rpc('set_like', { p_gradient: row.id, p_liked: want });
+  likeInflight--;
   if (error) {
     console.error(error);
     if (want) myLikes.delete(row.id); else myLikes.add(row.id);
     likeCounts.set(row.id, prev);
-    paintLike(btn, row);
+    likeUIChanged();
     showToast(btn, 'Couldn’t save your like');
   }
 }
+// Repaints every heart from the current counts and, when sorted by most liked, moves the cards to their new order
+// (animated, the same glide as changing the number of columns). The sidebar's tiles are re-ordered too.
+function likeUIChanged() {
+  const rank = new Map(arrange(baseRows()).map((r, i) => [r, i]));
+  for (const id of ['pubMineList', 'pubList']) {
+    const wrap = $(id), items = wrap._items;
+    if (!items) continue;
+    for (const it of items) { const b = it.row && it.el.querySelector('.ct-like'); if (b) paintLike(b, it.row); }
+    if (sortMode === 'liked' && items.every(it => it.row)) {
+      const sorted = [...items].sort((a, b) => rank.get(a.row) - rank.get(b.row));
+      if (sorted.some((it, i) => it !== items[i])) masonry(wrap, sorted, COLS, { animate: true });
+    }
+  }
+  if (sortMode === 'liked') renderCommunityGrid();
+}
+// Likes from other people arrive by polling: every few seconds while the page is visible (and not mid-like) the counts
+// are re-read, and if anything changed the hearts and order update. Cheap: one small function call.
+let likeInflight = 0;
+const likeSig = () => JSON.stringify([[...likeCounts].sort(), [...myLikes].sort()]);
+async function pollLikes() {
+  if (document.hidden || !client || !likesOk || likeInflight || !settled) return;
+  const before = likeSig();
+  await loadLikes();
+  if (!likeInflight && likeSig() !== before) likeUIChanged();
+}
+setInterval(pollLikes, 4000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) pollLikes(); });
 // The bookmark next to the heart copies a community gradient into your saved ones (signed-out visitors get the sign-in popup).
 const BOOKMARK = '<svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 3h9a1 1 0 0 1 1 1v13l-5.5-3.8L4.5 17V4a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 function bookmarkButton(row) {
@@ -205,35 +247,45 @@ function bookmarkButton(row) {
   });
   return btn;
 }
-async function saveCommunity(row, anchor) {
-  await guarded(anchor, async () => {
+function saveCommunity(row, anchor) {
+  return saveOptimistic(anchor, row.thumb || null, async () => {
     const data = row.builtin ? { config: row.config } : await fetchConfig(row.id, anchor);
-    if (!data) return;
-    const { error } = await client.from('gradients').insert({ config: data.config, thumb: row.thumb || null, user_id: me.id, author_name: authorName(), author_twitter: authorTwitter(), is_public: false });
-    if (error?.code === DUPLICATE) { showToast(anchor, 'Already saved'); return; }
-    if (error) throw error;
-    showToast(anchor, 'Saved');
-    await refreshMine();
-  });
+    if (!data) return { error: new Error('Couldn’t read that gradient') };
+    return client.from('gradients').insert({ config: data.config, thumb: row.thumb || null, user_id: me.id, author_name: authorName(), author_twitter: authorTwitter(), is_public: false }).select('id').single();
+  }, false);
 }
 async function loadLikes() {
   if (!client) return;
   try { // likes are optional: whatever goes wrong here must never stop the gradients themselves from showing
-    const [counts, mine] = await Promise.all([client.rpc('like_counts'), client.rpc('my_likes', { p_voter: voterId() })]);
+    const [counts, mine] = await Promise.all([client.rpc('like_counts'), me ? client.rpc('my_likes') : { data: [] }]);
     if (counts.error || mine.error) { likesOk = false; console.warn('Likes unavailable:', (counts.error || mine.error).message); return; }
     likesOk = true;
     likeCounts = new Map(counts.data.map(r => [r.gradient_id, Number(r.n)]));
     myLikes = new Set(mine.data.map(r => r.gradient_id));
   } catch (err) { likesOk = false; console.warn('Likes unavailable:', err); }
 }
-const sortBtns = [...document.querySelectorAll('[data-sort]')];
-function syncSort() { for (const b of sortBtns) b.setAttribute('aria-pressed', String(b.dataset.sort === sortMode)); }
-for (const b of sortBtns) b.addEventListener('click', () => {
-  sortMode = b.dataset.sort;
+const sortDd = $('ctSort'), sortBox = sortDd.querySelector('.ct-dd-box'), sortBtn = sortDd.querySelector('.ct-dd-btn');
+const SORT_LABELS = { newest: 'Newest', liked: 'Most liked' };
+const CLOSED_H = 24; // px: the closed box is just the current choice
+function setSortOpen(open) { // the box grows downward to show every option, and folds back up when one is picked (100ms ease-out, in CSS)
+  sortDd.classList.toggle('open', open);
+  sortBtn.setAttribute('aria-expanded', String(open));
+  sortBox.style.height = `${open ? sortBox.scrollHeight : CLOSED_H}px`;
+}
+function paintSort() {
+  sortDd.querySelector('.ct-dd-label').textContent = SORT_LABELS[sortMode];
+  for (const o of sortDd.querySelectorAll('[role=option]')) o.setAttribute('aria-selected', String(o.dataset.value === sortMode));
+}
+sortBtn.addEventListener('click', () => setSortOpen(!sortDd.classList.contains('open')));
+for (const o of sortDd.querySelectorAll('[role=option]')) o.addEventListener('click', () => {
+  sortMode = o.dataset.value === 'liked' ? 'liked' : 'newest';
   try { localStorage.setItem(SORT_KEY, sortMode); } catch {}
-  syncSort(); rebuildPublic();
+  paintSort(); setSortOpen(false); rebuildPublic();
 });
-syncSort();
+document.addEventListener('pointerdown', e => { if (sortDd.classList.contains('open') && !sortDd.contains(e.target)) setSortOpen(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && sortDd.classList.contains('open')) { e.stopPropagation(); setSortOpen(false); sortBtn.focus(); } }, true);
+paintSort();
+onSideTabOpen(kind => { setSortOpen(false); sortDd.hidden = kind !== 'community'; }); // the sort only applies to the Community tab
 async function loadFallback() {
   try {
     const list = await (await fetch('featured-gradients.json', { cache: 'no-cache' })).json();
@@ -250,14 +302,13 @@ let renderToken = 0;
 async function renderPublic() {
   const token = ++renderToken;
   if (!settled) { // skeletons while loading
-    $('pubMineSection').hidden = true; $('pubOthersTitle').hidden = true; $('pubEmpty').hidden = true;
+    $('pubMineSection').hidden = true; $('pubOthersTitle').hidden = true; $('pubEmpty').hidden = true; $('pubList').hidden = false;
     masonry($('pubList'), SKELETON_RATIOS.map(r => { const el = document.createElement('div'); el.className = 'ct-skel'; el.style.aspectRatio = `1 / ${r}`; el.setAttribute('aria-hidden', 'true'); return { el, ratio: r }; }), COLS);
     return;
   }
-  // your own published gradients are never re-sorted: the controls belong to "Published by others"
   const isMine = r => !!me && r.user_id === me.id;
   const all = baseRows();
-  const rows = [...all.filter(isMine), ...arrange(all.filter(r => !isMine(r)))];
+  const rows = arrange(all); // the sort applies to both sections
   const ratios = await Promise.all(rows.map(r => thumbRatio(r.thumb)));
   if (token !== renderToken) return; // a newer render started while the thumbnails were measured
   const mineItems = [], otherItems = [];
@@ -275,18 +326,19 @@ async function renderPublic() {
     actions.appendChild(bookmarkButton(row));
     card.appendChild(actions);
     if (mine) {
-      const del = document.createElement('button'); del.type = 'button'; del.className = 'ct-del'; del.textContent = '×';
+      const del = document.createElement('button'); del.type = 'button'; del.className = 'ct-del'; del.innerHTML = X_ICON;
       del.setAttribute('aria-label', 'Remove this gradient from the community');
       del.addEventListener('click', () => deletePublished(row, del));
       card.appendChild(del);
     }
-    (mine ? mineItems : otherItems).push({ el: card, ratio: ratios[i] });
+    (mine ? mineItems : otherItems).push({ el: card, ratio: ratios[i], row });
   });
   $('pubMineSection').hidden = mineItems.length === 0;
   $('pubOthersTitle').hidden = mineItems.length === 0; // headings only matter once there are two sections
   $('pubEmpty').hidden = otherItems.length > 0;
   masonry($('pubMineList'), mineItems, COLS);
   masonry($('pubList'), otherItems, COLS);
+  $('pubList').hidden = otherItems.length === 0; // an empty grid would still add a gap above the message
 }
 // The sidebar's Community grid: the first GRID_SLOTS published gradients, the last tile carrying "+N" for the rest.
 function renderCommunityGrid() {
@@ -362,16 +414,40 @@ const snapshotRow = () => {
 const authorTwitter = () => cleanHandle($('prefTwitter').value) || me.user_metadata?.twitter || null;
 const authorName = () => $('prefName').value.trim() || me.user_metadata?.display_name || me.user_metadata?.full_name || me.user_metadata?.name || null;
 
-async function saveNew(anchor) {
-  await guarded(anchor, async () => {
-    const { data, error } = await client.from('gradients').insert({ ...snapshotRow(), user_id: me.id, author_name: authorName(), author_twitter: authorTwitter(), is_public: false }).select('id').single();
-    if (error?.code === DUPLICATE) { showToast(anchor, 'Already saved'); return; } // an identical gradient is already in your saved ones
+// Saving feels instant: the new tile appears in the saved list (and Save greys out) the moment you press it, while the
+// insert runs behind it. `insert()` resolves to the database's { data, error }. If the insert fails, the tile is taken
+// back out; if it's a duplicate, the list is re-read so the existing copy shows. `onCanvas` is true for saving what's on
+// the canvas (it then becomes the open saved gradient), false for saving a community gradient from its bookmark.
+let pendingN = 0;
+async function saveOptimistic(anchor, thumb, insert, onCanvas) {
+  if (busy || !client || !me) return;
+  busy = true;
+  const temp = { id: `pending-${++pendingN}`, thumb, pending: true }, prevCurrent = current;
+  mineRows = [temp, ...mineRows]; renderMine(mineRows);
+  if (onCanvas) { current = { id: temp.id }; markSaved(); renderMine(mineRows); }
+  showToast(anchor, 'Saved');
+  const drop = () => { mineRows = mineRows.filter(r => r !== temp); };
+  try {
+    const { data, error } = await insert();
+    if (error?.code === DUPLICATE) { // an identical gradient is already in your saved ones
+      drop(); if (onCanvas) current = null;
+      showToast(anchor, 'Already saved'); await refreshMine(); return;
+    }
     if (error) throw error;
-    current = { id: data.id };
-    markSaved();
-    showToast(anchor, 'Saved');
-    await refreshMine();
-  });
+    temp.id = data.id; temp.pending = false; // the tile is real now
+    if (onCanvas) current = { id: data.id };
+    renderMine(mineRows);
+    refreshMine(); // reconcile with the database in the background
+  } catch (err) {
+    drop(); if (onCanvas) { current = prevCurrent; clearSaved(); }
+    renderMine(mineRows);
+    fail(anchor, err);
+  } finally { busy = false; }
+}
+function saveNew(anchor) {
+  const snap = snapshotRow();
+  return saveOptimistic(anchor, snap.thumb, () =>
+    client.from('gradients').insert({ ...snap, user_id: me.id, author_name: authorName(), author_twitter: authorTwitter(), is_public: false }).select('id').single(), true);
 }
 // Signed-out visitors who press Save or Publish get a popup offering to sign in or create an account.
 const setAuthModal = open => { $('authModal').hidden = !open; };
@@ -407,10 +483,19 @@ $('publishedShare').addEventListener('click', async () => {
 });
 
 // Publish: always asks first.
+// Only gradients no wider than 2:1 (width : height) can be published; taller ones and squares are fine.
+const MAX_PUBLISH_RATIO = 2;
+const tooWide = () => state.w / state.h > MAX_PUBLISH_RATIO;
 const setPublishModal = open => {
   $('publishModal').hidden = !open;
   $('publishError').hidden = true;
-  if (open) $('publishConfirm').focus();
+  $('publishConfirm').disabled = false;
+  if (open && tooWide()) { // explain instead of letting it fail
+    $('publishError').textContent = `This gradient is ${(state.w / state.h).toFixed(1)}:1. Only gradients no wider than 2:1 can be published to the community. Make the canvas narrower or taller, then publish.`;
+    $('publishError').hidden = false;
+    $('publishConfirm').disabled = true;
+  }
+  if (open) (tooWide() ? $('publishCancel') : $('publishConfirm')).focus();
 };
 $('publishBtn').addEventListener('click', e => { if (!me) return needSignIn(e.currentTarget, 'publish'); setPublishModal(true); });
 $('publishCancel').addEventListener('click', () => setPublishModal(false));
@@ -419,6 +504,7 @@ document.addEventListener('keydown', e => { if (!$('publishModal').hidden && e.k
 $('publishConfirm').addEventListener('click', async () => {
   const anchor = $('publishBtn');
   $('publishError').hidden = true;
+  if (tooWide()) return setPublishModal(true);
   await guarded(anchor, async () => {
     const { data: inserted, error } = await client.from('gradients').insert({ ...snapshotRow(), user_id: me.id, author_name: authorName(), author_twitter: authorTwitter(), is_public: true }).select('slug').single();
     if (error?.code === DUPLICATE) { // unique violation: an identical gradient is already published
@@ -440,7 +526,7 @@ onUser(user => {
   me = user; current = null;
   syncShare(); // the Share button is only for signed-in users
   $('mySignedIn').hidden = !user; $('mySignedOut').hidden = !!user;
-  if (!user) { $('myList').innerHTML = ''; if (signedOut) clearSaved(); }
+  if (!user) { $('myList').innerHTML = ''; myLikes = new Set(); if (signedOut) clearSaved(); }
   renderPublic(); // the Delete buttons depend on who is signed in
   if (user) { refreshMine(); refreshPublic(); } // refreshPublic also re-credits any of your rows that are out of date
 });

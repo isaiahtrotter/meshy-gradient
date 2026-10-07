@@ -747,10 +747,32 @@ kbd {
   border-left: 1px solid var(--line); font-family: var(--font-ui); color: var(--ink);
 }
 .community-tab[hidden] { display: none; }
-.ct-head { position: relative; flex: none; padding: 20px 20px 24px; } /* 24px below the title, the same as between the sections */
+.ct-head { position: relative; flex: none; display: flex; align-items: center; gap: 10px; padding: 20px 84px 24px 20px; box-sizing: border-box; min-height: 72px; } /* the content row is 28px tall (the buttons), so the title, dropdown and buttons all center on the same line */ /* 24px below the title, the same as between the sections; right padding leaves room for the two buttons */
+.ct-dd { position: relative; flex: none; width: 104px; height: 24px; } /* reserves the closed size; the open box overlays what's below */
+.ct-dd[hidden] { display: none; }
+.ct-dd-box {
+  position: absolute; top: 0; left: 0; width: 100%; height: 24px; overflow: hidden; z-index: 5; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel); box-sizing: border-box; transition: height .1s ease-out;
+}
+.ct-dd.open .ct-dd-box { background: var(--panel); }
+.ct-dd button { width: 100%; height: 22px; padding: 0 9px; border: none; border-radius: 0; background: transparent; display: flex; align-items: center; justify-content: space-between; font: 500 11px/1 var(--font-ui); color: var(--ink-2); cursor: pointer; text-align: left; }
+.ct-dd button:hover { color: var(--ink); background: var(--ctrl-bg); filter: none; }
+.ct-dd-btn svg { transition: transform .1s ease-out; }
+.ct-dd.open .ct-dd-btn svg { transform: rotate(180deg); }
+.ct-dd-list button[aria-selected="true"] { color: var(--ink); }
+.ct-grid[hidden] { display: none; }
 .ct-head h2 { margin: 0; font: 600 15px/1.2 var(--font-ui); color: var(--ink); text-transform: none; letter-spacing: 0; }
-.ct-head .settings-close { top: 14px; right: 14px; }
-.ct-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 20px 20px; }
+.ct-head .settings-close { top: 20px; right: 20px; }
+.ct-head .ct-cols { right: 52px; }
+.ct-cols svg { display: block; width: 16px; height: 16px; flex: none; } /* the grid-size button, left of the close button */
+.ct-body { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* the same edge fades as the main sidebar (.panel-fade): shown while there's more to scroll that way (see sideTab.js) */
+.ct-fade { position: absolute; left: 0; right: 0; height: 32px; pointer-events: none; z-index: 5; opacity: 0; transition: opacity .15s ease-out; }
+.ct-fade-top { top: 0; background: linear-gradient(to bottom, var(--panel), transparent); }
+.ct-fade-bottom { bottom: 0; background: linear-gradient(to top, var(--panel), transparent); }
+.ct-fade.visible { opacity: 1; }
+.ct-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 20px 20px; scrollbar-width: none; } /* still scrolls, just no visible bar */
+.ct-scroll::-webkit-scrollbar { display: none; }
 .ct-grid { display: flex; gap: 8px; align-items: flex-start; } /* masonry columns are filled by masonry.js */
 .ct-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .ct-card { position: relative; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -765,6 +787,7 @@ kbd {
   font: 400 15px/1 var(--font-ui); display: flex; align-items: center; justify-content: center; color: #fff; background: rgba(0,0,0,.65); cursor: pointer;
   opacity: 0; transition: opacity .12s ease-out;
 }
+.ct-del svg { display: block; }
 .ct-card:hover .ct-del, .ct-card:focus-within .ct-del, .preset-cell:hover .ct-del, .preset-cell:focus-within .ct-del { opacity: 1; }
 .ct-del:hover { background: #c53030; }
 @media (hover: none) { .ct-del { opacity: 1; } } /* touch screens have no hover */
@@ -778,10 +801,6 @@ kbd {
 .ct-like.has-likes, .ct-like.liked, .ct-card:hover .ct-like, .ct-card:focus-within .ct-like, .ct-card:hover .ct-bm, .ct-card:focus-within .ct-bm { opacity: 1; }
 .ct-like:hover, .ct-like.liked, .ct-bm:hover { color: #fff; } /* a liked heart stays white */
 @media (hover: none) { .ct-like, .ct-bm { opacity: 1; } }
-.ct-sort { display: flex; gap: 4px; margin-bottom: 12px; }
-.ct-sort button { height: 24px; padding: 0 10px; border: 1px solid var(--line); border-radius: 6px; background: transparent; font: 500 11px/1 var(--font-ui); color: var(--ink-2); cursor: pointer; }
-.ct-sort button:hover { color: var(--ink); }
-.ct-sort button[aria-pressed="true"] { background: var(--ctrl-bg); color: var(--ink); }
 .preset-cell { position: relative; min-width: 0; }
 .preset-cell .preset { display: block; }
 .preset-cell .ct-del { width: 18px; height: 18px; font-size: 13px; top: 4px; left: 4px; } /* smaller on the small sidebar tiles */

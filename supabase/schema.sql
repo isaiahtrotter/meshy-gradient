@@ -71,6 +71,12 @@ create policy "delete own" on public.gradients
 revoke update on public.gradients from authenticated;
 grant update (author_name, author_twitter, is_public, thumb, config, updated_at) on public.gradients to authenticated;
 
+-- Published gradients can be no wider than 2:1 (width : height). NOT VALID leaves any wider ones already published alone
+-- but applies to every new publish (and to making an existing gradient public).
+alter table public.gradients drop constraint if exists gradients_public_ratio;
+alter table public.gradients add constraint gradients_public_ratio
+  check (not is_public or ((config->>'w')::numeric <= 2 * (config->>'h')::numeric)) not valid;
+
 -- ---------- Sharing ----------
 -- A share link is /?g=<slug>, and only gradients published to the community can be shared. The slug is an unguessable
 -- id, so the link opens that one published gradient for anyone (signed in or not) without listing anything else.
@@ -103,10 +109,9 @@ revoke all on function public.delete_my_account() from public;
 grant execute on function public.delete_my_account() to authenticated;
 
 -- ---------- Likes ----------
--- Anyone can like a published gradient, signed in or not. A "voter" is a text id: 'u:<account id>' when signed in,
--- 'd:<random>' for a browser that isn't. The table has row-level security on and no policies, so browsers can't touch it
--- directly; they go through the three functions below. (A determined visitor can mint extra device ids, so treat the
--- count as a popularity hint, not a vote.)
+-- Anyone can see like counts; only signed-in users can like. The voter is always the caller's own account (read from
+-- the session inside the functions), so a like can't be cast for someone else. The table has row-level security on and
+-- no policies, so browsers can't touch it directly; they go through the functions below.
 create table if not exists public.gradient_likes (
   gradient_id uuid not null references public.gradients (id) on delete cascade,
   voter       text not null check (char_length(voter) between 3 and 80),
@@ -115,33 +120,39 @@ create table if not exists public.gradient_likes (
 );
 alter table public.gradient_likes enable row level security;
 
+-- Earlier version let signed-out browsers like (voter 'd:<random>') and took the voter from the browser; remove both.
+delete from public.gradient_likes where voter not like 'u:%';
+drop function if exists public.my_likes(text);
+drop function if exists public.set_like(uuid, text, boolean);
+
 create or replace function public.like_counts()
 returns table (gradient_id uuid, n bigint)
 language sql stable security definer set search_path = public
 as $$
   select l.gradient_id, count(*) from public.gradient_likes l join public.gradients g on g.id = l.gradient_id where g.is_public group by l.gradient_id;
 $$;
-create or replace function public.my_likes(p_voter text)
+create or replace function public.my_likes()
 returns table (gradient_id uuid)
 language sql stable security definer set search_path = public
 as $$
-  select l.gradient_id from public.gradient_likes l where l.voter = p_voter;
+  select l.gradient_id from public.gradient_likes l where l.voter = 'u:' || auth.uid()::text;
 $$;
-create or replace function public.set_like(p_gradient uuid, p_voter text, p_liked boolean)
+create or replace function public.set_like(p_gradient uuid, p_liked boolean)
 returns void
 language plpgsql security definer set search_path = public
 as $$
 begin
+  if auth.uid() is null then raise exception 'Not signed in'; end if;
   if p_liked then
-    insert into public.gradient_likes (gradient_id, voter) select g.id, p_voter from public.gradients g where g.id = p_gradient and g.is_public on conflict do nothing;
+    insert into public.gradient_likes (gradient_id, voter) select g.id, 'u:' || auth.uid()::text from public.gradients g where g.id = p_gradient and g.is_public on conflict do nothing;
   else
-    delete from public.gradient_likes where gradient_id = p_gradient and voter = p_voter;
+    delete from public.gradient_likes where gradient_id = p_gradient and voter = 'u:' || auth.uid()::text;
   end if;
 end;
 $$;
 revoke all on function public.like_counts() from public;
-revoke all on function public.my_likes(text) from public;
-revoke all on function public.set_like(uuid, text, boolean) from public;
+revoke all on function public.my_likes() from public;
+revoke all on function public.set_like(uuid, boolean) from public;
 grant execute on function public.like_counts() to anon, authenticated;
-grant execute on function public.my_likes(text) to anon, authenticated;
-grant execute on function public.set_like(uuid, text, boolean) to anon, authenticated;
+grant execute on function public.my_likes() to authenticated;
+grant execute on function public.set_like(uuid, boolean) to authenticated;
