@@ -533,32 +533,32 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
    with the same opacity + ease-out transition every other slider's handle effect uses. --pct-frac (set with
    --pct in sliderFill) is the unitless copy that lets the mask centre be positioned in px maths relative to
    the slider, not the wider layer box.
-   Each layer's mask also fades vertically (the replica's blur bleeds 14px above and below the pill), so the effect
-   dissolves there instead of being cut off by the layer's edge; the effect is held at 65% strength. */
+   Each layer's mask also fades vertically over a few px (the replica's blur bleeds 8px above and below the pill), so
+   the top and bottom edges soften a little instead of being cut off hard by the layer's edge; full strength. */
 .slider--blur { overflow: visible; }
 .slider-blur-fx {
-  position: absolute; inset: -14px -16px; z-index: 3; pointer-events: none;
+  position: absolute; inset: -8px -16px; z-index: 3; pointer-events: none;
   --x: calc(16px + (100% - 32px) * var(--pct-frac, 0) + var(--handle-shift));
   opacity: 0; transition: opacity .15s ease-out;
 }
-#soft:hover ~ .slider-blur-fx, #soft:active ~ .slider-blur-fx, #soft.glow-active ~ .slider-blur-fx { opacity: .65; } /* 65% of the original strength (it was halved, then raised by 30%) */
+#soft:hover ~ .slider-blur-fx, #soft:active ~ .slider-blur-fx, #soft.glow-active ~ .slider-blur-fx { opacity: 1; }
 .slider-blur-fx .blur-layer { position: absolute; inset: 0; }
 .slider-blur-fx .blur-twin {
-  position: absolute; top: 14px; bottom: 14px; left: 16px; right: 16px; border-radius: var(--radius);
+  position: absolute; top: 8px; bottom: 8px; left: 16px; right: 16px; border-radius: var(--radius);
   background: linear-gradient(to right, transparent var(--pct), var(--ctrl-bg) var(--pct)), var(--ctrl-grad);
 }
 .slider-blur-fx .l1 .blur-twin { filter: blur(4px); }
 .slider-blur-fx .l2 .blur-twin { filter: blur(9px); }
 .slider-blur-fx .l3 .blur-twin { filter: blur(16px); }
 .slider-blur-fx .l1 {
-  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 85px), #000 calc(var(--x) - 40px), #000 calc(var(--x) + 40px), transparent calc(var(--x) + 85px)), linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to right, transparent calc(var(--x) - 85px), #000 calc(var(--x) - 40px), #000 calc(var(--x) + 40px), transparent calc(var(--x) + 85px)), linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); mask-composite: intersect; }
+  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 85px), #000 calc(var(--x) - 40px), #000 calc(var(--x) + 40px), transparent calc(var(--x) + 85px)), linear-gradient(to bottom, transparent 0, #000 6px, #000 calc(100% - 6px), transparent 100%); -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent calc(var(--x) - 85px), #000 calc(var(--x) - 40px), #000 calc(var(--x) + 40px), transparent calc(var(--x) + 85px)), linear-gradient(to bottom, transparent 0, #000 6px, #000 calc(100% - 6px), transparent 100%); mask-composite: intersect; }
 .slider-blur-fx .l2 {
-  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 58px), #000 calc(var(--x) - 18px), #000 calc(var(--x) + 18px), transparent calc(var(--x) + 58px)), linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to right, transparent calc(var(--x) - 58px), #000 calc(var(--x) - 18px), #000 calc(var(--x) + 18px), transparent calc(var(--x) + 58px)), linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); mask-composite: intersect; }
+  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 58px), #000 calc(var(--x) - 18px), #000 calc(var(--x) + 18px), transparent calc(var(--x) + 58px)), linear-gradient(to bottom, transparent 0, #000 6px, #000 calc(100% - 6px), transparent 100%); -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent calc(var(--x) - 58px), #000 calc(var(--x) - 18px), #000 calc(var(--x) + 18px), transparent calc(var(--x) + 58px)), linear-gradient(to bottom, transparent 0, #000 6px, #000 calc(100% - 6px), transparent 100%); mask-composite: intersect; }
 .slider-blur-fx .l3 {
-  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 34px), #000 calc(var(--x) - 6px), #000 calc(var(--x) + 6px), transparent calc(var(--x) + 34px)), linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(to right, transparent calc(var(--x) - 34px), #000 calc(var(--x) - 6px), #000 calc(var(--x) + 6px), transparent calc(var(--x) + 34px)), linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%); mask-composite: intersect; }
+  -webkit-mask-image: linear-gradient(to right, transparent calc(var(--x) - 34px), #000 calc(var(--x) - 6px), #000 calc(var(--x) + 6px), transparent calc(var(--x) + 34px)), linear-gradient(to bottom, transparent 0, #000 6px, #000 calc(100% - 6px), transparent 100%); -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to right, transparent calc(var(--x) - 34px), #000 calc(var(--x) - 6px), #000 calc(var(--x) + 6px), transparent calc(var(--x) + 34px)), linear-gradient(to bottom, transparent 0, #000 6px, #000 calc(100% - 6px), transparent 100%); mask-composite: intersect; }
 .checker { background-color: #fff; background-image: linear-gradient(45deg, #c8c8c8 25%, transparent 25%), linear-gradient(-45deg, #c8c8c8 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #c8c8c8 75%), linear-gradient(-45deg, transparent 75%, #c8c8c8 75%); background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; }
 .swatch { position: relative; width: 34px; height: 32px; padding: 0; border: none; border-radius: var(--radius); cursor: pointer; flex: none; overflow: hidden; }
 .swatch:hover { border-color: transparent; filter: none; }
