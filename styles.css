@@ -242,8 +242,8 @@ body {
 /* Account fields: a label with its one-line description above a full-width input, every field the same size */
 .sfield { display: flex; flex-direction: column; gap: 8px; }
 .sfield .sinput { width: 100%; height: 36px; font-size: 13.5px; padding: 0 12px; }
-.sfield-row { display: flex; gap: 16px; align-items: stretch; } /* Display name and Twitter handle side by side */
-.sfield-row > .sfield { flex: 1; min-width: 0; justify-content: space-between; } /* the inputs line up even if one description wraps and the other doesn't */
+.sfield-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 16px; align-items: stretch; } /* every account input the same width: two columns */
+.sfield-grid > .sfield { min-width: 0; justify-content: space-between; } /* inputs line up even if one description wraps and another doesn't */
 .srow--actions { justify-content: flex-start; }
 .sinput {
   width: 200px; height: 30px; border: none; border-radius: var(--radius); background: var(--ctrl-bg); padding: 0 10px;
