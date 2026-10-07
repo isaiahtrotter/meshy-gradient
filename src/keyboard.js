@@ -8,6 +8,7 @@ import { refreshAll } from './refresh.js';
 import { view, setZoom, resetZoom } from './view.js';
 import { setPreview, setPlacement } from './modes.js';
 import { setSampling } from './sampling.js';
+import { deleteActiveGradStop } from './colorPanel.js';
 import { deleteSelected, deleteSelectedStop, selectAllNodes, clearSelection, nudgeSelected, flipSelected, moveOccludeLayer } from './actions.js';
 
 // Placement-mode shortcuts, one per bottom-toolbar tool; 'circle' is the default (null) placement, so its key
@@ -34,7 +35,7 @@ document.addEventListener('keydown', e => {
   if (mod && e.key === '[') { e.preventDefault(); moveOccludeLayer(-1); return; }
   if (mod && e.key === ']') { e.preventDefault(); moveOccludeLayer(1); return; }
   if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (!e.repeat && !session.previewing) { setSpaceHeld(true); setPreview(true); } }
-  else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); if (!deleteSelectedStop()) deleteSelected(); }
+  else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); if (deleteActiveGradStop()) return; if (!deleteSelectedStop()) deleteSelected(); }
   else if (mod && key === 'a') { e.preventDefault(); selectAllNodes(); }
   else if (e.key === 'Escape') {
     if (session.placing) setPlacement(null);

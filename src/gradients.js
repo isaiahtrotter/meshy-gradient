@@ -39,15 +39,35 @@ const X_ICON = '<svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true"><
 const COLS_KEY = 'meshGradientCols.v1', COL_CYCLE = [2, 3];
 let COLS = (() => { try { const n = Number(localStorage.getItem(COLS_KEY)); return COL_CYCLE.includes(n) ? n : 3; } catch { return 3; } })();
 const colsBtn = $('ctCols');
-function paintCols() { // the icon is a row of as many small squares as there are columns
-  const n = COLS, g = 2, w = (16 - g * (n - 1)) / n;
-  colsBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">${Array.from({ length: n }, (_, i) => `<rect x="${i * (w + g)}" y="3" width="${w}" height="10" rx="1" fill="currentColor"/>`).join('')}</svg>`;
-  colsBtn.setAttribute('aria-label', `${n} gradients per row (click to change)`);
+// The icon is always three bars: with 3 columns they sit side by side, with 2 the third has folded away into the
+// right edge (zero width) and the other two are wider. Switching tweens the bars' x / width, so the two bars split into
+// three (or the three merge into two). Done in JS rather than CSS because transitions on SVG geometry aren't reliable everywhere.
+const barsFor = n => { // [x, width] per bar inside a 16-wide icon, 2px gaps
+  const g = 2, w = (16 - g * (n - 1)) / n;
+  return Array.from({ length: 3 }, (_, i) => (i < n ? [i * (w + g), w] : [16, 0]));
+};
+colsBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">' + [0, 1, 2].map(() => '<rect y="3" height="10" rx="1" fill="currentColor"/>').join('') + '</svg>';
+const barEls = [...colsBtn.querySelectorAll('rect')];
+let bars = barsFor(COLS), barTween = 0;
+const setBars = b => barEls.forEach((el, i) => { el.setAttribute('x', b[i][0]); el.setAttribute('width', Math.max(0, b[i][1])); });
+function paintCols(animate = false) {
+  colsBtn.setAttribute('aria-label', `${COLS} gradients per row (click to change)`);
+  const from = bars, to = barsFor(COLS);
+  cancelAnimationFrame(barTween);
+  if (!animate) { bars = to; setBars(bars); return; }
+  const t0 = performance.now(), DUR = 200;
+  const step = now => {
+    const t = Math.min(1, (now - t0) / DUR), e = 1 - (1 - t) ** 3; // ease-out
+    bars = from.map((f, i) => [f[0] + (to[i][0] - f[0]) * e, f[1] + (to[i][1] - f[1]) * e]);
+    setBars(bars);
+    if (t < 1) barTween = requestAnimationFrame(step); else { bars = to; setBars(bars); }
+  };
+  barTween = requestAnimationFrame(step);
 }
 colsBtn.addEventListener('click', () => {
   COLS = COL_CYCLE[(COL_CYCLE.indexOf(COLS) + 1) % COL_CYCLE.length];
   try { localStorage.setItem(COLS_KEY, String(COLS)); } catch {}
-  paintCols();
+  paintCols(true);
   for (const id of ['pubMineList', 'pubList', 'mineTabList']) relayout($(id), COLS);
 });
 paintCols();

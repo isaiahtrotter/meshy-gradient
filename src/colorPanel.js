@@ -112,7 +112,6 @@ export function refreshSelectionPanel() {
     $('pickerTabSolid').setAttribute('aria-pressed', String(!first.grad));
     $('pickerTabGradient').setAttribute('aria-pressed', String(first.grad));
     $('gradRampWrap').hidden = !first.grad;
-    $('stopHead').hidden = !first.grad;
     $('stopList').hidden = !first.grad;
     $('gradAngleRow').hidden = !first.grad;
     $('gradEaseRow').hidden = !first.grad;
@@ -205,13 +204,33 @@ $('gradEaseRow').addEventListener('click', e => {
 });
 
 // ---------- Gradient ramp + stop list ----------
+// True once a stop was clicked in the ramp or list, so Delete/Backspace removes that stop instead of the node.
+// Any pointer-down elsewhere (capture phase, so the stop's own handler can set it again) clears it.
+let stopFocused = false;
+const KEEP_STOP_SEL = '.stop-row, .grad-stop-handle, #svSquare, #hueTrack, #alphaTrack, input';
+document.addEventListener('pointerdown', e => {
+  if (!stopFocused || e.target.closest?.(KEEP_STOP_SEL)) return;
+  stopFocused = false;
+  const n = curNode(); if (n && n.grad) { renderRamp(n); renderStopList(n); }
+}, true);
+export function deleteActiveGradStop() {
+  const node = curNode();
+  if (!stopFocused || !pickerOpen || !node || !node.grad) return false;
+  if (node.gradStops.length <= 2) return true; // handled: a gradient keeps its last two stops, and Delete must not fall through to the node
+  const snap = snapshot();
+  node.gradStops.splice(activeStop, 1);
+  activeStop = Math.min(activeStop, node.gradStops.length - 1);
+  pushUndo(snap);
+  refreshHandles(); draw(); refreshSelectionPanel();
+  return true;
+}
 function renderRamp(n) {
   const ramp = $('gradRamp');
   ramp.style.background = `linear-gradient(90deg, ${cssGradStops(n).map(s => `${rgbaCss(s.color, s.a)} ${(s.t * 100).toFixed(2)}%`).join(', ')})`;
   ramp.querySelectorAll('.grad-stop-handle').forEach(h => h.remove());
   n.gradStops.forEach((s, idx) => {
     const h = document.createElement('div');
-    h.className = 'grad-stop-handle' + (idx === activeStop ? ' active' : '');
+    h.className = 'grad-stop-handle' + (idx === activeStop && stopFocused ? ' active' : '');
     h.style.left = (s.t * 100) + '%'; h.style.background = s.color;
     h.addEventListener('pointerdown', gradStopDrag(idx));
     ramp.appendChild(h);
@@ -220,12 +239,13 @@ function renderRamp(n) {
 function gradStopDrag(idx) {
   return e => {
     e.preventDefault(); e.stopPropagation();
-    activeStop = idx;
+    stopFocused = true; activeStop = idx;
     const node = curNode(); if (!node) return;
     const stopRef = node.gradStops[idx];
     const ramp = $('gradRamp');
     beginColorEdit(); pickerDragging = true;
     syncPickerFromColor(stopRef.color, node.a);
+    renderRamp(node); renderStopList(node);
     const move = ev => {
       stopRef.t = frac(ev.clientX, ramp);
       renderRamp(node); renderStopList(node); refreshHandles(); draw();
@@ -248,7 +268,7 @@ $('gradRamp').addEventListener('pointerdown', e => {
   const snap = snapshot();
   node.gradStops.push({ t, color: sampleGradAt(node, t), a: 1 });
   node.gradStops.sort((a, b) => a.t - b.t);
-  activeStop = node.gradStops.findIndex(s => s.t === t);
+  activeStop = node.gradStops.findIndex(s => s.t === t); stopFocused = true;
   pushUndo(snap);
   refreshHandles(); draw(); refreshSelectionPanel();
 });
@@ -257,18 +277,27 @@ function renderStopList(n) {
   list.innerHTML = '';
   n.gradStops.forEach((s, idx) => {
     const row = document.createElement('div');
-    row.className = 'stop-row' + (idx === activeStop ? ' active' : '');
+    row.className = 'stop-row' + (idx === activeStop && stopFocused ? ' active' : '');
     row.innerHTML = `
       <input type="number" class="stop-pos" min="0" max="100" step="1" value="${Math.round(s.t * 100)}" title="Position">
       <span class="stop-sw checker"><span style="--sw:${rgbaCss(s.color, s.a)}"></span></span>
-      <span class="stop-hex">${s.color.slice(1)}</span>
-      <input type="number" class="stop-op" min="0" max="100" step="1" value="${Math.round(s.a * 100)}" title="Stop opacity">
-      <button type="button" class="stop-remove" ${n.gradStops.length <= 2 ? 'disabled' : ''} title="Remove stop">
-        <svg width="10" height="10" viewBox="0 0 10 10"><path d="M1 5H9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-      </button>`;
+      <input type="text" class="stop-hex" value="${s.color.slice(1).toUpperCase()}" maxlength="9" spellcheck="false" autocomplete="off" title="Hex color">
+      <input type="number" class="stop-op" min="0" max="100" step="1" value="${Math.round(s.a * 100)}" title="Stop opacity">`;
     row.addEventListener('pointerdown', e => {
-      if (e.target.closest('input') || e.target.closest('.stop-remove')) return;
-      activeStop = idx; refreshSelectionPanel();
+      if (e.target.closest('input')) return;
+      stopFocused = true; activeStop = idx; refreshSelectionPanel();
+    });
+    const hexIn = row.querySelector('.stop-hex');
+    hexIn.addEventListener('focus', () => { activeStop = idx; hexIn.select(); });
+    hexIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
+    hexIn.addEventListener('change', e => {
+      const node = curNode(), parsed = parseHexInput(e.target.value);
+      if (!node || !parsed) { refreshSelectionPanel(); return; } // not a colour: snap back to the stop's own value
+      const snap = snapshot();
+      node.gradStops[idx].color = parsed.hex; activeStop = idx;
+      syncPickerFromColor(parsed.hex, node.a);
+      pushUndo(snap);
+      refreshHandles(); draw(); refreshSelectionPanel();
     });
     row.querySelector('.stop-pos').addEventListener('change', e => {
       const node = curNode(); if (!node) return;
@@ -286,38 +315,9 @@ function renderStopList(n) {
       pushUndo(snap);
       refreshHandles(); draw(); refreshSelectionPanel();
     });
-    row.querySelector('.stop-remove').addEventListener('click', () => {
-      const node = curNode(); if (!node || node.gradStops.length <= 2) return;
-      const snap = snapshot();
-      node.gradStops.splice(idx, 1);
-      activeStop = Math.min(activeStop, node.gradStops.length - 1);
-      pushUndo(snap);
-      refreshHandles(); draw(); refreshSelectionPanel();
-    });
     list.appendChild(row);
   });
 }
-// The midpoint of the widest gap between consecutive stops — so repeated clicks fill in evenly rather than
-// stacking identical stops on top of each other.
-function widestGapMidpoint(stops) {
-  let best = 0, bestGap = -1;
-  for (let i = 1; i < stops.length; i++) {
-    const gap = stops[i].t - stops[i - 1].t;
-    if (gap > bestGap) { bestGap = gap; best = (stops[i - 1].t + stops[i].t) / 2; }
-  }
-  return best;
-}
-$('addStopBtn').addEventListener('click', () => {
-  const node = curNode(); if (!node || node.gradStops.length >= MAX_GRAD_STOPS) return;
-  const t = widestGapMidpoint(node.gradStops);
-  const snap = snapshot();
-  node.gradStops.push({ t, color: sampleGradAt(node, t), a: 1 });
-  node.gradStops.sort((a, b) => a.t - b.t);
-  activeStop = node.gradStops.findIndex(s => s.t === t);
-  pushUndo(snap);
-  refreshHandles(); draw(); refreshSelectionPanel();
-});
-
 // ---------- Gradient angle ----------
 let gradAngleSnap = null;
 $('gradAngle').addEventListener('pointerdown', () => { gradAngleSnap = snapshot(); });
@@ -543,7 +543,7 @@ function openPicker() {
   refreshSelectionPanel();
   renderSVSquare(); positionPickerThumbs(); positionPicker();
 }
-function closePicker() { $('colorPicker').hidden = true; pickerOpen = false; $('selSwatch').setAttribute('aria-expanded', 'false'); setGrainMode(null); }
+function closePicker() { $('colorPicker').hidden = true; pickerOpen = false; stopFocused = false; $('selSwatch').setAttribute('aria-expanded', 'false'); setGrainMode(null); }
 
 // The same picker also edits the grain colours (Mono / Duo): grain mode shows just the square and the hue slider and
 // sends every change to state.grainColors instead of the selected nodes.
@@ -578,7 +578,7 @@ for (const field of document.querySelectorAll('.grain-field')) {
   input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });
 }
 $('selSwatch').addEventListener('click', e => { e.stopPropagation(); pickerOpen ? closePicker() : openPicker(); });
-document.addEventListener('pointerdown', e => { if (pickerOpen && !e.target.closest('.picker') && !e.target.closest('#selSwatch') && !e.target.closest('.grain-field')) closePicker(); });
+document.addEventListener('pointerdown', e => { if (pickerOpen && !e.target.closest('.picker') && !e.target.closest('#selSwatch') && !e.target.closest('.grain-field')) closePicker(); }, true); // capture: panel handlers re-render the picker's DOM on pointerdown, which would detach e.target before this runs
 document.addEventListener('keydown', e => { if (pickerOpen && e.key === 'Escape') { e.stopPropagation(); closePicker(); } }, true);
 window.addEventListener('resize', () => { if (pickerOpen) { renderSVSquare(); positionPicker(); } });
 
