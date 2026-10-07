@@ -10,30 +10,11 @@ import { updateThemeIndicator } from './theme.js';
 
 const NAME_KEY = 'meshyDisplayName', TWITTER_KEY = 'meshyTwitter';
 
-// ---------- Avatar: initials of the display name, or a silhouette when there's nothing to initial ----------
-const userIcon = px =>
-  `<svg width="${px}" height="${px}" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5.2" r="3"/><path d="M2.5 14a5.5 5.5 0 0 1 11 0z"/></svg>`;
-function initials(name) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (!parts.length) return '';
-  const a = parts[0][0] ?? '', b = parts.length > 1 ? parts[parts.length - 1][0] ?? '' : '';
-  return (a + b).toUpperCase();
-}
-function renderAvatar(name) {
-  const ini = initials(name);
-  for (const el of document.querySelectorAll('.avatar')) {
-    if (ini) el.textContent = ini;
-    else el.innerHTML = userIcon(el.classList.contains('lg') ? 28 : 16);
-  }
-}
-
 const nameInput = $('prefName');
 nameInput.value = localStorage.getItem(NAME_KEY) || '';
-renderAvatar(nameInput.value);
 nameInput.addEventListener('input', () => {
   const name = nameInput.value.slice(0, 40);
   if (name) localStorage.setItem(NAME_KEY, name); else localStorage.removeItem(NAME_KEY);
-  renderAvatar(name);
 });
 nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') nameInput.blur(); });
 

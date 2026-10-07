@@ -97,22 +97,19 @@ window.addEventListener('error', function () {
       <button id="settingsClose" class="settings-close" type="button" aria-label="Close settings">&times;</button>
       <section class="ssec active" data-tab="account">
         <h2>Account</h2>
-        <div class="srow">
-          <div class="avatar lg" id="avatarLg" aria-hidden="true"></div>
-        </div>
-        <div class="srow">
-          <div class="slabel"><b>Display name</b><span>Shown as initials on your profile picture, and as the author of gradients you publish.</span></div>
+        <div class="sfield">
+          <label class="slabel" for="prefName"><b>Display name</b><span>Shown as the author of gradients you publish.</span></label>
           <input class="sinput" id="prefName" type="text" placeholder="Your name" maxlength="40" autocomplete="off">
         </div>
-        <div class="srow">
-          <div class="slabel"><b>Twitter handle</b><span>Optional. Links your name on the byline of gradients you publish.</span></div>
+        <div class="sfield">
+          <label class="slabel" for="prefTwitter"><b>Twitter handle</b><span>Optional. Links your name on gradients you publish.</span></label>
           <input class="sinput" id="prefTwitter" type="text" placeholder="@handle" maxlength="60" autocomplete="off" autocapitalize="off" spellcheck="false">
         </div>
-        <div class="srow">
-          <div class="slabel"><b>Email</b><span id="accountEmailNote">Sign-in isn't set up yet.</span></div>
+        <div class="sfield">
+          <label class="slabel" for="accountEmail"><b>Email</b><span id="accountEmailNote">Sign-in isn't set up yet.</span></label>
           <input class="sinput" id="accountEmail" type="text" value="Not signed in" disabled>
         </div>
-        <div class="srow">
+        <div class="srow srow--actions">
           <button id="settingsSignInBtn" class="topbar-auth-btn primary" type="button">Sign in with Google</button>
           <button id="settingsSignOutBtn" class="topbar-auth-btn signin" type="button" hidden>Sign out</button>
         </div>
