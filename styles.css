@@ -534,14 +534,14 @@ input[type=range]::-moz-range-thumb { width: 0; height: 36px; background: transp
    --pct in sliderFill) is the unitless copy that lets the mask centre be positioned in px maths relative to
    the slider, not the wider layer box.
    Each layer's mask also fades vertically (the replica's blur bleeds 14px above and below the pill), so the effect
-   dissolves there instead of being cut off by the layer's edge; the effect is held at half strength. */
+   dissolves there instead of being cut off by the layer's edge; the effect is held at 65% strength. */
 .slider--blur { overflow: visible; }
 .slider-blur-fx {
   position: absolute; inset: -14px -16px; z-index: 3; pointer-events: none;
   --x: calc(16px + (100% - 32px) * var(--pct-frac, 0) + var(--handle-shift));
   opacity: 0; transition: opacity .15s ease-out;
 }
-#soft:hover ~ .slider-blur-fx, #soft:active ~ .slider-blur-fx, #soft.glow-active ~ .slider-blur-fx { opacity: .5; } /* half the original strength */
+#soft:hover ~ .slider-blur-fx, #soft:active ~ .slider-blur-fx, #soft.glow-active ~ .slider-blur-fx { opacity: .65; } /* 65% of the original strength (it was halved, then raised by 30%) */
 .slider-blur-fx .blur-layer { position: absolute; inset: 0; }
 .slider-blur-fx .blur-twin {
   position: absolute; top: 14px; bottom: 14px; left: 16px; right: 16px; border-radius: var(--radius);
