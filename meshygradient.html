@@ -24,13 +24,13 @@ window.addEventListener('error', function () {
 </div>
 <div class="topbar">
   <div class="topbar-right">
-    <button id="undoTopBtn" class="icon-btn" title="Undo" disabled>
+    <button id="undoTopBtn" class="icon-btn" data-tip="Undo" aria-label="Undo" disabled>
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M3.75 6.66699C7.08333 6.66699 9.16667 6.66699 12.5 6.66699C12.5 6.66699 16.6667 6.66699 16.6667 10.5886C16.6667 15.0003 12.5 15.0003 12.5 15.0003C9.64283 15.0003 8.09524 15.0003 5.23809 15.0003" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M6.25065 9.58333C5.11163 8.44433 4.47301 7.80569 3.33398 6.66667C4.47301 5.52764 5.11163 4.88903 6.25065 3.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
-    <button id="redoTopBtn" class="icon-btn" title="Redo" disabled>
+    <button id="redoTopBtn" class="icon-btn" data-tip="Redo" aria-label="Redo" disabled>
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M16.2507 6.66699C12.9173 6.66699 10.834 6.66699 7.50065 6.66699C7.50065 6.66699 3.33398 6.66699 3.33398 10.5886C3.33398 15.0003 7.50065 15.0003 7.50065 15.0003C10.3578 15.0003 11.9054 15.0003 14.7626 15.0003" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M13.75 9.58333C14.889 8.44433 15.5277 7.80569 16.6667 6.66667C15.5277 5.52764 14.889 4.88903 13.75 3.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -38,7 +38,7 @@ window.addEventListener('error', function () {
     </button>
     <div class="topbar-sep" role="separator" aria-orientation="vertical"></div>
     <div class="topbar-section" id="shareSection" hidden>
-      <button id="shareBtn" class="icon-btn" title="Copy a link to this gradient" aria-label="Copy a link to this gradient">
+      <button id="shareBtn" class="icon-btn" data-tip="Share" aria-label="Copy a link to this gradient">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M20 13V19C20 20.1046 19.1046 21 18 21H6C4.89543 21 4 20.1046 4 19V13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           <path d="M12 15V3M12 3L8.5 6.5M12 3L15.5 6.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -67,7 +67,7 @@ window.addEventListener('error', function () {
         <path d="M2 7.67107C2 11.1665 4.83356 14 8.32893 14C10.8139 14 12.9644 12.5679 14 10.4839C8.32893 10.4839 5.51607 7.67107 5.51607 2C3.43214 3.03563 2 5.1861 2 7.67107Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </button>
-    <button id="settingsBtn" class="icon-btn" title="Settings" aria-haspopup="dialog" aria-expanded="false">
+    <button id="settingsBtn" class="icon-btn" data-tip="Settings" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false">
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <g clip-path="url(#settingsClip)">
           <path d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61925 11.3807 7.5 10 7.5C8.61925 7.5 7.5 8.61925 7.5 10C7.5 11.3807 8.61925 12.5 10 12.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>

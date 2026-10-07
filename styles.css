@@ -153,6 +153,7 @@ body {
   transition: left .15s cubic-bezier(.3,.7,.2,1), opacity .12s ease, visibility .12s;
 }
 .toolbar-tip.visible { opacity: 1; visibility: visible; }
+.toolbar-tip.below { transform: translate(-50%, 0); } /* under a top-bar button instead of above a bottom-bar one */
 /* No font-size override here: the kbd's own base rule (11px) already matches the shortcuts modal's keys. The
    pill's own line-height: 1 (set above, for its label) would otherwise squash the key's box short and cramped —
    line-height: 1.45 restores the same ratio body text uses, which is what the shortcuts modal's keys inherit. */
