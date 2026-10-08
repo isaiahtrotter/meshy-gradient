@@ -11,7 +11,9 @@
 <script>
 // A stale cached HTML/JS mismatch (or corrupted saved state) can throw during boot and silently leave the
 // editor half-wired — controls that look present but do nothing. Surface that instead of failing silently.
-window.addEventListener('error', function () {
+window.addEventListener('error', function (e) {
+  // "ResizeObserver loop…" is a harmless browser notice (fires when the layout changes size, e.g. desktop ↔ mobile), not a boot failure
+  if (e.message && e.message.indexOf('ResizeObserver loop') === 0) return;
   var el = document.getElementById('bootError');
   if (el) el.hidden = false;
   document.body.classList.remove('loading'); // don't leave the skeleton up forever if boot() never finishes
