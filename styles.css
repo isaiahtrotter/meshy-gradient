@@ -86,6 +86,8 @@ body {
   .app > .panel { justify-self: stretch; width: auto; }
   .app { grid-template-columns: 1fr; grid-template-rows: minmax(52vh, auto) auto; height: auto; flex: none; }
   #cw, #ch { touch-action: none; }
+  .topbar { padding: 12px; }
+  #undoTopBtn, #redoTopBtn, #redoTopBtn + .topbar-sep { display: none; } /* mobile has its own undo/redo over the canvas */
 }
 
 /* Stage */
@@ -161,10 +163,17 @@ body {
    pill's own line-height: 1 (set above, for its label) would otherwise squash the key's box short and cramped —
    line-height: 1.45 restores the same ratio body text uses, which is what the shortcuts modal's keys inherit. */
 .toolbar-tip kbd { line-height: 1.45; }
-.mobile-undo, .mobile-redo { position: absolute; bottom: 34px; z-index: 2; } /* centred on the 44px toolbar */
+/* Same chrome as the bottom toolbar (.node-bar): raised gradient, 1px light inset border, 12px radius, 44px square. */
+.mobile-undo, .mobile-redo, .mobile-del {
+  position: absolute; bottom: 28px; z-index: 2; width: 44px; height: 44px; border: 0; border-radius: 12px;
+  background: var(--ctrl-grad); color: var(--ink); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), 0 7px 25px rgba(0,0,0,.25);
+}
+.mobile-undo:disabled, .mobile-redo:disabled { opacity: .5; }
 .mobile-undo { left: 14px; }
-.mobile-redo { right: 14px; }
-.stage.previewing .mobile-undo, .stage.previewing .mobile-redo { display: none; }
+.mobile-redo, .mobile-del { right: 14px; }
+.mobile-del { bottom: 84px; background: #c53030; color: #fff; } /* stacked 12px above Redo; only shown while a node is selected */
+.mobile-del[hidden] { display: none; }
+.stage.previewing .mobile-undo, .stage.previewing .mobile-redo, .stage.previewing .mobile-del { display: none; }
 .stage.sampling, .stage.sampling * { cursor: none !important; }
 .stage.hard-dragging, .stage.hard-dragging * { cursor: none !important; }
 .loupe { position: fixed; z-index: 50; width: 132px; height: 132px; margin: -66px 0 0 -66px; border-radius: 50%; overflow: hidden; pointer-events: none; display: none;
@@ -449,7 +458,7 @@ input[type=number]:focus-visible, input[type=text]:focus-visible, select:focus-v
 .slider-label { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font: 400 14px/1 var(--font-ui); color: var(--ink); pointer-events: none; z-index: 1; }
 .slider-value { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font: 400 14px/1 var(--font-mono); color: var(--ink); pointer-events: none; z-index: 1; font-variant-numeric: tabular-nums; }
 .slider-value.word { font-family: var(--font-ui); }
-input[type=range] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 36px; margin: 0; background: transparent; cursor: pointer; }
+input[type=range] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 36px; margin: 0; background: transparent; cursor: pointer; touch-action: pan-y; }
 input[type=range]::-webkit-slider-runnable-track {
   height: 36px; border-radius: var(--radius); border: none;
   background: linear-gradient(to right, transparent var(--pct), var(--ctrl-bg) var(--pct)), var(--ctrl-grad);

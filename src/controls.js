@@ -80,6 +80,7 @@ attachScrub($('ch'), $('ch'), { onInput: scrubH, threshold: 6, mobileOnly: true 
 
 // ---------- Selection buttons ----------
 $('delBtn').addEventListener('click', deleteSelected);
+$('mobileDelBtn').addEventListener('click', deleteSelected);
 $('selAll').addEventListener('click', selectAllNodes);
 $('undoBtn').addEventListener('click', undo);
 $('undoTopBtn').addEventListener('click', undo);
@@ -135,6 +136,35 @@ for (const s of SLIDERS) {
   });
   el.addEventListener('input', e => { s.set(e.target); sliderFill(e.target); setOut(s.out, s.fmt(+e.target.value)); draw(); });
   el.addEventListener('change', () => { if (dragSnap) { pushUndo(dragSnap); dragSnap = null; } });
+  // Touch/pen drag. The native range thumb is 0px wide (see styles.css), so a finger can only tap-to-jump; this makes a
+  // horizontal drag anywhere on the slider scrub it. Vertical swipes still scroll the panel (touch-action: pan-y), so
+  // nothing engages until the finger has moved sideways a few px; a plain tap is left to the native jump.
+  el.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' || el.disabled) return;
+    const startX = e.clientX, startY = e.clientY;
+    let engaged = false;
+    const setFromX = x => {
+      const r = el.getBoundingClientRect(), min = +el.min || 0, max = +el.max || 100, step = +el.step || 1;
+      const v = clamp(min + Math.round(((x - r.left) / r.width * (max - min)) / step) * step, min, max);
+      if (v === +el.value) return;
+      el.value = v; el.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    const move = ev => {
+      if (ev.pointerId !== e.pointerId) return;
+      if (!engaged) {
+        if (Math.abs(ev.clientX - startX) < 6 || Math.abs(ev.clientX - startX) < Math.abs(ev.clientY - startY)) return;
+        engaged = true;
+        try { el.setPointerCapture(e.pointerId); } catch {}
+      }
+      setFromX(ev.clientX);
+    };
+    const end = ev => {
+      if (ev.pointerId !== e.pointerId) return;
+      el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', end); el.removeEventListener('pointercancel', end);
+      if (engaged) el.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+    el.addEventListener('pointermove', move); el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  });
   // Right-click resets it to its built-in default (the input's own initial `value` attribute, i.e. defaultValue),
   // animating there over 100ms with the same hover-preview glow a real drag shows.
   el.addEventListener('contextmenu', e => {

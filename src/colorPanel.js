@@ -98,6 +98,7 @@ export function refreshSelectionPanel() {
   const occSel = sel.filter(n => n.occ);
   $('selSection').hidden = !has;
   $('delBtn').disabled = !has;
+  $('mobileDelBtn').hidden = !has;
   $('selTitle').textContent = !has ? 'Selected (none)'
     : sel.every(n => n.occ) ? (sel.length === 1 ? 'Occluded node' : `${sel.length} occluded nodes selected`)
     : (sel.length === 1 ? 'Selected node' : `${sel.length} nodes selected`);
