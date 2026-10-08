@@ -4,7 +4,7 @@
 // the global handler in keyboard.js never sees it.
 
 import { $ } from './dom.js';
-import { cleanHandle } from './constants.js';
+import { cleanHandle, MOBILE_BREAKPOINT } from './constants.js';
 import { onUser } from './auth.js';
 import { updateThemeIndicator } from './theme.js';
 
@@ -52,7 +52,12 @@ $('settingsModal').querySelector('.settings-nav').addEventListener('click', e =>
 
 // ---------- The Account section only exists while signed in ----------
 let fellBack = false; // true while Settings is showing another section only because Account was unavailable
+// On mobile Settings only holds the account, so the gear is greyed out and unclickable until you're signed in.
+let signedIn = false;
+const syncSettingsBtn = () => { $('settingsBtn').disabled = !signedIn && window.innerWidth <= MOBILE_BREAKPOINT; };
+window.addEventListener('resize', syncSettingsBtn);
 onUser(user => {
+  signedIn = !!user; syncSettingsBtn();
   const nav = document.querySelector('.snav[data-tab="account"]');
   nav.hidden = !user;
   // signed out: land on the first section that's still there (the dialog opens on Account by default)

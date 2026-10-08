@@ -90,6 +90,7 @@ body {
   .app > .panel { min-height: 0; }
   #cw, #ch { touch-action: none; }
   .topbar { padding: 12px; }
+  .snav[data-tab="shortcuts"], .ssec[data-tab="shortcuts"] { display: none; } /* keyboard shortcuts mean nothing on a phone */
   #undoTopBtn, #redoTopBtn, #redoTopBtn + .topbar-sep { display: none; } /* mobile has its own undo/redo over the canvas */
 }
 
