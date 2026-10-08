@@ -60,9 +60,12 @@ body {
 .boot-error code { font-family: var(--font-mono, monospace); background: rgba(0,0,0,.2); padding: 1px 5px; border-radius: 4px; }
 
 .topbar {
-  flex: none; display: flex; align-items: center; justify-content: flex-end;
+  flex: none; display: flex; align-items: center; justify-content: space-between;
   padding: 20px; background: var(--panel); border-bottom: 1px solid var(--line);
 }
+.topbar-logo-link { display: flex; flex: none; color: #fff; transition: color .12s ease-out; }
+.topbar-logo-link:hover { color: #c9cbd1; }
+.topbar-logo { height: 32px; width: auto; flex: none; color: inherit; } /* 32px = the tallest topbar control, so the header keeps its height */
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 .topbar .icon-btn { width: 20px; height: 20px; padding: 0; border: none; background: none; }
 .topbar .icon-btn svg { width: 20px; height: 20px; }

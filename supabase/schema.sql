@@ -71,11 +71,11 @@ create policy "delete own" on public.gradients
 revoke update on public.gradients from authenticated;
 grant update (author_name, author_twitter, is_public, thumb, config, updated_at) on public.gradients to authenticated;
 
--- Published gradients can be no wider than 2:1 (width : height). NOT VALID leaves any wider ones already published alone
+-- Published gradients can be no wider than 2:1 and no taller than 1:2 (width : height). NOT VALID leaves any outside that range already published alone
 -- but applies to every new publish (and to making an existing gradient public).
 alter table public.gradients drop constraint if exists gradients_public_ratio;
 alter table public.gradients add constraint gradients_public_ratio
-  check (not is_public or ((config->>'w')::numeric <= 2 * (config->>'h')::numeric)) not valid;
+  check (not is_public or ((config->>'w')::numeric <= 2 * (config->>'h')::numeric and (config->>'h')::numeric <= 2 * (config->>'w')::numeric)) not valid;
 
 -- ---------- Sharing ----------
 -- A share link is /?g=<slug>, and only gradients published to the community can be shared. The slug is an unguessable

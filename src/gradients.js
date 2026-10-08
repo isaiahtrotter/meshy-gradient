@@ -503,19 +503,22 @@ $('publishedShare').addEventListener('click', async () => {
 });
 
 // Publish: always asks first.
-// Only gradients no wider than 2:1 (width : height) can be published; taller ones and squares are fine.
+// Only gradients between 2:1 (wide) and 1:2 (tall) can be published.
 const MAX_PUBLISH_RATIO = 2;
-const tooWide = () => state.w / state.h > MAX_PUBLISH_RATIO;
+const badRatio = () => state.w / state.h > MAX_PUBLISH_RATIO ? 'wide' : state.h / state.w > MAX_PUBLISH_RATIO ? 'tall' : null;
 const setPublishModal = open => {
   $('publishModal').hidden = !open;
   $('publishError').hidden = true;
   $('publishConfirm').disabled = false;
-  if (open && tooWide()) { // explain instead of letting it fail
-    $('publishError').textContent = `This gradient is ${(state.w / state.h).toFixed(1)}:1. Only gradients no wider than 2:1 can be published to the community. Make the canvas narrower or taller, then publish.`;
+  const bad = badRatio();
+  if (open && bad) { // explain instead of letting it fail
+    $('publishError').textContent = bad === 'wide'
+      ? `This gradient is ${(state.w / state.h).toFixed(1)}:1. Only gradients no wider than 2:1 can be published to the community. Make the canvas narrower or taller, then publish.`
+      : `This gradient is 1:${(state.h / state.w).toFixed(1)}. Only gradients no taller than 1:2 can be published to the community. Make the canvas wider or shorter, then publish.`;
     $('publishError').hidden = false;
     $('publishConfirm').disabled = true;
   }
-  if (open) (tooWide() ? $('publishCancel') : $('publishConfirm')).focus();
+  if (open) (bad ? $('publishCancel') : $('publishConfirm')).focus();
 };
 $('publishBtn').addEventListener('click', e => { if (!me) return needSignIn(e.currentTarget, 'publish'); setPublishModal(true); });
 $('publishCancel').addEventListener('click', () => setPublishModal(false));
@@ -524,7 +527,7 @@ document.addEventListener('keydown', e => { if (!$('publishModal').hidden && e.k
 $('publishConfirm').addEventListener('click', async () => {
   const anchor = $('publishBtn');
   $('publishError').hidden = true;
-  if (tooWide()) return setPublishModal(true);
+  if (badRatio()) return setPublishModal(true);
   await guarded(anchor, async () => {
     const { data: inserted, error } = await client.from('gradients').insert({ ...snapshotRow(), user_id: me.id, author_name: authorName(), author_twitter: authorTwitter(), is_public: true }).select('slug').single();
     if (error?.code === DUPLICATE) { // unique violation: an identical gradient is already published
