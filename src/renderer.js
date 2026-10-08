@@ -28,7 +28,7 @@ export function makeRenderer(canvas, opts) {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
   const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
   const U = {};
-  for (const n of ['uRes', 'uCount', 'uSoft', 'uGrain', 'uGrainSize', 'uSeed', 'uBlendMode', 'uRefW', 'uGrainType', 'uDensity', 'uGrainM', 'uGrainA', 'uGrainB', 'uNode', 'uNode2', 'uTh2', 'uType', 'uColor', 'uAdj', 'uNode3', 'uPts', 'uOcc', 'uOccSoft1', 'uOccSoft2', 'uOccAngle', 'uGrad', 'uGradInfo', 'uGradCount', 'uGradEase', 'uGradStopT', 'uGradStops']) U[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uRes', 'uOff', 'uCount', 'uSoft', 'uGrain', 'uGrainSize', 'uSeed', 'uBlendMode', 'uRefW', 'uGrainType', 'uDensity', 'uGrainM', 'uGrainA', 'uGrainB', 'uNode', 'uNode2', 'uTh2', 'uType', 'uColor', 'uAdj', 'uNode3', 'uPts', 'uOcc', 'uOccSoft1', 'uOccSoft2', 'uOccAngle', 'uGrad', 'uGradInfo', 'uGradCount', 'uGradEase', 'uGradStopT', 'uGradStops']) U[n] = gl.getUniformLocation(prog, n);
 
   const nodeArr = new Float32Array(MAXN * 4), node2Arr = new Float32Array(MAXN * 4), colArr = new Float32Array(MAXN * 4);
   const th2Arr = new Float32Array(MAXN), typeArr = new Float32Array(MAXN), node3Arr = new Float32Array(MAXN * 2);
@@ -140,19 +140,24 @@ export function makeRenderer(canvas, opts) {
 
   return {
     gl,
-    render(w, h, s) {
-      if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+    // Draws the w × h image. With `region` ({ x0, y0, w, h } in that image's pixels, y from the top) only that part is
+    // drawn, onto a canvas of the region's size; each pixel comes out exactly as in the full render.
+    render(w, h, s, region = null) {
+      const cw = region ? region.w : w, ch = region ? region.h : h;
+      if (canvas.width !== cw || canvas.height !== ch) { canvas.width = cw; canvas.height = ch; }
       gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
       gl.useProgram(prog);
+      const fullW = region ? w : gl.drawingBufferWidth, fullH = region ? h : gl.drawingBufferHeight;
       const refLong = Math.max(s.w, s.h) || 1;
-      const { count, strokes } = packNodes(s.nodes, w, h, refLong);
+      const { count, strokes } = packNodes(s.nodes, fullW, fullH, refLong);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, ptsTex);
       if (strokes) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, MAX_STROKE_PTS, MAXN, gl.RGBA, gl.FLOAT, ptsArr);
       if (canFloat) {
         gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, gradStopsTex);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, MAX_GRAD_STOPS, MAXN, gl.RGBA, gl.FLOAT, gradStopsArr);
       }
-      gl.uniform2f(U.uRes, gl.drawingBufferWidth, gl.drawingBufferHeight);
+      gl.uniform2f(U.uRes, fullW, fullH);
+      gl.uniform2f(U.uOff, region ? region.x0 : 0, region ? fullH - region.y0 - region.h : 0); // gl's y runs upward
       gl.uniform1i(U.uCount, count);
       gl.uniform1f(U.uSoft, s.soft / 0.2); gl.uniform1f(U.uGrain, s.grain); gl.uniform1f(U.uGrainSize, s.grainSize);
       gl.uniform1f(U.uSeed, s.seed); gl.uniform1f(U.uBlendMode, BLEND_MODE_INDEX[s.blendMode] || 0); gl.uniform1f(U.uRefW, s.w);
@@ -169,9 +174,9 @@ export function makeRenderer(canvas, opts) {
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     },
     // Renders once with grain off; used by the eyedropper so samples aren't noisy.
-    renderClean(w, h, s) {
+    renderClean(w, h, s, region = null) {
       const g = s.grain; s.grain = 0;
-      try { this.render(w, h, s); } finally { s.grain = g; }
+      try { this.render(w, h, s, region); } finally { s.grain = g; }
     },
   };
 }

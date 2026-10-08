@@ -6,21 +6,26 @@ import { session } from './session.js';
 import { pushUndo } from './undo.js';
 import { rgbToHex } from './color.js';
 import { $, stage, frameRect, setStatus } from './dom.js';
-import { preview, glCanvas, ref, draw } from './view.js';
+import { preview, glCanvas, ref, draw, renderPreview, visibleRegion } from './view.js';
 import { refreshAll } from './refresh.js';
 import { setHint, DEFAULT_HINT } from './modes.js';
 
-let glSnap = null; // 2D copy of the (grain-free) gradient for the loupe
+let glSnap = null; // 2D copy of the (grain-free) gradient for the loupe: just the visible part of the frame
+let snapRegion = null; // which part (view.js visibleRegion()), so a point on screen can be found in the copy
+const sameRegion = (a, b) => a.fw === b.fw && a.fh === b.fh && a.x0 === b.x0 && a.y0 === b.y0 && a.w === b.w && a.h === b.h;
+function takeSnapshot() {
+  snapRegion = renderPreview(true);
+  glSnap = document.createElement('canvas'); glSnap.width = glCanvas.width; glSnap.height = glCanvas.height;
+  glSnap.getContext('2d').drawImage(glCanvas, 0, 0); draw();
+}
 
 export function setSampling(on) {
   if (on && !state.selected.size) { setStatus('Select a node first, then press I to sample.', true); return; }
   session.sampling = on; stage.classList.toggle('sampling', on);
   if (on && preview) {
-    preview.renderClean(glCanvas.width, glCanvas.height, state);
-    glSnap = document.createElement('canvas'); glSnap.width = glCanvas.width; glSnap.height = glCanvas.height;
-    glSnap.getContext('2d').drawImage(glCanvas, 0, 0); draw();
+    takeSnapshot();
   }
-  if (!on) { $('loupe').style.display = 'none'; $('loupeHex').style.display = 'none'; glSnap = null; }
+  if (!on) { $('loupe').style.display = 'none'; $('loupeHex').style.display = 'none'; glSnap = null; snapRegion = null; }
   setHint(on ? 'Click the reference or the canvas to sample a color. Esc to cancel.' : DEFAULT_HINT);
 }
 
@@ -30,8 +35,9 @@ function sourceAt(cx, cy) {
   if (ref.data && cx >= rr.left && cx <= rr.right && cy >= rr.top && cy <= rr.bottom)
     return { c: ref.data, x: (cx - rr.left) / rr.width * ref.data.width, y: (cy - rr.top) / rr.height * ref.data.height };
   const fr = frameRect();
+  if (glSnap && !sameRegion(snapRegion, visibleRegion())) takeSnapshot(); // panned or zoomed since the copy was made
   if (glSnap && cx >= fr.left && cx <= fr.right && cy >= fr.top && cy <= fr.bottom)
-    return { c: glSnap, x: (cx - fr.left) / fr.width * glSnap.width, y: (cy - fr.top) / fr.height * glSnap.height };
+    return { c: glSnap, x: (cx - fr.left) / fr.width * snapRegion.fw - snapRegion.x0, y: (cy - fr.top) / fr.height * snapRegion.fh - snapRegion.y0 };
   return null;
 }
 const clampPx = (src) => ({ px: Math.min(src.c.width - 1, Math.max(0, Math.floor(src.x))), py: Math.min(src.c.height - 1, Math.max(0, Math.floor(src.y))) });
@@ -62,8 +68,10 @@ document.addEventListener('pointermove', e => { if (session.sampling) updateLoup
 export function colorAtCanvasPoint(nx, ny) {
   if (!preview) return null;
   const gl = preview.gl;
-  preview.renderClean(glCanvas.width, glCanvas.height, state); draw();
-  const px = Math.floor(Math.min(0.9999, Math.max(0, nx)) * gl.drawingBufferWidth), py = Math.floor((1 - Math.min(0.9999, Math.max(0, ny))) * gl.drawingBufferHeight);
+  const r = renderPreview(true); draw();
+  // the canvas holds only the visible part of the frame, so the point's position is taken relative to that
+  const at = (n, full, off, size) => Math.min(size - 1, Math.max(0, Math.floor(Math.min(0.9999, Math.max(0, n)) * full) - off));
+  const px = at(nx, r.fw, r.x0, gl.drawingBufferWidth), py = gl.drawingBufferHeight - 1 - at(ny, r.fh, r.y0, gl.drawingBufferHeight);
   const d = new Uint8Array(4); gl.readPixels(px, py, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, d);
   return rgbToHex(d[0], d[1], d[2]);
 }

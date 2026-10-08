@@ -29,7 +29,7 @@ export const VS = `attribute vec2 p; void main(){ gl_Position = vec4(p,0.,1.); }
 
 export const FS = `
   precision highp float;
-  uniform vec2 uRes; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uBlendMode, uRefW, uGrainType, uDensity; uniform vec3 uGrainM, uGrainA, uGrainB;
+  uniform vec2 uRes, uOff; uniform int uCount; uniform float uSoft, uGrain, uGrainSize, uSeed, uBlendMode, uRefW, uGrainType, uDensity; uniform vec3 uGrainM, uGrainA, uGrainB;
   uniform vec4 uNode[${MAXN}]; uniform vec4 uNode2[${MAXN}]; uniform float uTh2[${MAXN}]; uniform float uType[${MAXN}]; uniform vec4 uColor[${MAXN}]; uniform vec4 uAdj; uniform vec2 uNode3[${MAXN}]; uniform float uOcc[${MAXN}]; uniform float uOccSoft1[${MAXN}]; uniform float uOccSoft2[${MAXN}]; uniform float uOccAngle[${MAXN}];
   uniform float uGrad[${MAXN}]; uniform vec4 uGradInfo[${MAXN}]; uniform float uGradCount[${MAXN}]; uniform float uGradEase[${MAXN}];
   uniform float uGradStopT[${MAXN * MAXG}]; uniform sampler2D uGradStops;
@@ -61,7 +61,10 @@ export const FS = `
     return min(a, b) - h * h * k * 0.25;
   }
   void main(){
-    vec2 uv = gl_FragCoord.xy / uRes; uv.y = 1.0 - uv.y;
+    // uRes is the whole image's size; uOff is where this render's pixels sit inside it (zero unless only the visible part
+    // of a zoomed-in preview is being drawn), so every pixel gets exactly the value it would in a full render
+    vec2 fc = gl_FragCoord.xy + uOff;
+    vec2 uv = fc / uRes; uv.y = 1.0 - uv.y;
     vec2 sc = uRes / max(uRes.x, uRes.y);
     vec2 p = uv * sc;
     vec3 acc = vec3(0.0); vec3 accLin = vec3(0.0); vec3 accLogM = vec3(0.0); vec3 accLogS = vec3(0.0); float wsum = 0.0;
@@ -283,7 +286,7 @@ export const FS = `
     // grain cell size is relative to the canvas's logical width (uRefW), not device pixels, so it looks the
     // same in the small preview and a large export
     float grainPx = uGrainSize * (uRes.x / uRefW);
-    vec2 cell = floor(gl_FragCoord.xy / grainPx);
+    vec2 cell = floor(fc / grainPx);
     float nR = hash(cell + uSeed);
     float nG = hash(cell + uSeed + 17.23);
     float nB = hash(cell + uSeed + 41.71);
