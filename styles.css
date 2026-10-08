@@ -80,11 +80,13 @@ body {
 .app > .stage { grid-column: 1; } .app > .community-tab { grid-column: 2; } .app > .panel { grid-column: 3; justify-self: end; width: 300px; } /* the tab is hidden most of the time: pin the columns so the panel never slides into its slot */
 .app { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto 300px; grid-template-rows: minmax(0, 1fr); flex: 1; min-height: 0; }
 @media (max-width: 820px) {
-  body { overflow: auto; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  html, body { height: 100dvh; } /* the page itself never scrolls: header and canvas stay put, only the settings panel scrolls */
+  body { overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   body input, body textarea { -webkit-user-select: auto; user-select: auto; -webkit-touch-callout: default; }
   .app > .stage, .app > .panel { grid-column: auto; }
   .app > .panel { justify-self: stretch; width: auto; }
-  .app { grid-template-columns: 1fr; grid-template-rows: minmax(52vh, auto) auto; height: auto; flex: none; }
+  .app { grid-template-columns: 1fr; grid-template-rows: minmax(0, 52fr) minmax(0, 48fr); height: auto; flex: 1; min-height: 0; }
+  .app > .panel { min-height: 0; }
   #cw, #ch { touch-action: none; }
   .topbar { padding: 12px; }
   #undoTopBtn, #redoTopBtn, #redoTopBtn + .topbar-sep { display: none; } /* mobile has its own undo/redo over the canvas */
