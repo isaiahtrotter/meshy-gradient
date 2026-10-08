@@ -86,10 +86,11 @@ body {
   body input, body textarea { -webkit-user-select: auto; user-select: auto; -webkit-touch-callout: default; }
   .app > .stage, .app > .panel { grid-column: auto; }
   .app > .panel { justify-self: stretch; width: auto; }
-  .app { grid-template-columns: 1fr; grid-template-rows: minmax(0, round(down, 52%, 1px)) minmax(0, 1fr); /* whole pixels, so no hairline of page background shows between/below the rows */ height: auto; flex: 1; min-height: 0; }
+  .app { grid-template-columns: 1fr; grid-template-rows: minmax(0, calc(round(down, 52%, 1px) + 16px)) minmax(0, 1fr); /* whole pixels, so no hairline of page background shows between/below the rows */ height: auto; flex: 1; min-height: 0; }
   .app > .panel { min-height: 0; }
   #cw, #ch { touch-action: none; }
   .topbar { padding: 12px; }
+  .app > .stage { padding-bottom: 100px; } /* +16px for the byline under the frame, which would otherwise run into the toolbar; the stage row above is 16px taller to match */
   .snav[data-tab="shortcuts"], .ssec[data-tab="shortcuts"] { display: none; } /* keyboard shortcuts mean nothing on a phone */
   #undoTopBtn, #redoTopBtn, #redoTopBtn + .topbar-sep { display: none; } /* mobile has its own undo/redo over the canvas */
 }
@@ -121,7 +122,7 @@ body {
 .align-btn:hover { color: var(--accent); }
 .icon-btn { width: 32px; padding: 0; display: flex; align-items: center; justify-content: center; }
 .icon-btn svg { display: block; }
-.icon-btn svg[hidden], #themeBtn[hidden], .snav[hidden], .topbar-auth-btn[hidden] { display: none; } /* the plain [hidden] UA rule loses to the display:block above */
+.icon-btn svg[hidden], .snav[hidden], .topbar-auth-btn[hidden] { display: none; } /* the plain [hidden] UA rule loses to the display:block above */
 .stage.previewing .stage-hint, .stage.previewing .ref-x { display: none; }
 .stage.previewing .overlay { pointer-events: none; }
 /* Bottom toolbar: 20px icons, 12px padding, 16px between everything (the divider included). It sits in the

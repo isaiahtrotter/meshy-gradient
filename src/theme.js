@@ -16,7 +16,6 @@ const effectiveTheme = () => (theme === 'system' ? systemTheme() : theme);
 
 let theme = LIGHT_MODE_ENABLED ? (localStorage.getItem(STORAGE_KEY) || 'system') : 'dark';
 if (!LIGHT_MODE_ENABLED) {
-  $('themeBtn').hidden = true;
   document.querySelector('.snav[data-tab="appearance"]').hidden = true;
 }
 
@@ -42,10 +41,6 @@ function applyTheme() {
   if (theme === 'system') delete document.documentElement.dataset.theme;
   else document.documentElement.dataset.theme = theme;
 
-  const effective = effectiveTheme();
-  $('themeBtn').setAttribute('aria-pressed', String(effective === 'dark'));
-  $('themeBtn').querySelector('.theme-icon-light').toggleAttribute('hidden', effective === 'dark');
-  $('themeBtn').querySelector('.theme-icon-dark').toggleAttribute('hidden', effective !== 'dark');
 
   for (const b of $('themeSeg').querySelectorAll('[data-theme-opt]')) {
     b.setAttribute('aria-pressed', String(b.dataset.themeOpt === theme));
@@ -61,7 +56,6 @@ function setTheme(next) {
 
 applyTheme();
 
-$('themeBtn').addEventListener('click', () => setTheme(effectiveTheme() === 'dark' ? 'light' : 'dark'));
 $('themeSeg').addEventListener('click', e => {
   const b = e.target.closest('[data-theme-opt]'); if (!b) return;
   setTheme(b.dataset.themeOpt);
