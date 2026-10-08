@@ -172,6 +172,11 @@ let settled = !configured;
 const SKELETON_RATIOS = [0.8, 1.25, 1, 1.4, 0.9, 1.1, 1.3, 0.85]; // heights / widths, so the tab's placeholders look like masonry
 setTimeout(() => { if (!settled) { settled = true; rebuildPublic(); } }, 8000);
 let pubRows = [], fallbackRows = [], loadProblem = '', loadedOnce = false;
+// Every row carries its thumbnail (~6 kB), so a page load only fetches enough for the sidebar grid. The full list (up to
+// 200) is fetched once the Community tab is opened, and stays full from then on so later refreshes don't shrink the tab.
+const GRID_FETCH = 24, FULL_FETCH = 200;
+let wantFull = false, pubTotal = 0; // pubTotal: how many gradients are published in all, for the grid's "+N"
+const fetchLimit = () => (wantFull || sortMode === 'liked' ? FULL_FETCH : GRID_FETCH); // "most liked" needs the whole list to rank
 function rebuildPublic() {
   $('communityEmpty').textContent = loadProblem ? `Couldn’t load the community list: ${loadProblem}` : 'No published gradients found in the database yet.';
   renderPublic(); renderCommunityGrid();
@@ -376,8 +381,9 @@ function renderCommunityGrid() {
     if (row.thumb) b.style.backgroundImage = `url(${row.thumb})`;
     if (i === GRID_SLOTS - 1) {
       b.classList.add('preset--more'); b.id = 'communityMoreBtn'; b.setAttribute('aria-controls', 'communityTab'); b.setAttribute('aria-expanded', String(sideTabKind() === 'community'));
-      b.setAttribute('aria-label', `Show all ${rows.length} community gradients`);
-      const more = document.createElement('span'); more.className = 'preset-more'; more.textContent = `+${rows.length - GRID_SLOTS}`;
+      const total = Math.max(rows.length, pubRows.length ? pubTotal : 0);
+      b.setAttribute('aria-label', `Show all ${total} community gradients`);
+      const more = document.createElement('span'); more.className = 'preset-more'; more.textContent = `+${total - GRID_SLOTS}`;
       b.appendChild(more);
       b.addEventListener('click', () => toggleSideTab('community'));
     } else {
@@ -389,13 +395,13 @@ function renderCommunityGrid() {
 }
 async function refreshPublic() {
   if (!client) return;
-  const [{ data, error }] = await Promise.all([
-    client.from('gradients').select('id, slug, thumb, author_name, author_twitter, user_id').eq('is_public', true).order('created_at', { ascending: false }).limit(200),
+  const [{ data, error, count }] = await Promise.all([
+    client.from('gradients').select('id, slug, thumb, author_name, author_twitter, user_id', { count: 'exact' }).eq('is_public', true).order('created_at', { ascending: false }).limit(fetchLimit()),
     loadLikes(),
   ]);
   settled = true;
   if (error) { console.error(error); loadProblem = error.message || 'unknown error'; rebuildPublic(); return; } // the fallback fills the grid
-  loadProblem = ''; loadedOnce = true; pubRows = data;
+  loadProblem = ''; loadedOnce = true; pubRows = data; pubTotal = count ?? data.length;
   rebuildPublic();
   pushProfile(); // re-credit any of your rows that are out of date
 }
@@ -417,7 +423,7 @@ async function deletePublished(row, anchor) {
 }
 
 // The tab beside the sidebar (sideTab.js): opening it refreshes the list.
-onSideTabOpen(kind => { if (kind === 'community') refreshPublic(); if (kind === 'mine') renderMineTab(); });
+onSideTabOpen(kind => { if (kind === 'community') { wantFull = true; refreshPublic(); } if (kind === 'mine') renderMineTab(); });
 
 // ---------- Saving and publishing ----------
 // Runs `task` with the buttons disabled, so a double click can't save twice.
