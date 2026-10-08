@@ -13,6 +13,7 @@ import { markSaved, clearSaved, markCopy, onProvenance } from './provenance.js';
 import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
 import { masonry, relayout, thumbRatio } from './masonry.js';
 import { askConfirm } from './confirm.js';
+import { paintThumb, setThumbFetcher, pruneThumbs } from './thumbs.js';
 
 let client = null, me = null;
 let current = null; // the saved gradient that's open on the canvas (so it can be deleted): { id }, or null
@@ -172,11 +173,13 @@ let settled = !configured;
 const SKELETON_RATIOS = [0.8, 1.25, 1, 1.4, 0.9, 1.1, 1.3, 0.85]; // heights / widths, so the tab's placeholders look like masonry
 setTimeout(() => { if (!settled) { settled = true; rebuildPublic(); } }, 8000);
 let pubRows = [], fallbackRows = [], loadProblem = '', loadedOnce = false;
-// Every row carries its thumbnail (~6 kB), so a page load only fetches enough for the sidebar grid. The full list (up to
-// 200) is fetched once the Community tab is opened, and stays full from then on so later refreshes don't shrink the tab.
-const GRID_FETCH = 24, FULL_FETCH = 200;
-let wantFull = false, pubTotal = 0; // pubTotal: how many gradients are published in all, for the grid's "+N"
-const fetchLimit = () => (wantFull || sortMode === 'liked' ? FULL_FETCH : GRID_FETCH); // "most liked" needs the whole list to rank
+// The list is metadata only (no thumbnails, ~150 bytes a row), so it can be long; each tile's thumbnail is fetched
+// when the tile is about to be seen, and cached for good (thumbs.js). pubTotal is how many gradients are published in
+// all, for the grid's "+N".
+const LIST_FETCH = 500;
+let pubTotal = 0;
+// A tile's height / width: from the gradient's own canvas size for database rows, or the image for stand-in presets.
+const rowRatio = row => (row.ratio ? Promise.resolve(row.ratio) : thumbRatio(row.thumb));
 function rebuildPublic() {
   $('communityEmpty').textContent = loadProblem ? `Couldn’t load the community list: ${loadProblem}` : 'No published gradients found in the database yet.';
   renderPublic(); renderCommunityGrid();
@@ -334,15 +337,15 @@ async function renderPublic() {
   const isMine = r => !!me && r.user_id === me.id;
   const all = baseRows();
   const rows = arrange(all); // the sort applies to both sections
-  const ratios = await Promise.all(rows.map(r => thumbRatio(r.thumb)));
-  if (token !== renderToken) return; // a newer render started while the thumbnails were measured
+  const ratios = await Promise.all(rows.map(rowRatio));
+  if (token !== renderToken) return; // a newer render started while the ratios were measured
   const mineItems = [], otherItems = [];
   rows.forEach((row, i) => {
     const mine = isMine(row);
     const card = document.createElement('div'); card.className = 'ct-card';
     const thumb = document.createElement('button'); thumb.type = 'button'; thumb.className = 'ct-thumb';
     thumb.style.aspectRatio = `1 / ${ratios[i]}`; // the gradient's own shape
-    if (row.thumb) thumb.style.backgroundImage = `url(${row.thumb})`;
+    paintThumb(thumb, row);
     thumb.setAttribute('aria-label', 'Open this community gradient');
     thumb.addEventListener('click', () => openPublic(row, thumb));
     card.appendChild(thumb); // thumbnails only: no names, no authors (the author appears under the canvas once you open one)
@@ -378,7 +381,7 @@ function renderCommunityGrid() {
   $('communityEmpty').hidden = !loadProblem && (pubRows.length > 0 || !loadedOnce); // also explains why the original gradients are standing in
   rows.slice(0, GRID_SLOTS).forEach((row, i) => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'preset';
-    if (row.thumb) b.style.backgroundImage = `url(${row.thumb})`;
+    paintThumb(b, row);
     if (i === GRID_SLOTS - 1) {
       b.classList.add('preset--more'); b.id = 'communityMoreBtn'; b.setAttribute('aria-controls', 'communityTab'); b.setAttribute('aria-expanded', String(sideTabKind() === 'community'));
       const total = Math.max(rows.length, pubRows.length ? pubTotal : 0);
@@ -396,12 +399,16 @@ function renderCommunityGrid() {
 async function refreshPublic() {
   if (!client) return;
   const [{ data, error, count }] = await Promise.all([
-    client.from('gradients').select('id, slug, thumb, author_name, author_twitter, user_id', { count: 'exact' }).eq('is_public', true).order('created_at', { ascending: false }).limit(fetchLimit()),
+    client.from('gradients').select('id, slug, author_name, author_twitter, user_id, w:config->>w, h:config->>h', { count: 'exact' }).eq('is_public', true).order('created_at', { ascending: false }).limit(LIST_FETCH),
     loadLikes(),
   ]);
   settled = true;
   if (error) { console.error(error); loadProblem = error.message || 'unknown error'; rebuildPublic(); return; } // the fallback fills the grid
-  loadProblem = ''; loadedOnce = true; pubRows = data; pubTotal = count ?? data.length;
+  loadProblem = ''; loadedOnce = true; pubTotal = count ?? data.length;
+  // keep thumbnails already fetched for rows that are still listed, so a refresh doesn't blank or refetch them
+  const had = new Map(pubRows.map(r => [r.id, r.thumb]));
+  pubRows = data.map(r => { const ratio = +r.h / +r.w; return { ...r, ratio: ratio > 0 && isFinite(ratio) ? ratio : 0.75, thumb: had.get(r.id) || null }; });
+  if (data.length === pubTotal) pruneThumbs(data.map(r => r.id)); // the whole list is in hand: forget deleted gradients
   rebuildPublic();
   pushProfile(); // re-credit any of your rows that are out of date
 }
@@ -423,7 +430,7 @@ async function deletePublished(row, anchor) {
 }
 
 // The tab beside the sidebar (sideTab.js): opening it refreshes the list.
-onSideTabOpen(kind => { if (kind === 'community') { wantFull = true; refreshPublic(); } if (kind === 'mine') renderMineTab(); });
+onSideTabOpen(kind => { if (kind === 'community') refreshPublic(); if (kind === 'mine') renderMineTab(); });
 
 // ---------- Saving and publishing ----------
 // Runs `task` with the buttons disabled, so a double click can't save twice.
@@ -559,7 +566,10 @@ onUser(user => {
   renderPublic(); // the Delete buttons depend on who is signed in
   if (user) { refreshMine(); refreshPublic(); } // refreshPublic also re-credits any of your rows that are out of date
 });
-whenClient.then(c => { client = c; refreshPublic(); if (me) refreshMine(); });
+whenClient.then(c => {
+  client = c;
+  setThumbFetcher(async ids => { const { data, error } = await client.from('gradients').select('id, thumb').eq('is_public', true).in('id', ids); if (error) throw error; return data; });
+  refreshPublic(); if (me) refreshMine(); });
 loadFallback(); // needs no account or database, so the grid fills straight away
 
 // Your display name and Twitter handle (Settings) are what your published gradients are credited to, and they're kept
