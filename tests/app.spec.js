@@ -304,11 +304,11 @@ test.describe('document', () => {
     expect(await page.evaluate(() => window.__meshy.state.adj.hue)).toBe(0);
 
     // right-clicking a slider already at its default is a no-op: no new undo step
-    const canUndoBefore = await page.evaluate(() => !document.getElementById('undoBtn').disabled);
+    const canUndoBefore = await page.evaluate(() => !document.getElementById('undoTopBtn').disabled);
     await page.locator('#adjHue').evaluate(el => el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })));
     await page.waitForTimeout(150);
     expect(await page.evaluate(() => window.__meshy.state.adj.hue)).toBe(0);
-    expect(await page.evaluate(() => !document.getElementById('undoBtn').disabled)).toBe(canUndoBefore);
+    expect(await page.evaluate(() => !document.getElementById('undoTopBtn').disabled)).toBe(canUndoBefore);
   });
 
   test('temperature slider warms the render and a gradient without one resets it to neutral', async ({ page }) => {

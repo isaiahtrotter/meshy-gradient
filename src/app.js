@@ -29,7 +29,6 @@ import { fetchDefaultGradient } from './loadGradient.js';
 const FALLBACK_COLOURS = ['#ff7a59', '#ffd166', '#6a4c93', '#1982c4'];
 
 onUndoChange((canUndo, canRedo) => {
-  $('undoBtn').disabled = !canUndo;
   $('undoTopBtn').disabled = !canUndo;
   $('redoTopBtn').disabled = !canRedo;
   $('mobileUndoBtn').disabled = !canUndo;
