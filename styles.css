@@ -86,7 +86,7 @@ body {
   body input, body textarea { -webkit-user-select: auto; user-select: auto; -webkit-touch-callout: default; }
   .app > .stage, .app > .panel { grid-column: auto; }
   .app > .panel { justify-self: stretch; width: auto; }
-  .app { grid-template-columns: 1fr; grid-template-rows: minmax(0, calc(round(down, 52%, 1px) + 16px)) minmax(0, 1fr); /* whole pixels, so no hairline of page background shows between/below the rows */ height: auto; flex: 1; min-height: 0; }
+  .app { grid-template-columns: 1fr; grid-template-rows: minmax(0, var(--stage-h, calc(round(down, 52%, 1px) + 16px))) minmax(0, 1fr); /* whole pixels, so no hairline of page background shows between/below the rows */ height: auto; flex: 1; min-height: 0; }
   .app > .panel { min-height: 0; }
   #cw, #ch { touch-action: none; }
   .topbar { padding: 12px; }
@@ -394,6 +394,11 @@ body.loading .skeleton { opacity: 1; }
 .panel-fade-bottom { bottom: -1px; height: 33px; /* overlaps the fractional-pixel edge so no hairline shows under it */ background: linear-gradient(to top, var(--panel), transparent); }
 .panel-fade.visible { opacity: 1; }
 @media (max-width: 820px) { .panel { border-left: 0; border-top: 1px solid var(--line); } }
+/* Mobile drag handle on the panel's top edge: a 44px-tall touch target centred on the border line, with a small pill in it.
+   Dragging it moves the line, trading canvas height for settings height (see controls.js). */
+.panel-grip { position: absolute; left: 50%; top: -22px; width: 88px; height: 44px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: row-resize; -webkit-user-select: none; user-select: none; }
+.panel-grip span { width: 36px; height: 5px; border-radius: 100px; background: color-mix(in srgb, var(--ink) 35%, var(--panel)); transition: background .12s ease-out; }
+.panel-grip:active span { background: color-mix(in srgb, var(--ink) 55%, var(--panel)); }
 @media (min-width: 821px) { .desktop-hide { display: none !important; } }
 section { display: flex; flex-direction: column; gap: 12px; }
 section[hidden] { display: none; }

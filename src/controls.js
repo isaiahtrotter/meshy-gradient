@@ -314,3 +314,18 @@ for (const inp of document.querySelectorAll('input[type=number], input[type=text
   new MutationObserver(updatePanelFades).observe(panelScroll, { childList: true, subtree: true, attributes: true });
   updatePanelFades();
 }
+
+// Mobile: drag the handle on the settings panel's top edge to trade canvas height for settings height. Sets --stage-h on
+// .app (the stage's grid row); the stage's ResizeObserver (view.js) re-fits the canvas as it changes.
+{
+  const grip = $('panelGrip'), app = document.querySelector('.app');
+  if (grip && app) grip.addEventListener('pointerdown', e => {
+    const stage = document.querySelector('.stage'), startY = e.clientY, startH = stage.getBoundingClientRect().height;
+    const appH = app.getBoundingClientRect().height, minH = Math.round(appH * 0.3), maxH = appH - 140; // keep some canvas and some settings in view
+    try { grip.setPointerCapture(e.pointerId); } catch {}
+    const move = ev => app.style.setProperty('--stage-h', `${Math.round(clamp(startH + ev.clientY - startY, minH, maxH))}px`);
+    const end = () => { grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', end); grip.removeEventListener('pointercancel', end); };
+    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', end); grip.addEventListener('pointercancel', end);
+    e.preventDefault();
+  });
+}
