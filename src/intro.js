@@ -2,7 +2,7 @@
 // browser (the version is written as it opens, so closing it any way, or just reloading, never brings it back), and
 // the videos only download when it's about to be shown (or when the header's info icon is clicked).
 // To show it to everyone again after adding something new, bump INTRO_VERSION.
-// [i] in a slide's text is drawn as a keycap.
+// [i] (any single [key]) in a slide's text is drawn as a keycap.
 
 import { $ } from './dom.js';
 import { MOBILE_BREAKPOINT } from './constants.js';
@@ -15,6 +15,7 @@ const ALL_SLIDES = [
   { video: 'videos/referencev2.mp4', title: 'Add a reference', text: 'Drag and drop any image in the canvas! You can also press [i] on your keyboard and sample it with the color picker.' },
   { video: 'videos/community.mp4', title: 'Community gradients', text: 'Publish your gradients to the community, or use any of them as your own starting point.' },
   { video: 'videos/unlink.mp4', title: 'Unlink nodes', text: 'For some additional control, you can right click on a node and unlink its axes so all the handles move independently.' },
+  { video: 'videos/pencil.mp4', title: 'Draw with the pencil', text: 'Press [p] to draw a stroke right on the canvas, then click its path to add hardness stops along it.' },
 ];
 
 const modal = $('introModal'), track = $('introTrack'), dots = $('introDots');
@@ -55,7 +56,7 @@ function show(i) {
   dotEls.forEach((d, k) => d.setAttribute('aria-selected', String(k === index)));
   $('introPrev').disabled = index === 0; $('introNext').disabled = index === slides.length - 1;
   $('introTitle').textContent = slides[index].title;
-  $('introText').innerHTML = slides[index].text.replace('[i]', '<kbd>I</kbd>');
+  $('introText').innerHTML = slides[index].text.replace(/\[(\w)\]/g, (_, k) => `<kbd>${k.toUpperCase()}</kbd>`);
 }
 // Closing flies the dialog up into the info icon in the header (desktop and mobile), and that icon flies it back out.
 // With reduced motion it just appears and disappears.
