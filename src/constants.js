@@ -10,7 +10,7 @@ export const CANVAS_MIN = 150, CANVAS_MAX = 8192, EXPORT_MAX = 16384;
 // a brush stroke's stop hardness reaches far past the rings' range so a tip can narrow to a point
 export const STROKE_K_MAX = 10000;
 export const ZOOM_MIN = 0.25, ZOOM_MAX = 8;
-export const PX_PER_SPREAD = 100, ARM_MIN = 12; // a circle spread of 0.5 draws a 50px arm
+export const ARM_FRAC = 0.12, ARM_MIN = 12; // a circle spread of 1 draws an arm 12% of the frame's long side (~100px on a typical desktop frame)
 export const UNDO_LIMIT = 60;
 // An occluding node's edge feather is a linear blend between two user-set px amounts (os1, the side facing
 // away from its blur angle; os2, the side facing it) — not scaled by the global softness slider. Both are

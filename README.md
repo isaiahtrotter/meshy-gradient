@@ -69,7 +69,7 @@ pipeline).
 
 | `type` | Extra fields | Length units |
 |---|---|---|
-| `circle` | `st`, `sb`, `th2` (second axis angle) | spread × `PX_PER_SPREAD` (100px) on screen; `× uSoft` in shader |
+| `circle` | `st`, `sb`, `th2` (second axis angle) | spread × `ARM_FRAC` (12%) of the frame's long side on screen; `× uSoft` in shader |
 | `arc` | `phi` (bend at apex), `sw` (band width) | fraction of the canvas's long side |
 | `line` | `sw` | fraction of the long side |
 | `stroke` | `pts` (`[x, y]` pairs relative to the pivot, unrotated, ≤ `MAX_STROKE_PTS`), `stops` (`[{ t, m }]`), `sw` | fraction of the long side |

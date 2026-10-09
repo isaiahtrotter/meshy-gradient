@@ -3,7 +3,7 @@
 //
 // Common:  id, type ('circle'|'arc'|'line'|'stroke'), x, y (0..1 of the canvas), a (alpha), k (hardness), color,
 //          th (primary axis angle), linked (true unless the arms have been unlinked), sl, sr (left/right arm lengths)
-// circle:  st, sb (top/bottom arm lengths), th2 (second axis angle). Lengths are in "spread" units (× PX_PER_SPREAD
+// circle:  st, sb (top/bottom arm lengths), th2 (second axis angle). Lengths are in "spread" units (× ARM_FRAC of the frame's long side
 //          on screen, × softness in the shader).
 // arc:     phi (bend at the apex), sw (band width). Lengths are a fraction of the canvas's long side.
 // line:    sw. Same length units as an arc.
