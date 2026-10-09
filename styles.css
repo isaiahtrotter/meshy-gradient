@@ -965,3 +965,14 @@ section[data-collapse] > h2[hidden] { display: none; }
 .share-image-btn.copied .lbl.done { visibility: visible; }
 .share-image-btn:hover { filter: brightness(1.1); border-color: rgba(255,255,255,.2); }
 .share-note { margin: 12px 0 0; min-height: 0; text-align: center; font-size: 12px; line-height: 16px; opacity: .75; }
+
+/* Settings on a phone: no sidebar or tabs, so the body gets the whole width. */
+@media (max-width: 820px) {
+  .settings-dialog { flex-direction: column; width: calc(100vw - 32px); height: auto; max-height: calc(100dvh - 32px); } /* as tall as the content needs, scrolling only if it can't fit */
+  .settings-nav { display: none; } /* Account is the only section on a phone for now, so there's nothing to switch between */
+  .settings-body { padding: 20px 16px 24px; }
+  #settingsClose { display: none; } /* tap outside the dialog to close */
+  .sfield-grid { grid-template-columns: 1fr; }
+  .srow--actions { flex-wrap: wrap; }
+  .srow--actions .topbar-auth-btn { flex: 1 1 auto; }
+}
