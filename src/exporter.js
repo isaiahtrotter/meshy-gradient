@@ -1,4 +1,4 @@
-// Export: renders the gradient at the requested width on an offscreen canvas and downloads a JPG.
+// Export: renders the gradient at the requested width on an offscreen canvas and downloads a JPG or PNG (the Copy button lives in exportExtras.js).
 
 import { CANVAS_MIN, EXPORT_MAX, clamp } from './constants.js';
 import { state } from './state.js';
@@ -25,11 +25,12 @@ $('scales').addEventListener('click', e => {
   updateExportSize();
 });
 
-$('exportBtn').addEventListener('click', async () => {
-  if (!state.nodes.length) { setStatus('Add at least one node before exporting.', true); return; }
+const FORMATS = { jpg: { mime: 'image/jpeg', ext: 'jpg', quality: 0.95 }, png: { mime: 'image/png', ext: 'png' } };
+
+// Renders the gradient at the selected export size and encodes it. Returns { blob, w, h }; throws a readable Error.
+export async function renderExport(mime, quality) {
   const w = clamp(Math.round(+$('ew').value) || state.w, CANVAS_MIN, EXPORT_MAX);
   const h = Math.max(1, Math.round(w * state.h / state.w));
-  const btn = $('exportBtn'); btn.disabled = true; setStatus(`Rendering ${w} × ${h}…`);
   let r = null;
   try {
     const off = document.createElement('canvas'); off.width = w; off.height = h;
@@ -39,15 +40,32 @@ $('exportBtn').addEventListener('click', async () => {
     if (w > maxRB || h > maxRB) throw new Error(`This device caps renders at ${maxRB} px per side. Lower the export width.`);
     r.render(w, h, state);
     if (r.gl.drawingBufferWidth !== w || r.gl.drawingBufferHeight !== h) throw new Error(`The GPU couldn’t allocate ${w} × ${h}. Try a smaller export width.`);
-    const blob = await new Promise((res, rej) => off.toBlob(b => b ? res(b) : rej(new Error('Encoding failed.')), 'image/jpeg', 0.95));
-    const filename = `mesh-gradient-${w}x${h}.jpg`;
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    const blob = await new Promise((res, rej) => off.toBlob(b => b ? res(b) : rej(new Error('Encoding failed.')), mime, quality));
+    return { blob, w, h };
+  } finally {
+    r?.gl.getExtension('WEBGL_lose_context')?.loseContext();
+  }
+}
+export function downloadBlob(blob, filename) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+let exporting = false; // a guard instead of `disabled`, which would dim the button for a moment on every click
+async function exportAs(format) {
+  if (exporting) return;
+  if (!state.nodes.length) { setStatus('Add at least one node before exporting.', true); return; }
+  const f = FORMATS[format]; exporting = true; setStatus('Rendering…');
+  try {
+    const { blob, w, h } = await renderExport(f.mime, f.quality);
+    const filename = `mesh-gradient-${w}x${h}.${f.ext}`;
+    downloadBlob(blob, filename);
     setStatus(`Prepared ${filename} (${(blob.size / 1048576).toFixed(1)} MB).`);
   } catch (err) {
     setStatus((err && err.message) || 'Export failed.', true);
   } finally {
-    r?.gl.getExtension('WEBGL_lose_context')?.loseContext();
-    btn.disabled = false;
+    exporting = false;
   }
-});
+}
+$('exportJpgBtn').addEventListener('click', () => exportAs('jpg'));
+$('exportPngBtn').addEventListener('click', () => exportAs('png'));

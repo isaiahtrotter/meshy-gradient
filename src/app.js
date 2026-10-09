@@ -13,6 +13,7 @@ import './nodeMenu.js';
 import './interaction.js';
 import './keyboard.js';
 import './exporter.js';
+import './exportExtras.js';
 import './sideTab.js';
 import { openSharedFromUrl } from './gradients.js';
 import './collapse.js';

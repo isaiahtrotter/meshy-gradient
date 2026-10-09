@@ -43,6 +43,10 @@
 html { scroll-padding-top: env(safe-area-inset-top, 0px); }
 html, body { height: 100%; margin: 0; }
 *, *::before, *::after { box-sizing: inherit; }
+/* The app's arrow cursor (hotspot at its tip). Set only on the root and on buttons (whose built-in style is an explicit
+   `default`, so they don't inherit); everything else inherits it, which also means the icon inside a button with its own
+   cursor (pointer, grab…) keeps that one. Wrapped in :where() so it has zero specificity: any rule that sets a cursor wins. */
+:where(html, body, button, summary) { cursor: url(pointer.svg) 1 1, default; }
 body {
   background: var(--bg); color: var(--ink);
   font: 14px/1.45 "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
@@ -193,6 +197,7 @@ body {
 .stage.previewing .mobile-undo, .stage.previewing .mobile-redo, .stage.previewing .mobile-del { display: none; }
 .stage.sampling, .stage.sampling * { cursor: none !important; }
 .stage.hard-dragging, .stage.hard-dragging * { cursor: none !important; }
+.stage.node-grab, .stage.node-grab * { cursor: grabbing !important; } /* the overlay captures the pointer during a node/axis drag, so without this the cursor would flip from the handle's hand to the overlay's crosshair */
 .loupe { position: fixed; z-index: 50; width: 132px; height: 132px; margin: -66px 0 0 -66px; border-radius: 50%; overflow: hidden; pointer-events: none; display: none;
   border: 3px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.4), 0 10px 30px -6px rgba(0,0,0,.5); }
 .loupe canvas { display: block; width: 100%; height: 100%; }
@@ -429,8 +434,8 @@ section h2 {
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
 }
 .dim-prefix { font: 400 14px/1 var(--font-ui); color: var(--ink); pointer-events: none; flex: none; }
-.dim-prefix.scrub { pointer-events: auto; cursor: ew-resize; touch-action: none; user-select: none; -webkit-user-select: none; }
-body.scrubbing, body.scrubbing * { cursor: ew-resize !important; user-select: none; }
+.dim-prefix.scrub { pointer-events: auto; cursor: url(scrub-cursor.svg) 11 4, ew-resize; touch-action: none; user-select: none; -webkit-user-select: none; }
+body.scrubbing, body.scrubbing * { cursor: url(scrub-cursor.svg) 11 4, ew-resize !important; user-select: none; } /* the two-arrow cursor, hotspot at its centre */
 body.scrubbing { overflow: hidden !important; overscroll-behavior: none; }
 input[type=number], input[type=text], select {
   width: 100%; height: 36px; padding: 10px 12px; border: none; border-radius: var(--radius);

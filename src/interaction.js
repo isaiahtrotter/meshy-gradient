@@ -34,6 +34,7 @@ overlay.addEventListener('pointerdown', e => {
     const n = nodeById(+sh.dataset.id); if (!n) return;
     const side = sh.dataset.side;
     session.drag = { type: 'spread', n, side, snap: snapshot(), moved: false, lockAngle: armAngle(n, side) };
+    stage.classList.add('node-grab');
     overlay.setPointerCapture(e.pointerId); return;
   }
   const ring = e.target.closest('.hard-ring');
@@ -64,7 +65,7 @@ overlay.addEventListener('pointerdown', e => {
     const sourceIds = [...state.selected];
     const sourceStart = new Map(sourceIds.map(sid => { const nd = nodeById(sid); return [sid, { x: nd.x, y: nd.y }]; }));
     session.drag = { type: 'move', start: p, snap: snapshot(), moved: false, duplicating: false, cloneIds: null, sourceIds, sourceStart, orig: origFrom(sourceIds, sourceStart) };
-    markDragging();
+    markDragging(); stage.classList.add('node-grab');
     updateDuplicateMode(e.altKey || e.ctrlKey);
   } else if (session.placing === 'stroke') {
     beginDraw(e, p); return;
@@ -341,6 +342,7 @@ function addNodeAt(x, y) {
 function endDrag(e) {
   const drag = session.drag;
   if (!drag) return;
+  stage.classList.remove('node-grab');
   if (drag.type === 'pan') { stage.classList.remove('panning'); session.drag = null; return; }
   if (drag.type === 'spread' || drag.type === 'hard' || drag.type === 'stopMove' || drag.type === 'stopHard') {
     if (drag.type === 'stopMove' && drag.dup && !drag.moved) { drag.n.stops.splice(drag.n.stops.indexOf(drag.cloneRef), 1); session.stopSel = null; } // a copy that never moved is dropped

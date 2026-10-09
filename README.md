@@ -96,8 +96,8 @@ Legacy shapes still accepted by the normalizer: single `r`, `rx`/`ry`, absent `t
    (`uPts`, needs `OES_texture_float`; without it strokes are skipped). The shader keeps each pixel's strongest
    segment weight, compared in log space so it's continuous where the nearest segment switches.
 3. The fragment shader loops over slots, computes a weight `(1 / (1 + d²))^k` per slot from a normalized
-   distance, and blends colours by weight (`blendMode`: `normal`/`linear`/`multiply`/`screen`/`overlay` — the
-   last four are order-independent generalizations of the usual two-layer blend modes, computed via weighted
+   distance, and blends colours by weight (`blendMode`: `normal`/`linear`/`multiply`/`screen`/`overlay`/`softlight`/`lighten`/`darken`/`add` — all but
+   the first are order-independent generalizations of the usual two-layer blend modes, computed via weighted
    arithmetic/geometric means since any number of nodes can overlap at a pixel). Non-occluding nodes (`occ: false`,
    the default) are the only ones that feed this weighted-mean base layer, regardless of their position in
    `state.nodes`. Occluding nodes (`occ: true`) are excluded from it and instead composite over the finished base

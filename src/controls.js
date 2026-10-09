@@ -21,8 +21,10 @@ $('ch').addEventListener('change', () => commitCanvasSize(state.w, +$('ch').valu
 
 // Drag-to-scrub a numeric input. With threshold 0 the drag engages immediately (desktop prefix letter). With a
 // threshold it engages only after that much movement, so a plain tap still focuses the input (mobile, dragging on
-// the input). The pointer is captured rather than locked: pointer lock makes the browser flash its "Press Esc to
-// show your cursor" notice, which isn't wanted here.
+// the input). The pointer is captured rather than locked: pointer lock makes the browser show its "Press Esc to
+// show your cursor" notice, which isn't wanted. A page can't warp the pointer to the other side of the screen, so instead,
+// while the pointer rests against the left or right screen edge the value keeps running that way (EDGE_SPEED).
+const EDGE_SPEED = 500; // px/s of scrub while the pointer sits against a screen edge
 export function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly = false, sensitivity = 1 } = {}) {
   trigger.addEventListener('pointerdown', e => {
     if (input.disabled) return;
@@ -30,7 +32,7 @@ export function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly
     const startVal = +input.value || 0, startX = e.clientX;
     const min = input.min !== '' ? +input.min : -Infinity, max = input.max !== '' ? +input.max : Infinity;
     const snap = onInput ? snapshot() : null;
-    let engaged = false, lastVal = startVal;
+    let engaged = false, lastVal = startVal, lastX = startX, edgeOff = 0, edgeDir = 0, edgeRaf = 0, edgeT = 0;
     const engage = () => {
       engaged = true;
       try { trigger.setPointerCapture(e.pointerId); } catch {}
@@ -43,12 +45,22 @@ export function attachScrub(trigger, input, { onInput, threshold = 0, mobileOnly
       lastVal = v; input.value = v;
       if (onInput) onInput(v); else input.dispatchEvent(new Event('input', { bubbles: true }));
     };
+    const edgeStep = t => {
+      if (!edgeDir) { edgeRaf = 0; return; }
+      edgeOff += edgeDir * EDGE_SPEED * Math.min(50, t - edgeT) / 1000; edgeT = t;
+      apply(lastX - startX + edgeOff);
+      edgeRaf = requestAnimationFrame(edgeStep);
+    };
     const move = ev => {
       if (!engaged) { if (Math.abs(ev.clientX - startX) < threshold) return; engage(); }
-      apply(ev.clientX - startX);
+      lastX = ev.clientX;
+      edgeDir = lastX <= 1 ? -1 : lastX >= window.innerWidth - 2 ? 1 : 0;
+      if (edgeDir && !edgeRaf) { edgeT = performance.now(); edgeRaf = requestAnimationFrame(edgeStep); }
+      apply(lastX - startX + edgeOff);
     };
     const up = ev => {
       window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+      edgeDir = 0; cancelAnimationFrame(edgeRaf); edgeRaf = 0;
       if (!engaged) return;
       document.body.classList.remove('scrubbing');
       try { trigger.releasePointerCapture(ev.pointerId); } catch {}
@@ -93,8 +105,8 @@ function setOut(id, text) {
 function mappedValue(el) { const min = +el.dataset.min, max = +el.dataset.max; return min + (+el.value) * (max - min); }
 function reverseMapped(el, val) { const min = +el.dataset.min, max = +el.dataset.max; return (val - min) / (max - min); }
 
-const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay'];
-const BLEND_MODE_LABELS = { normal: 'Normal', linear: 'Linear', multiply: 'Multiply', screen: 'Screen', overlay: 'Overlay' };
+const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay', 'softlight', 'lighten', 'darken', 'add'];
+const BLEND_MODE_LABELS = { normal: 'Normal', linear: 'Linear', multiply: 'Multiply', screen: 'Screen', overlay: 'Overlay', softlight: 'Soft light', lighten: 'Lighten', darken: 'Darken', add: 'Add' };
 
 const SLIDERS = [
   { id: 'soft', out: 'softVal', get: () => reverseMapped($('soft'), state.soft), set: el => { state.soft = mappedValue(el); }, fmt: v => v.toFixed(2) },
