@@ -45,7 +45,6 @@ function createControls(n) {
     const arm = document.createElement('div'); arm.className = 'arm';
     const h = document.createElement('div'); h.className = 'spread-handle';
     h.dataset.id = n.id; h.dataset.axis = axis; h.dataset.side = dir;
-    h.title = 'Drag to set this axis’s length and angle';
     c.arms[dir] = arm; c.hs[dir] = h; overlay.appendChild(arm); overlay.appendChild(h);
   }
   c.lbl.className = 'spread-label';
@@ -140,6 +139,10 @@ function arcPathD(g) {
   return 'M ' + pts.join(' L ');
 }
 
+// Arms and spread handles are placed with transforms (left/top stay 0): the browser snaps left/top/width to whole
+// device pixels, which made them step and jitter while dragging, but transforms position at sub-pixel precision.
+const moveTo = (el, x, y) => { el.style.transform = `translate(${x}px, ${y}px)`; };
+
 export function refreshHandles() {
   const live = new Set(), dims = maxDim(), drag = session.drag;
   for (const n of state.nodes) {
@@ -152,7 +155,7 @@ export function refreshHandles() {
       overlay.appendChild(el); handleEls.set(n.id, el);
     }
     const cx = n.x * dims.w, cy = n.y * dims.h;
-    el.style.left = cx + 'px'; el.style.top = cy + 'px';
+    el.style.translate = `${cx}px ${cy}px`; // the `translate` property (not transform): the hover `scale` is applied after it, so scaling about the node's centre never shifts it
     el.style.background = rgbaCss(n.color, n.a); el.setAttribute('aria-label', `Node ${n.color}`);
     el.classList.toggle('selected', state.selected.has(n.id));
     let c = ctlEls.get(n.id);
@@ -190,14 +193,14 @@ export function refreshHandles() {
       if (drawing) continue;
     } else if (isArc) {
       const C = { x: cx, y: cy }, { l: P1, r: P2 } = armEnds(n, C, dims.m);
-      setStyle(c.hs.l, { left: P1.x + 'px', top: P1.y + 'px' }); setStyle(c.hs.r, { left: P2.x + 'px', top: P2.y + 'px' });
+      moveTo(c.hs.l, P1.x, P1.y); moveTo(c.hs.r, P2.x, P2.y);
       setStyle(c.arc, { width: dims.w + 'px', height: dims.h + 'px' }); c.arc.setAttribute('viewBox', `0 0 ${dims.w} ${dims.h}`);
       c.arc.querySelector('path').setAttribute('d', arcCurves(n, C, dims.m).map(arcPathD).join(' '));
     } else {
       const place = (dir, len, phi) => {
         const cs = Math.cos(phi), sn = Math.sin(phi), deg = phi * 180 / Math.PI;
-        setStyle(c.arms[dir], { left: (cx + gap * cs) + 'px', top: (cy + gap * sn) + 'px', width: Math.max(0, len - gap - 6) + 'px', transform: `rotate(${deg}deg)` });
-        setStyle(c.hs[dir], { left: (cx + len * cs) + 'px', top: (cy + len * sn) + 'px' });
+        c.arms[dir].style.transform = `translate(${cx + gap * cs}px, ${cy + gap * sn}px) rotate(${deg}deg) scaleX(${Math.max(0, len - gap - 6)})`; // the arm is 1px wide, scaled to its length
+        moveTo(c.hs[dir], cx + len * cs, cy + len * sn);
       };
       place('r', armLen(n.sr, 'r'), armAngle(n, 'r')); place('l', armLen(n.sl, 'l'), armAngle(n, 'l'));
       if (isCircle) { place('b', armLen(n.sb, 'b'), armAngle(n, 'b')); place('t', armLen(n.st, 't'), armAngle(n, 't')); }
