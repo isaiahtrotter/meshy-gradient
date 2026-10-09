@@ -9,10 +9,9 @@ const SEEN_KEY = 'meshyIntroSeen.v1';
 // each text should run to two lines at the 440px text width: up to about 115 characters
 // mobileOnly: only part of the carousel on a phone-sized window
 const ALL_SLIDES = [
-  { video: 'videos/reference.mp4', title: 'Add a reference', text: 'Drag and drop any image in the canvas! You can also press [i] on your keyboard and sample it with the color picker.' },
-  { video: 'videos/community.mp4', title: 'Start from the community', text: 'Browse gradients other people have published in the Community tab and start from any of them.' },
-  { video: 'videos/unlink.mp4', title: 'Move each axis on its own', text: 'Right-click a node and choose Unlink axes to move each axis on its own.' },
-  { video: 'videos/mobile_mobile-support.mp4', title: 'Made for your phone too', text: 'Meshy works on mobile as well. Drag the handle on the settings panel to give the canvas or the controls more room.', mobileOnly: true },
+  { video: 'videos/referencev2.mp4', title: 'Add a reference', text: 'Drag and drop any image in the canvas! You can also press [i] on your keyboard and sample it with the color picker.' },
+  { video: 'videos/community.mp4', title: 'Community gradients', text: 'Publish your gradients to the community, or use any of them as your own starting point.' },
+  { video: 'videos/unlink.mp4', title: 'Unlink nodes', text: 'For some additional control, you can right click on a node and unlink its axes so all the handles move independently.' },
 ];
 
 const modal = $('introModal'), track = $('introTrack'), dots = $('introDots');
