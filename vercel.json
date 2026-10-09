@@ -1,7 +1,11 @@
 {
   "rewrites": [
+    { "source": "/", "has": [{ "type": "query", "key": "g" }], "destination": "/api/share" },
     { "source": "/", "destination": "/meshygradient.html" }
   ],
+  "functions": {
+    "api/share.js": { "includeFiles": "meshygradient.html" }
+  },
   "headers": [
     {
       "source": "/videos/(.*)",

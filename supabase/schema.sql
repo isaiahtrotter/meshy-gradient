@@ -92,6 +92,20 @@ $$;
 revoke all on function public.gradient_by_slug(text) from public;
 grant execute on function public.gradient_by_slug(text) to anon, authenticated;
 
+-- ---------- Link-preview images ----------
+-- A share link's preview picture (the gradient itself, rendered in the browser when it's published) lives in a public
+-- Storage bucket as <slug>.jpg. Anyone can read it; a signed-in user can add the image only for a gradient they own,
+-- and never replace one (no update policy), so a published picture can't be swapped.
+insert into storage.buckets (id, name, public) values ('og', 'og', true) on conflict (id) do nothing;
+
+drop policy if exists "og upload own" on storage.objects;
+create policy "og upload own" on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'og'
+    and exists (select 1 from public.gradients g where g.user_id = auth.uid() and g.slug || '.jpg' = storage.objects.name)
+  );
+
 -- ---------- Deleting an account ----------
 -- Lets a signed-in user delete their own account from Settings. Removing the auth user cascades (the user_id foreign key
 -- above is `on delete cascade`) to every gradient they saved or published. The function runs with elevated rights

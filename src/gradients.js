@@ -439,6 +439,18 @@ async function guarded(anchor, task) {
   busy = true;
   try { await task(); } catch (err) { fail(anchor, err); } finally { busy = false; }
 }
+// The picture link previews show for a share link: the gradient itself, 1200px on its long side, in the public `og`
+// Storage bucket as <slug>.jpg (api/share.js points og:image at it). Best-effort: a failure never blocks publishing,
+// the link just shows the default card.
+async function uploadOgImage(slug, config) {
+  try {
+    const url = renderThumb(config, 1200, 'image/jpeg');
+    if (!url) return;
+    const blob = await (await fetch(url)).blob();
+    const { error } = await client.storage.from('og').upload(`${slug}.jpg`, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
+    if (error) console.error(error);
+  } catch (err) { console.error(err); }
+}
 const snapshotRow = () => {
   const config = serializeConfig({ stripIds: true });
   return { config, thumb: renderThumb(config, 200, 'image/jpeg') };
@@ -542,13 +554,15 @@ $('publishConfirm').addEventListener('click', async () => {
   $('publishError').hidden = true;
   if (badRatio()) return setPublishModal(true);
   await guarded(anchor, async () => {
-    const { data: inserted, error } = await client.from('gradients').insert({ ...snapshotRow(), user_id: me.id, author_name: authorName(), author_twitter: authorTwitter(), is_public: true }).select('slug').single();
+    const snap = snapshotRow();
+    const { data: inserted, error } = await client.from('gradients').insert({ ...snap, user_id: me.id, author_name: authorName(), author_twitter: authorTwitter(), is_public: true }).select('slug').single();
     if (error?.code === DUPLICATE) { // unique violation: an identical gradient is already published
       $('publishError').textContent = 'This exact gradient is already in the community. Change something about it to make it unique, then publish.';
       $('publishError').hidden = false;
       return;
     }
     if (error) throw error;
+    await uploadOgImage(inserted.slug, snap.config);
     setPublishModal(false);
     // the canvas is now exactly a community gradient: credit it, hide Publish, and make it shareable
     setShareSlug(inserted.slug); setCredit(authorName(), authorTwitter()); markCopy();
