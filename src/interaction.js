@@ -178,13 +178,13 @@ function strokeScreen(n) {
   return { P, cum: cumLengths(P) };
 }
 
-// The new stroke takes the selected node's colour, so selecting a node (or the last stroke) and recolouring it
-// sets the brush colour; with nothing selected it gets the default.
-const STROKE_DEFAULT_COLOR = '#c3cbcd';
+// Every new stroke starts the same, whatever is selected or was drawn before: this colour and this hardness (the
+// dotted ring), the pencil's own values, separate from the defaults a circle or arc gets.
+const STROKE_START_COLOR = '#d5d5d5';
+const STROKE_START_K = 2.2;
 function beginDraw(e, p) {
   if (state.nodes.length >= MAXN) { setStatus(`Limit of ${MAXN} nodes reached.`, true); return; }
-  const src = selectedNodes()[0];
-  session.drag = { type: 'draw', snap: snapshot(), raw: [[p.px, p.py]], len: 0, n: null, color: src ? src.color : STROKE_DEFAULT_COLOR };
+  session.drag = { type: 'draw', snap: snapshot(), raw: [[p.px, p.py]], len: 0, n: null };
   overlay.setPointerCapture(e.pointerId);
 }
 function moveDraw(drag, e) {
@@ -196,7 +196,8 @@ function moveDraw(drag, e) {
   }
   if (!drag.n) {
     if (drag.len < DRAW_MIN_PX) return;
-    drag.n = addNode('stroke', 0.5, 0.5, drag.color);
+    drag.n = addNode('stroke', 0.5, 0.5, STROKE_START_COLOR);
+    drag.n.k = STROKE_START_K;
     selectOnly(drag.n.id);
   }
   Object.assign(drag.n, strokeFromPath(smoothStroke(drag.raw, STROKE_SPACING_PX), maxDim()));
