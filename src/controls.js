@@ -105,8 +105,8 @@ function setOut(id, text) {
 function mappedValue(el) { const min = +el.dataset.min, max = +el.dataset.max; return min + (+el.value) * (max - min); }
 function reverseMapped(el, val) { const min = +el.dataset.min, max = +el.dataset.max; return (val - min) / (max - min); }
 
-const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay', 'softlight', 'lighten', 'darken', 'add'];
-const BLEND_MODE_LABELS = { normal: 'Normal', linear: 'Linear', multiply: 'Multiply', screen: 'Screen', overlay: 'Overlay', softlight: 'Soft light', lighten: 'Lighten', darken: 'Darken', add: 'Add' };
+const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay', 'softlight', 'lighten', 'darken'];
+const BLEND_MODE_LABELS = { normal: 'Normal', linear: 'Linear', multiply: 'Multiply', screen: 'Screen', overlay: 'Overlay', softlight: 'Soft light', lighten: 'Lighten', darken: 'Darken' };
 
 const SLIDERS = [
   { id: 'soft', out: 'softVal', get: () => reverseMapped($('soft'), state.soft), set: el => { state.soft = mappedValue(el); }, fmt: v => v.toFixed(2) },

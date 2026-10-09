@@ -67,7 +67,7 @@ export const FS = `
     vec2 uv = fc / uRes; uv.y = 1.0 - uv.y;
     vec2 sc = uRes / max(uRes.x, uRes.y);
     vec2 p = uv * sc;
-    vec3 acc = vec3(0.0); vec3 accLin = vec3(0.0); vec3 accLogM = vec3(0.0); vec3 accLogS = vec3(0.0); vec3 accMx = vec3(0.0); vec3 accMn = vec3(0.0); vec3 accAdd = vec3(0.0); float wsum = 0.0;
+    vec3 acc = vec3(0.0); vec3 accLin = vec3(0.0); vec3 accLogM = vec3(0.0); vec3 accLogS = vec3(0.0); vec3 accMx = vec3(0.0); vec3 accMn = vec3(0.0); float wsum = 0.0;
     // occluding nodes composite with a running "over" op, back to front in array order, on top of the averaged
     // base below (non-occluding nodes always flatten into that base regardless of array position)
     vec3 stackPM = vec3(0.0); float stackA = 0.0;
@@ -249,8 +249,7 @@ export const FS = `
         acc += c * wA; accLin += toLin(c) * wA;
         accLogM += log(max(c, 1e-4)) * wA; accLogS += log(max(1.0 - c, 1e-4)) * wA;
         if (uBlendMode > 4.5) {
-          if (uBlendMode > 7.5) accAdd += toLin(c) * min(wA, 1.0);
-          else if (uBlendMode > 6.5) accMn += pow(max(1.0 - c, 1e-4), vec3(6.0)) * wA;
+          if (uBlendMode > 6.5) accMn += pow(max(1.0 - c, 1e-4), vec3(6.0)) * wA;
           else if (uBlendMode > 5.5) accMx += pow(max(c, 1e-4), vec3(6.0)) * wA;
         }
         wsum += wA;
@@ -280,12 +279,9 @@ export const FS = `
     } else if (uBlendMode < 6.5) {
       // lighten: a weighted power mean (p = 6) leans hard toward the lightest colour in range, without a hard edge
       col = wsum > 0.0 ? pow(accMx / wsum, vec3(1.0 / 6.0)) : vec3(0.5);
-    } else if (uBlendMode < 7.5) {
+    } else {
       // darken: the same on the inverted colours, so the darkest wins
       col = wsum > 0.0 ? 1.0 - pow(accMn / wsum, vec3(1.0 / 6.0)) : vec3(0.5);
-    } else {
-      // add: light sums in linear space, so overlaps glow (no normalising: empty space is black)
-      col = toSrgb(accAdd);
     }
     // occluding nodes punch through the averaged base rather than blending into it
     col = stackPM + (1.0 - stackA) * col;

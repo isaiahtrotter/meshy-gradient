@@ -10,7 +10,7 @@ import { cumLengths, strokeWorld, strokeK } from './stroke.js';
 
 const GPU_ARC_EPS = 0.03; // keeps arc circle centres within float32 precision near the phi = 0 snap
 const GRAIN_TYPE_INDEX = { mono: 0, duo: 1, multi: 2 };
-const BLEND_MODE_INDEX = { normal: 0, linear: 1, multiply: 2, screen: 3, overlay: 4, softlight: 5, lighten: 6, darken: 7, add: 8 };
+const BLEND_MODE_INDEX = { normal: 0, linear: 1, multiply: 2, screen: 3, overlay: 4, softlight: 5, lighten: 6, darken: 7 };
 const GRAD_EASE_INDEX = { linear: 0, in: 1, out: 2, inout: 3 };
 
 export function makeRenderer(canvas, opts) {

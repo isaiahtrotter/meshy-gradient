@@ -87,7 +87,7 @@ export function cleanGrainColors(raw) {
   for (const k of Object.keys(out)) if (typeof raw?.[k] === 'string' && /^#[0-9a-f]{6}$/i.test(raw[k])) out[k] = raw[k].toLowerCase();
   return out;
 }
-const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay', 'softlight', 'lighten', 'darken', 'add'];
+const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay', 'softlight', 'lighten', 'darken'];
 export function applyConfig(s, { reassignIds } = {}) {
   if (isNum(s.w) && isNum(s.h)) setCanvasSize(s.w, s.h);
   setNodes(Array.isArray(s.nodes) ? s.nodes : [], reassignIds);
