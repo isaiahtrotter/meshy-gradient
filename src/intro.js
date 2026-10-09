@@ -14,7 +14,7 @@ const SEEN_KEY = 'meshyIntroSeen';
 const ALL_SLIDES = [
   { video: 'videos/referencev2.mp4', title: 'Add a reference', text: 'Drag and drop any image in the canvas! You can also press [i] on your keyboard and sample it with the color picker.' },
   { video: 'videos/community.mp4', title: 'Community gradients', text: 'Publish your gradients to the community, or use any of them as your own starting point.' },
-  { video: 'videos/unlink.mp4', title: 'Unlink nodes', text: 'For some additional control, you can right click on a node and unlink its axes so all the handles move independently.' },
+  { video: 'videos/unlink.mp4', title: 'Unlink axes', text: 'For some additional control, you can right click on a node and unlink its axes so all the handles move independently.' },
   { video: 'videos/pencil.mp4', title: 'Draw with the pencil', text: 'Press [p] to draw a stroke right on the canvas, then click its path to add hardness stops along it.' },
 ];
 
