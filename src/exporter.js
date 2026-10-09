@@ -58,7 +58,7 @@ async function exportAs(format) {
   const f = FORMATS[format]; exporting = true; setStatus('Rendering…');
   try {
     const { blob, w, h } = await renderExport(f.mime, f.quality);
-    const filename = `mesh-gradient-${w}x${h}.${f.ext}`;
+    const filename = `mmeshy-${w}x${h}.${f.ext}`;
     downloadBlob(blob, filename);
     setStatus(`Prepared ${filename} (${(blob.size / 1048576).toFixed(1)} MB).`);
   } catch (err) {

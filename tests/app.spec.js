@@ -387,6 +387,6 @@ test.describe('document', () => {
 
   test('export downloads a JPG', async ({ page }) => {
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#exportJpgBtn')]);
-    expect(dl.suggestedFilename()).toMatch(/^mesh-gradient-\d+x\d+\.jpg$/);
+    expect(dl.suggestedFilename()).toMatch(/^mmeshy-\d+x\d+\.jpg$/);
   });
 });
