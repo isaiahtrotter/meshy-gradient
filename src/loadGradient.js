@@ -50,7 +50,10 @@ export function renderThumb(p, size = 160, type = 'image/png') {
 const CREDIT_KEY = 'meshGradientCredit.v2';
 // Builds the line with DOM nodes (names come from other people, so never as HTML). With a Twitter handle the name is a
 // link to that profile, opening in a new tab.
+let credit = null; // { name, twitter } while the canvas holds someone's published gradient
+export const getCredit = () => credit;
 function renderCredit(c) {
+  credit = c?.name ? c : null;
   const el = $('frameCredit');
   el.replaceChildren();
   if (!c?.name) return;

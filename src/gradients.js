@@ -8,7 +8,7 @@ import { serializeConfig, state } from './state.js';
 import { cleanHandle } from './constants.js';
 import { $, showToast } from './dom.js';
 import { whenClient, onUser, startSignIn, configured } from './auth.js';
-import { applyGradient, renderThumb, setCredit } from './loadGradient.js';
+import { applyGradient, renderThumb, setCredit, getCredit } from './loadGradient.js';
 import { markSaved, clearSaved, markCopy, onProvenance } from './provenance.js';
 import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
 import { masonry, relayout, thumbRatio } from './masonry.js';
@@ -638,6 +638,19 @@ const setShareModal = open => {
   setShareNote('');
   if (!open) return;
   $('shareModalField').value = shareUrl();
+  // "by {name}" under the heading: "by" is muted; the name links to their Twitter profile when they have one
+  const by = $('shareModalBy'), c = getCredit();
+  by.replaceChildren(); by.hidden = !c;
+  if (c) {
+    const word = document.createElement('span'); word.className = 'word'; word.textContent = 'by ';
+    by.append(word);
+    if (c.twitter) {
+      const a = document.createElement('a');
+      a.href = `https://x.com/${encodeURIComponent(c.twitter)}`; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.textContent = c.name; a.title = `@${c.twitter} on Twitter`;
+      by.append(a);
+    } else by.append(c.name);
+  }
   $('shareModalImg').src = renderThumb(serializeConfig(), 900, 'image/jpeg') || '';
   $('shareModalCopy').focus();
 };

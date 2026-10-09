@@ -942,8 +942,12 @@ section[data-collapse] > h2[hidden] { display: none; }
 
 /* Share modal: the intro dialog's shell, with the gradient being shared where the video goes */
 .intro-media > img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.share-body { padding: 8px 32px 30px; align-items: stretch; }
+.share-body { padding: 20px; align-items: stretch; }
 .share-body h2 { text-align: center; }
+.share-body h2:has(+ .share-by:not([hidden])) { margin-bottom: 4px; }
+.share-body .share-by { margin: 0 0 16px; min-height: 0; max-width: none; text-align: center; }
+.share-by .word { color: var(--ink-3); }
+.share-by a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 .share-row { display: flex; align-items: center; gap: 12px; }
 .share-field { position: relative; flex: 1; min-width: 0; }
 .share-field .sinput { width: 100%; height: 36px; font-size: 13.5px; padding: 0 40px 0 12px; }
