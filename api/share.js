@@ -40,7 +40,7 @@ export default async function handler(req, res) {
             html = setMeta(html, 'og:image:height', Math.max(1, Math.round(h * k)));
           }
         }
-        html = html.replace('<title>mmeshy</title>', `<title>${esc(title)}</title>`);
+        html = html.replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`);
       }
     }
   } catch { /* any failure: serve the plain page with the default card */ }
