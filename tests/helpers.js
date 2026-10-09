@@ -23,7 +23,7 @@ export async function openApp(page) {
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
   await page.goto(PAGE, { waitUntil: 'networkidle' });
-  await page.evaluate(() => localStorage.clear());
+  await page.evaluate(() => { localStorage.clear(); localStorage.setItem('meshyIntroSeen.v1', '1'); }); // the first-visit intro would cover the page
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForFunction(READY);
   return errors;

@@ -227,6 +227,29 @@ body {
 }
 .modal-overlay[hidden] { display: none; }
 
+/* ---- First-visit intro: a carousel of short looping videos, each with a heading and a line of text ---- */
+.intro-dialog { position: relative; width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: hidden auto; background: var(--panel); border-radius: 14px; box-shadow: 0 24px 64px rgba(0,0,0,.35); font-family: var(--font-ui); color: var(--ink); }
+.intro-close { position: absolute; top: 12px; right: 12px; z-index: 3; width: 28px; height: 28px; padding: 0; border: none; border-radius: var(--radius); background: rgba(0,0,0,.35); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.intro-close:hover { background: rgba(0,0,0,.55); border: none; }
+.intro-media { position: relative; aspect-ratio: 4 / 3; /* the videos are all recorded at 4:3, so every slide shows whole */ overflow: hidden; background: var(--ctrl-bg); }
+.intro-track { display: flex; width: 100%; height: 100%; transition: transform .25s cubic-bezier(.3,.9,.4,1); }
+.intro-track video { flex: none; width: 100%; height: 100%; object-fit: cover; display: block; }
+.intro-media::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 72px; z-index: 1; pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,.55), transparent); } /* a soft shadow over the video's bottom edge, under the dots */
+.intro-dots { position: absolute; left: 0; right: 0; bottom: 14px; z-index: 2; display: flex; justify-content: center; gap: 11px; }
+.intro-dot { position: relative; width: 6px; height: 6px; padding: 0; border: none; border-radius: 50%; background: rgba(255,255,255,.3); cursor: pointer; }
+.intro-dot::after { content: ''; position: absolute; inset: -8px; } /* a bigger tap target than the 6px dot */
+.intro-dot:hover { border: none; background: rgba(255,255,255,.55); }
+.intro-dot[aria-selected="true"] { background: #fff; }
+.intro-body { padding: 20px 32px 30px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.intro-body h2 { margin: 0 0 12px; font: 500 18px/24px var(--font-ui); text-transform: none; letter-spacing: 0; color: var(--ink); }
+.intro-body p { margin: 0 0 20px; max-width: 440px; font: 400 14px/20px var(--font-ui); color: var(--ink); min-height: 40px; }
+.intro-body p kbd { font-family: var(--font-mono); font-size: 12px; line-height: 1.4; } /* Geist Mono, so the I keeps its top and bottom bars and reads as a letter */
+.intro-nav { display: flex; gap: 8px; }
+.intro-arrow { width: 48px; height: 38px; padding: 0; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--ctrl-grad); border: 1px solid rgba(255,255,255,.2); color: var(--ink); } /* the secondary button look, same as Sign in */
+.intro-arrow:hover:not(:disabled) { filter: brightness(1.1); border-color: rgba(255,255,255,.2); }
+.intro-arrow:disabled { opacity: .4; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .intro-track { transition: none; } }
+
 /* ---- Settings dialog: a sidebar of sections next to the active section's body ---- */
 .settings-dialog {
   width: min(720px, calc(100vw - 48px)); height: min(520px, calc(100vh - 48px));
@@ -405,8 +428,9 @@ body.loading .skeleton { opacity: 1; }
 /* Mobile drag handle on the panel's top edge: a 44px-tall touch target centred on the border line, with a small pill in it.
    Dragging it moves the line, trading canvas height for settings height (see controls.js). */
 .panel-grip { position: absolute; left: 50%; top: -22px; width: 88px; height: 44px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; justify-content: center; touch-action: none; cursor: row-resize; -webkit-user-select: none; user-select: none; }
-.panel-grip span { width: 36px; height: 5px; border-radius: 100px; background: color-mix(in srgb, var(--ink) 35%, var(--panel)); transition: background .12s ease-out; }
-.panel-grip:active span { background: color-mix(in srgb, var(--ink) 55%, var(--panel)); }
+.panel-grip span { width: 36px; height: 5px; translate: 0 -1px; border-radius: 100px; background: color-mix(in srgb, var(--ink) 35%, var(--panel)); transition: background .12s ease-out, width .1s ease-out; }
+@media (hover: hover) { .panel-grip:hover span { width: 45px; } } /* hover: a quarter longer (36 → 45px) */
+.panel-grip:active span { background: color-mix(in srgb, var(--ink) 55%, var(--panel)); width: 72px; transition: background .12s ease-out, width .15s ease-out; } /* held: double the length (36 → 72px), growing evenly either side since the bar is centred; width, not a scale, so the rounded ends stay round */
 @media (min-width: 821px) { .desktop-hide { display: none !important; } }
 section { display: flex; flex-direction: column; gap: 12px; }
 section[hidden] { display: none; }

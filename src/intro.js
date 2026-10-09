@@ -1,0 +1,113 @@
+// First-visit intro: a small carousel of looping videos with a heading and a line of text each. Shown once per
+// browser (the flag is written as it opens, so closing it any way, or just reloading, never brings it back).
+// [i] in a slide's text is drawn as a keycap.
+
+import { $ } from './dom.js';
+import { MOBILE_BREAKPOINT } from './constants.js';
+
+const SEEN_KEY = 'meshyIntroSeen.v1';
+// each text should run to two lines at the 440px text width: up to about 115 characters
+// mobileOnly: only part of the carousel on a phone-sized window
+const ALL_SLIDES = [
+  { video: 'videos/reference.mp4', title: 'Add a reference', text: 'Drag and drop any image in the canvas! You can also press [i] on your keyboard and sample it with the color picker.' },
+  { video: 'videos/community.mp4', title: 'Start from the community', text: 'Browse gradients other people have published in the Community tab and start from any of them.' },
+  { video: 'videos/unlink.mp4', title: 'Move each axis on its own', text: 'Right-click a node and choose Unlink axes to move each axis on its own.' },
+  { video: 'videos/mobile_mobile-support.mp4', title: 'Made for your phone too', text: 'Meshy works on mobile as well. Drag the handle on the settings panel to give the canvas or the controls more room.', mobileOnly: true },
+];
+
+const modal = $('introModal'), track = $('introTrack'), dots = $('introDots');
+let index = 0, slides = [], videos = [], dotEls = [];
+
+function seen() { try { return localStorage.getItem(SEEN_KEY) === '1'; } catch { return true; } } // can't remember it → don't nag
+function markSeen() { try { localStorage.setItem(SEEN_KEY, '1'); } catch {} }
+
+// (Re)builds the slides, videos and dots for the current window: the mobile slide only exists on a phone-sized one.
+function build() {
+  const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
+  slides = ALL_SLIDES.filter(s => !s.mobileOnly || mobile);
+  track.replaceChildren(); dots.replaceChildren();
+  videos = slides.map((s, i) => {
+    const v = document.createElement('video');
+    v.muted = true; v.loop = true; v.playsInline = true; v.preload = i === 0 ? 'auto' : 'none'; v.setAttribute('aria-hidden', 'true');
+    v.dataset.src = s.video; track.appendChild(v);
+    return v;
+  });
+  dotEls = slides.map((s, i) => {
+    const d = document.createElement('button');
+    d.type = 'button'; d.className = 'intro-dot'; d.setAttribute('role', 'tab'); d.setAttribute('aria-label', `Tip ${i + 1} of ${slides.length}`);
+    d.addEventListener('click', () => show(i));
+    dots.appendChild(d);
+    return d;
+  });
+}
+
+function show(i) {
+  index = Math.max(0, Math.min(slides.length - 1, i));
+  track.style.transform = `translateX(${-index * 100}%)`;
+  videos.forEach((v, k) => {
+    if (k === index) { if (!v.src) v.src = v.dataset.src; v.play().catch(() => {}); } else v.pause();
+  });
+  dotEls.forEach((d, k) => d.setAttribute('aria-selected', String(k === index)));
+  $('introPrev').disabled = index === 0; $('introNext').disabled = index === slides.length - 1;
+  $('introTitle').textContent = slides[index].title;
+  $('introText').innerHTML = slides[index].text.replace('[i]', '<kbd>I</kbd>');
+}
+// Closing flies the dialog up into the info icon in the header (desktop and mobile), and that icon flies it back out.
+// With reduced motion it just appears and disappears.
+const dialog = modal.querySelector('.intro-dialog'), infoBtn = $('introInfoBtn');
+const canFly = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
+const FLY_MS = 200, FLY_EASE = 'ease-out';
+let flying = false;
+// the transform that squashes the dialog onto the icon (from the dialog's top-left corner)
+function squash() {
+  const d = dialog.getBoundingClientRect(), b = infoBtn.getBoundingClientRect();
+  return `translate(${b.left - d.left}px, ${b.top - d.top}px) scale(${b.width / d.width}, ${b.height / d.height})`;
+}
+function open() {
+  if (flying || !modal.hidden) return;
+  markSeen(); build(); show(0);
+  modal.hidden = false;
+  if (!canFly()) return;
+  flying = true;
+  const from = squash();
+  dialog.style.transformOrigin = '0 0';
+  modal.animate({ backgroundColor: ['rgba(0,0,0,0)', 'rgba(0,0,0,.5)'] }, { duration: FLY_MS, easing: FLY_EASE });
+  dialog.animate([{ transform: from, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: FLY_MS, easing: FLY_EASE }).finished
+    .catch(() => {}).then(() => { flying = false; });
+}
+function close() {
+  if (modal.hidden || flying) return;
+  videos.forEach(v => v.pause());
+  if (!canFly()) { modal.hidden = true; return; }
+  flying = true;
+  const to = squash();
+  dialog.style.transformOrigin = '0 0';
+  modal.animate({ backgroundColor: ['rgba(0,0,0,.5)', 'rgba(0,0,0,0)'] }, { duration: FLY_MS, easing: FLY_EASE, fill: 'forwards' });
+  dialog.animate([{ transform: 'none', opacity: 1 }, { transform: to, opacity: 0 }], { duration: FLY_MS, easing: FLY_EASE, fill: 'forwards' }).finished
+    .catch(() => {}).then(() => {
+      modal.hidden = true; flying = false;
+      modal.getAnimations().forEach(a => a.cancel()); dialog.getAnimations().forEach(a => a.cancel());
+    });
+}
+infoBtn.addEventListener('click', open);
+
+$('introClose').addEventListener('click', close);
+$('introPrev').addEventListener('click', () => show(index - 1));
+$('introNext').addEventListener('click', () => show(index + 1));
+modal.addEventListener('pointerdown', e => { if (e.target === modal) close(); });
+document.addEventListener('keydown', e => {
+  if (modal.hidden) return;
+  if (e.key === 'Escape') { e.stopPropagation(); close(); }
+  else if (e.key === 'ArrowRight') { e.stopPropagation(); show(index + 1); }
+  else if (e.key === 'ArrowLeft') { e.stopPropagation(); show(index - 1); }
+}, true);
+// swipe between slides on touch screens
+let swipeX = null;
+$('introTrack').addEventListener('pointerdown', e => { swipeX = e.clientX; });
+$('introTrack').addEventListener('pointerup', e => {
+  if (swipeX == null) return;
+  const dx = e.clientX - swipeX; swipeX = null;
+  if (Math.abs(dx) > 40) show(index + (dx < 0 ? 1 : -1));
+});
+
+if (!seen()) open();

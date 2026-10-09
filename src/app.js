@@ -21,6 +21,7 @@ import './settingsPanel.js';
 import './theme.js';
 import './auth.js';
 import './tooltip.js';
+import './intro.js';
 import './sliderRubberband.js';
 import { syncControlsFromState, seedNodes } from './controls.js';
 import { markCopy } from './provenance.js';
