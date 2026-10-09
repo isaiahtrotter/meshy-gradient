@@ -234,7 +234,7 @@ body {
 .intro-media { position: relative; aspect-ratio: 4 / 3; /* the videos are all recorded at 4:3, so every slide shows whole */ overflow: hidden; background: var(--ctrl-bg); }
 .intro-track { display: flex; width: 100%; height: 100%; transition: transform .25s cubic-bezier(.3,.9,.4,1); }
 .intro-track video { flex: none; width: 100%; height: 100%; object-fit: cover; display: block; }
-.intro-media::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 72px; z-index: 1; pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,.55), transparent); } /* a soft shadow over the video's bottom edge, under the dots */
+.intro-media::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 72px; z-index: 1; pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,0.550) 0%, rgba(0,0,0,0.535) 10%, rgba(0,0,0,0.493) 20%, rgba(0,0,0,0.431) 30%, rgba(0,0,0,0.356) 40%, rgba(0,0,0,0.275) 50%, rgba(0,0,0,0.194) 60%, rgba(0,0,0,0.119) 70%, rgba(0,0,0,0.057) 80%, rgba(0,0,0,0.015) 90%, rgba(0,0,0,0.000) 100%); } /* a soft shadow over the video's bottom edge, under the dots: an ease-in-out (smoothstep) fade, built from stops since CSS gradients are linear */
 .intro-dots { position: absolute; left: 0; right: 0; bottom: 14px; z-index: 2; display: flex; justify-content: center; gap: 11px; }
 .intro-dot { position: relative; width: 6px; height: 6px; padding: 0; border: none; border-radius: 50%; background: rgba(255,255,255,.3); cursor: pointer; }
 .intro-dot::after { content: ''; position: absolute; inset: -8px; } /* a bigger tap target than the 6px dot */
