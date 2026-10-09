@@ -197,6 +197,8 @@ body {
 .mobile-link { bottom: 78px; }
 .mobile-flipx { bottom: 122px; }
 .mobile-flipy { bottom: 166px; }
+.mobile-link[hidden] ~ .mobile-flipx { bottom: 78px; } /* no link button (strokes have no arms): the flips drop down to close the gap */
+.mobile-link[hidden] ~ .mobile-flipy { bottom: 122px; }
 .mobile-link .ic-unlinked, .mobile-link.unlinked .ic-linked { display: none; } /* the icon swaps to a broken chain while unlinked */
 .mobile-link.unlinked .ic-unlinked { display: block; }
 .mobile-del[hidden], .mobile-sel[hidden] { display: none; }
