@@ -7,7 +7,7 @@ import { snapshot, pushUndo, undo, redo } from './undo.js';
 import { $ } from './dom.js';
 import { layout, draw } from './view.js';
 import { refreshAll } from './refresh.js';
-import { deleteSelected } from './actions.js';
+import { deleteSelected, flipSelected, toggleLinkSelected } from './actions.js';
 
 // ---------- Canvas size ----------
 function applyCanvasSizeLive(w, h) { setCanvasSizeState(w, h); $('cw').value = state.w; $('ch').value = state.h; layout(); }
@@ -79,6 +79,9 @@ attachScrub($('ch'), $('ch'), { onInput: scrubH, threshold: 6, mobileOnly: true 
 
 // ---------- Selection buttons ----------
 $('mobileDelBtn').addEventListener('click', deleteSelected);
+$('mobileLinkBtn').addEventListener('click', toggleLinkSelected);
+$('mobileFlipXBtn').addEventListener('click', () => flipSelected('x'));
+$('mobileFlipYBtn').addEventListener('click', () => flipSelected('y'));
 $('undoTopBtn').addEventListener('click', undo);
 $('redoTopBtn').addEventListener('click', redo);
 $('mobileUndoBtn').addEventListener('click', undo);

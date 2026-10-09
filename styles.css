@@ -185,7 +185,7 @@ body {
    line-height: 1.45 restores the same ratio body text uses, which is what the shortcuts modal's keys inherit. */
 .toolbar-tip kbd { line-height: 1.45; }
 /* Same chrome as the bottom toolbar (.node-bar): raised gradient, 1px light inset border, 12px radius, 32px square (20px icon + 6px padding). */
-.mobile-undo, .mobile-redo, .mobile-del {
+.mobile-undo, .mobile-redo, .mobile-del, .mobile-sel {
   position: absolute; bottom: 34px; z-index: 2; width: 32px; height: 32px; border: 0; border-radius: 12px;
   background: var(--ctrl-grad); color: var(--ink); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), 0 7px 25px rgba(0,0,0,.25);
 }
@@ -193,8 +193,14 @@ body {
 .mobile-undo { left: 14px; }
 .mobile-redo, .mobile-del { right: 14px; }
 .mobile-del { bottom: 78px; background: #c53030; color: #fff; } /* stacked 12px above Redo; only shown while a node is selected */
-.mobile-del[hidden] { display: none; }
-.stage.previewing .mobile-undo, .stage.previewing .mobile-redo, .stage.previewing .mobile-del { display: none; }
+.mobile-sel { left: 14px; } /* left column, stacked 12px apart above Undo; only shown while a node is selected */
+.mobile-link { bottom: 78px; }
+.mobile-flipx { bottom: 122px; }
+.mobile-flipy { bottom: 166px; }
+.mobile-link .ic-unlinked, .mobile-link.unlinked .ic-linked { display: none; } /* the icon swaps to a broken chain while unlinked */
+.mobile-link.unlinked .ic-unlinked { display: block; }
+.mobile-del[hidden], .mobile-sel[hidden] { display: none; }
+.stage.previewing .mobile-undo, .stage.previewing .mobile-redo, .stage.previewing .mobile-del, .stage.previewing .mobile-sel { display: none; }
 .stage.sampling, .stage.sampling * { cursor: none !important; }
 .stage.hard-dragging, .stage.hard-dragging * { cursor: none !important; }
 .stage.node-grab, .stage.node-grab * { cursor: grabbing !important; } /* the overlay captures the pointer during a node/axis drag, so without this the cursor would flip from the handle's hand to the overlay's crosshair */
@@ -928,4 +934,30 @@ section[data-collapse] > h2[hidden] { display: none; }
    The markup and src/colorPanel.js logic are intact — delete this block to bring them back. */
 #pickerTabs, #gradRampWrap, #stopList, #gradAngleRow, #gradEaseRow { display: none !important; }
 
-.mobile-undo svg, .mobile-redo svg { width: 20px; height: 20px; }
+.mobile-undo svg, .mobile-redo svg, .mobile-sel svg { width: 20px; height: 20px; }
+
+/* The undo/redo glyphs' ink isn't centred in their 20px viewBox (undo spans x 5–17, redo x 3–15, both y 4.5–17), so nudge each to sit centred in its button. */
+.mobile-undo svg { transform: translate(-1px, -.75px); }
+.mobile-redo svg { transform: translate(1px, -.75px); }
+
+/* Share modal: the intro dialog's shell, with the gradient being shared where the video goes */
+.intro-media > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.share-body { padding: 8px 32px 30px; align-items: stretch; }
+.share-body h2 { text-align: center; }
+.share-row { display: flex; align-items: center; gap: 12px; }
+.share-field { position: relative; flex: 1; min-width: 0; }
+.share-field .sinput { width: 100%; height: 36px; font-size: 13.5px; padding: 0 40px 0 12px; }
+.share-copy { position: absolute; top: 0; right: 0; width: 36px; height: 36px; padding: 0; border: 0; background: none; color: var(--ink); display: flex; align-items: center; justify-content: center; opacity: .7; }
+.share-copy:hover { opacity: 1; border: 0; background: none; }
+.share-copy svg { position: absolute; transition: opacity .18s ease, transform .18s cubic-bezier(.3,.9,.4,1); }
+.share-copy .check { opacity: 0; transform: scale(.5); }
+.share-copy.copied .copy-ic { opacity: 0; transform: scale(.5); }
+.share-copy.copied .check { opacity: 1; transform: scale(1); }
+.share-or { flex: none; margin: 0; text-align: center; font: 400 13px/16px var(--font-ui); color: var(--ink); opacity: .6; }
+.share-image-btn { flex: none; width: auto; padding: 0 16px; height: 36px; border-radius: 10px; background: var(--ctrl-grad); border: 1px solid rgba(255,255,255,.2); color: var(--ink); font: 500 13.5px/1 var(--font-ui); } /* same secondary-button look as the intro arrows */
+.share-image-btn { display: inline-grid; place-items: center; align-content: center; } /* both labels share one cell, so the button is as wide as the longer one and never shifts when the text swaps */
+.share-image-btn .lbl { grid-area: 1 / 1; }
+.share-image-btn .lbl.done, .share-image-btn.copied .lbl:not(.done) { visibility: hidden; }
+.share-image-btn.copied .lbl.done { visibility: visible; }
+.share-image-btn:hover { filter: brightness(1.1); border-color: rgba(255,255,255,.2); }
+.share-note { margin: 12px 0 0; min-height: 0; text-align: center; font-size: 12px; line-height: 16px; opacity: .75; }

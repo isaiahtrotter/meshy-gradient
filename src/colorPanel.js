@@ -98,6 +98,11 @@ export function refreshSelectionPanel() {
   const occSel = sel.filter(n => n.occ);
   $('selSection').hidden = !has;
   $('mobileDelBtn').hidden = !has;
+  $('mobileFlipXBtn').hidden = $('mobileFlipYBtn').hidden = !has;
+  const linkable = sel.filter(n => n.type !== 'stroke'), unlinked = linkable.length > 0 && !linkable[0].linked;
+  $('mobileLinkBtn').hidden = !linkable.length;
+  $('mobileLinkBtn').classList.toggle('unlinked', unlinked);
+  $('mobileLinkBtn').title = $('mobileLinkBtn').ariaLabel = unlinked ? 'Link axes' : 'Unlink axes';
   $('selTitle').textContent = !has ? 'Selected (none)'
     : sel.every(n => n.occ) ? (sel.length === 1 ? 'Occluded node' : `${sel.length} occluded nodes selected`)
     : (sel.length === 1 ? 'Selected node' : `${sel.length} nodes selected`);

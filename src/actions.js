@@ -3,7 +3,7 @@
 import { state, selectedNodes, removeNodes, selectAll } from './state.js';
 import { session } from './session.js';
 import { pushUndo } from './undo.js';
-import { flipNode } from './nodes.js';
+import { flipNode, toggleLinked } from './nodes.js';
 import { refreshAll } from './refresh.js';
 
 export function deleteSelected() {
@@ -32,6 +32,14 @@ export function flipSelected(axis) {
   pushUndo();
   const vals = nodes.map(n => n[axis]), mid = (Math.min(...vals) + Math.max(...vals)) / 2;
   for (const n of nodes) { flipNode(n, axis); if (nodes.length > 1) n[axis] = 2 * mid - n[axis]; }
+  refreshAll();
+}
+// Link/unlink the selection's arms. Mixed selections go by the first linkable node, so one tap makes them all agree.
+export function toggleLinkSelected() {
+  const nodes = selectedNodes().filter(n => n.type !== 'stroke'); if (!nodes.length) return;
+  pushUndo();
+  const makeLinked = !nodes[0].linked;
+  for (const n of nodes) if (!!n.linked !== makeLinked) toggleLinked(n);
   refreshAll();
 }
 export function nudgeSelected(dx, dy) {

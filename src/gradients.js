@@ -13,6 +13,7 @@ import { markSaved, clearSaved, markCopy, onProvenance } from './provenance.js';
 import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
 import { masonry, relayout, thumbRatio } from './masonry.js';
 import { askConfirm } from './confirm.js';
+import { renderExport } from './exporter.js';
 import { paintThumb, setThumbFetcher, pruneThumbs } from './thumbs.js';
 
 let client = null, me = null;
@@ -621,7 +622,6 @@ for (const id of ['prefName', 'prefTwitter']) $(id).addEventListener('input', ()
 // edit. gradient_by_slug (supabase/schema.sql) serves the link to anyone, but only for published rows.
 function syncShare() {
   const canShare = !!(shareSlug && pristineCopy);
-  $('shareSection').hidden = !(me && canShare);                    // the top bar icon: signed-in users
   $('shareFrameBtn').classList.toggle('is-hidden', !canShare);     // the "Share" button where Publish would be: anyone
 }
 function setShareSlug(slug) {
@@ -630,12 +630,46 @@ function setShareSlug(slug) {
   syncShare();
 }
 onProvenance(pristine => { pristineCopy = pristine; syncShare(); });
-async function copyShareLink(anchor) {
-  const url = `${location.origin}/?g=${shareSlug}`;
-  try { await navigator.clipboard.writeText(url); showToast(anchor, 'Link copied'); }
-  catch { askConfirm({ title: 'Copy this link', text: 'Your browser blocked copying automatically. Select the link below and copy it.', field: url, confirmLabel: 'Done', cancelLabel: null }); }
-}
-for (const id of ['shareBtn', 'shareFrameBtn']) $(id).addEventListener('click', e => copyShareLink(e.currentTarget));
+const shareUrl = () => `${location.origin}/?g=${shareSlug}`;
+const setShareNote = msg => { $('shareModalNote').hidden = !msg; $('shareModalNote').textContent = msg || ''; };
+const setShareModal = open => {
+  $('shareModal').hidden = !open;
+  setCopyTick(false); $('shareModalImgBtn').classList.remove('copied');
+  setShareNote('');
+  if (!open) return;
+  $('shareModalField').value = shareUrl();
+  $('shareModalImg').src = renderThumb(serializeConfig(), 900, 'image/jpeg') || '';
+  $('shareModalCopy').focus();
+};
+$('shareModalClose').addEventListener('click', () => setShareModal(false));
+$('shareModal').addEventListener('pointerdown', e => { if (e.target === $('shareModal')) setShareModal(false); });
+document.addEventListener('keydown', e => { if (!$('shareModal').hidden && e.key === 'Escape') { e.stopPropagation(); setShareModal(false); } }, true);
+$('shareModalField').addEventListener('focus', e => e.target.select());
+let copiedTimer = 0;
+$('shareModalCopy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(shareUrl());
+    setCopyTick(true); clearTimeout(copiedTimer); copiedTimer = setTimeout(() => setCopyTick(false), 1500);
+    setShareNote('');
+  } catch { $('shareModalField').focus(); setShareNote('Your browser blocked copying automatically. The link is selected: copy it by hand.'); }
+});
+const setCopyTick = on => $('shareModalCopy').classList.toggle('copied', on);
+// The same render as the Export section's Copy button: a PNG at the export size on the clipboard.
+let copyingImg = false;
+$('shareModalImgBtn').addEventListener('click', async () => {
+  if (copyingImg) return;
+  if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') return setShareNote('This browser can’t copy images: download it from Export instead.');
+  const btn = $('shareModalImgBtn'); copyingImg = true; setShareNote('');
+  btn.classList.add('copied'); // flips to "Copied!" at once; the render and clipboard write happen behind it
+  const reset = () => btn.classList.remove('copied');
+  try {
+    // the promise goes in the item itself so the write still counts as part of the click (Safari insists)
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': renderExport('image/png').then(r => r.blob) })]);
+    setTimeout(reset, 1500);
+  } catch (err) { reset(); setShareNote((err && err.message) || 'Couldn’t copy the image.'); }
+  finally { copyingImg = false; }
+});
+$('shareFrameBtn').addEventListener('click', () => setShareModal(true));
 
 // Opens the gradient a share link points at (called once the app has booted). It lands as a copy, credited to its
 // author, like one from the Community tab.
