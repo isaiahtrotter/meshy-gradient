@@ -1,7 +1,7 @@
 // Shared hover tooltips for the icon buttons: the bottom toolbar's (the pill appears above the bar) and the top bar's
 // undo / redo / settings / share (below the bar). The first hover in a bar waits out TIP_DELAY (.5s) before the pill
-// appears; while it's visible, moving straight to another icon (without leaving the bar) slides it sideways instead of
-// hiding and re-arming the delay. Buttons opt in with `data-tip` (the label) and, when they have one, `data-key`
+// appears, fading in right at that button; while it's visible, moving straight to another icon (without leaving the bar)
+// slides it sideways instead of hiding and re-arming the delay. Buttons opt in with `data-tip` (the label) and, when they have one, `data-key`
 // (rendered as a <kbd>).
 
 const TIP_DELAY = 500;
@@ -42,12 +42,12 @@ for (const bar of BARS) {
   bar.el.addEventListener('pointerover', e => {
     const btn = e.target.closest('[data-tip]');
     if (!btn || btn === shownBtn || btn === pendingBtn) return;
-    if (shownBtn) { shownBtn = btn; render(btn); place(btn, bar); return; } // already showing: hop straight over
+    if (shownBtn) { shownBtn = btn; render(btn); tip.classList.add('glide'); place(btn, bar); return; } // already showing: hop straight over
     pendingBtn = btn;
     clearTimeout(delayTimer);
     delayTimer = setTimeout(() => {
       shownBtn = btn; pendingBtn = null;
-      render(btn); place(btn, bar); tip.classList.add('visible');
+      render(btn); tip.classList.remove('glide'); place(btn, bar); tip.classList.add('visible'); // no glide: it fades in right at this button
     }, TIP_DELAY);
   });
   bar.el.addEventListener('pointerleave', reset); // only fires on leaving the bar as a whole, not between its buttons

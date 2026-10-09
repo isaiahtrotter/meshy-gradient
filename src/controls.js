@@ -253,6 +253,13 @@ export function seedNodes(colours) {
   colours.forEach((c, i) => addNode('circle', spots[i % spots.length][0] + (Math.random() - .5) * .1, spots[i % spots.length][1] + (Math.random() - .5) * .1, c, 0.45 + Math.random() * 0.15));
 }
 const shuffleArr = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } };
+// Shuffles in place but never lands back on the same arrangement (two or three colours would otherwise do so a
+// good share of the time, and the click would look dead). Only an array of all-equal colours can't change.
+function shuffleChanged(arr) {
+  const before = arr.slice(), same = () => arr.every((c, i) => c === before[i]);
+  if (before.every(c => c === before[0])) return;
+  do shuffleArr(arr); while (same());
+}
 $('shuffle').addEventListener('click', () => {
   pushUndo();
   const target = targetNodes();
@@ -260,13 +267,13 @@ $('shuffle').addEventListener('click', () => {
   // (it would only swap with the visible solid colours and dull them), and shuffle the solid nodes' colours among
   // themselves.
   const solid = target.filter(n => !n.grad), cols = solid.map(n => n.color);
-  shuffleArr(cols);
+  shuffleChanged(cols);
   solid.forEach((n, i) => { n.color = cols[i]; });
   // Gradient nodes: shuffle each stop's colour among all stops across every gradient node in the target, so a
   // gradient's ramp doesn't stay frozen.
   const gradNodes = target.filter(n => n.grad);
   const stopCols = gradNodes.flatMap(n => n.gradStops.map(s => s.color));
-  shuffleArr(stopCols);
+  shuffleChanged(stopCols);
   let k = 0;
   for (const n of gradNodes) for (const s of n.gradStops) s.color = stopCols[k++];
   state.seed = Math.random() * 1000; refreshAll();
@@ -276,8 +283,10 @@ $('scatter').addEventListener('click', () => {
   targetNodes().forEach(n => { n.x = Math.random() * 1.1 - 0.05; n.y = Math.random() * 1.1 - 0.05; });
   refreshAll();
 });
+$('alignSection').addEventListener('animationend', e => e.target.closest('.align-btn')?.classList.remove('pop')); // drops the goo filter so the idle icons stay crisp
 $('alignSection').addEventListener('click', e => {
   const b = e.target.closest('button[data-axis]'); if (!b) return;
+  b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); // restart the 100ms pill animation (styles.css)
   const target = targetNodes(); if (!target.length) return;
   pushUndo();
   target.forEach(n => { n[b.dataset.axis] = +b.dataset.val; });

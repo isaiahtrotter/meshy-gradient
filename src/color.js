@@ -14,6 +14,14 @@ export function rgbaCss(hex, a) {
   return `rgba(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)},${a})`;
 }
 
+// Relative luminance (0–1) of a hex colour; handles use it to flip their outlines to black over light colours.
+export const LIGHT_LUM = .6;
+export function hexLuminance(hex) {
+  const [r, g, b] = hexToRgb(hex).map(v => (v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4));
+  return .2126 * r + .7152 * g + .0722 * b;
+}
+export const isLightColor = hex => hexLuminance(hex) > LIGHT_LUM;
+
 // Hue sector of the standard HSV/HSL → RGB conversion, before the lightness offset `m` is added.
 function hueSector(h, c, x) {
   return h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];

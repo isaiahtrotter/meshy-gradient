@@ -298,7 +298,7 @@ const CLOSED_H = 24; // px: the closed box is just the current choice
 function setSortOpen(open) { // the box grows downward to show every option, and folds back up when one is picked (100ms ease-out, in CSS)
   sortDd.classList.toggle('open', open);
   sortBtn.setAttribute('aria-expanded', String(open));
-  sortBox.style.height = `${open ? sortBox.scrollHeight : CLOSED_H}px`;
+  sortBox.style.height = `${open ? sortBox.scrollHeight + 2 : CLOSED_H}px`; // +2: the box's 1px borders, so the last option keeps its full 22px like the others
 }
 function paintSort() {
   sortDd.querySelector('.ct-dd-label').textContent = SORT_LABELS[sortMode];

@@ -274,6 +274,7 @@ window.addEventListener('error', function (e) {
     <div class="panel-scroll" id="panelScroll">
     <section id="alignSection">
       <h2>Alignment</h2>
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="align-goo" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceGraphic" stdDeviation=".9" result="b"/><feColorMatrix in="b" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 14 -7" result="goo"/><feMerge><feMergeNode in="goo"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg> <!-- metaball filter: blurs the wall and pill together, then thresholds the alpha at 50% so they fuse; the crisp original is merged back on top, so lone shapes (the wall) keep exactly their normal look (used while an alignment button animates) -->
       <div class="align-row">
         <div class="align-group">
           <button class="align-btn" data-axis="x" data-val="0" title="Align left"><svg width="20" height="20" viewBox="0 0 20 20"><line x1="3" y1="2" x2="3" y2="18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><rect x="6" y="8" width="7" height="4" rx="2" fill="currentColor"/></svg></button>
@@ -429,7 +430,6 @@ window.addEventListener('error', function (e) {
           <div class="sv-wrap">
             <div class="sv-square" id="svSquare">
               <div class="sv-bgfade" id="svBgFade" hidden></div>
-              <div class="sv-thumb" id="svThumb"></div>
               <div class="sv-selrect" id="svSelRect" hidden></div>
               <div class="sv-zoomout" id="svZoomOverlay" hidden></div>
               <div class="sv-minimap" id="svMinimap" hidden>
@@ -444,6 +444,7 @@ window.addEventListener('error', function (e) {
                 </button>
               </div>
             </div>
+            <div class="sv-thumb" id="svThumb"></div> <!-- outside the square so its overflow:hidden never clips the thumb at the corners -->
           </div>
           <div class="hue-track" id="hueTrack"><div class="hue-thumb" id="hueThumb"></div></div>
           <div class="alpha-track checker" id="alphaTrack"><div class="alpha-fill" id="alphaFill"></div><div class="hue-thumb" id="alphaThumb"></div></div>

@@ -7,7 +7,7 @@ import { state } from './state.js';
 import { session } from './session.js';
 import { armAngle, armEnds, arcCurves } from './nodes.js';
 import { cumLengths, pointAt, strokeWorld, strokeK } from './stroke.js';
-import { rgbaCss } from './color.js';
+import { rgbaCss, isLightColor } from './color.js';
 import { overlay, maxDim, normPos, setStyle } from './dom.js';
 
 // Screen-px sizing at 100% zoom (k=1 → 148px, k=2.2 → 110px, k=40 → 24px); scaled live by session.zoom so the
@@ -110,9 +110,11 @@ function layoutStroke(c, n, cx, cy, dims) {
   for (let i = 1; i < P.length - 1; i++) { const m = mid(P[i], P[i + 1]); d += ` Q ${f(P[i][0])} ${f(P[i][1])} ${f(m[0])} ${f(m[1])}`; }
   d += ` L ${f(P[P.length - 1][0])} ${f(P[P.length - 1][1])}`;
   for (const p of c.path.children) p.setAttribute('d', d);
+  c.path.style.setProperty('--hc', isLightColor(n.color) ? '#000' : '#fff');
   syncStopEls(c, n);
   n.stops.forEach((st, i) => {
     const [sx, sy] = pointAt(P, cum, st.t), { dot, ring } = c.stops[i];
+    for (const e of [dot, ring]) e.style.setProperty('--hc', isLightColor(n.color) ? '#000' : '#fff');
     setStyle(dot, { left: sx + 'px', top: sy + 'px' });
     const R = stopHardToRadius(strokeK(n, st.t)), S = R * 2 + 12, mid = S / 2;
     setStyle(ring, { left: (sx - mid) + 'px', top: (sy - mid) + 'px', width: S + 'px', height: S + 'px' });
@@ -156,6 +158,9 @@ export function refreshHandles() {
     let c = ctlEls.get(n.id);
     if (!c) { c = createControls(n); ctlEls.set(n.id, c); }
     const on = state.selected.has(n.id);
+    // outlines, arms and rings turn black over a light colour (--hc); the spread handles' centres stay white
+    const hc = isLightColor(n.color) ? '#000' : '#fff';
+    for (const e of [el, c.ring, c.arc, ...Object.values(c.arms), ...Object.values(c.hs), ...(c.path ? [c.path, ...c.stops.flatMap(s => [s.dot, s.ring])] : [])]) e.style.setProperty('--hc', hc);
     // a small badge up and to the right of the node marks it as unlinked, only while the node is selected
     c.unlink.style.display = !n.linked && on ? 'block' : 'none';
     c.unlink.style.left = (cx + 18) + 'px'; c.unlink.style.top = (cy - 18) + 'px';
