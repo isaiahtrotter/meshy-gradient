@@ -1,11 +1,14 @@
 // First-visit intro: a small carousel of looping videos with a heading and a line of text each. Shown once per
-// browser (the flag is written as it opens, so closing it any way, or just reloading, never brings it back).
+// browser (the version is written as it opens, so closing it any way, or just reloading, never brings it back), and
+// the videos only download when it's about to be shown (or when the header's info icon is clicked).
+// To show it to everyone again after adding something new, bump INTRO_VERSION.
 // [i] in a slide's text is drawn as a keycap.
 
 import { $ } from './dom.js';
 import { MOBILE_BREAKPOINT } from './constants.js';
 
-const SEEN_KEY = 'meshyIntroSeen.v1';
+const INTRO_VERSION = 1;
+const SEEN_KEY = 'meshyIntroSeen';
 // each text should run to two lines at the 440px text width: up to about 115 characters
 // mobileOnly: only part of the carousel on a phone-sized window
 const ALL_SLIDES = [
@@ -17,18 +20,21 @@ const ALL_SLIDES = [
 const modal = $('introModal'), track = $('introTrack'), dots = $('introDots');
 let index = 0, slides = [], videos = [], dotEls = [];
 
-function seen() { try { return localStorage.getItem(SEEN_KEY) === '1'; } catch { return true; } } // can't remember it → don't nag
-function markSeen() { try { localStorage.setItem(SEEN_KEY, '1'); } catch {} }
+function seen() { try { return localStorage.getItem(SEEN_KEY) === String(INTRO_VERSION); } catch { return true; } } // can't remember it → don't nag
+function markSeen() { try { localStorage.setItem(SEEN_KEY, String(INTRO_VERSION)); } catch {} }
 
-// (Re)builds the slides, videos and dots for the current window: the mobile slide only exists on a phone-sized one.
+// Builds the slides, videos and dots once, the first time the modal is opened (not on every open, which would reload
+// the videos). A slide marked mobileOnly is only included when the window is phone-sized at that moment.
+let built = false;
 function build() {
+  if (built) return; built = true;
   const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
   slides = ALL_SLIDES.filter(s => !s.mobileOnly || mobile);
   track.replaceChildren(); dots.replaceChildren();
   videos = slides.map((s, i) => {
     const v = document.createElement('video');
-    v.muted = true; v.loop = true; v.playsInline = true; v.preload = i === 0 ? 'auto' : 'none'; v.setAttribute('aria-hidden', 'true');
-    v.dataset.src = s.video; track.appendChild(v);
+    v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('aria-hidden', 'true');
+    v.src = s.video; track.appendChild(v); // all of them start loading together, so the slides are ready as you page through
     return v;
   });
   dotEls = slides.map((s, i) => {
@@ -44,7 +50,7 @@ function show(i) {
   index = Math.max(0, Math.min(slides.length - 1, i));
   track.style.transform = `translateX(${-index * 100}%)`;
   videos.forEach((v, k) => {
-    if (k === index) { if (!v.src) v.src = v.dataset.src; v.play().catch(() => {}); } else v.pause();
+    if (k === index) { v.currentTime = 0; v.play().catch(() => {}); } else v.pause();
   });
   dotEls.forEach((d, k) => d.setAttribute('aria-selected', String(k === index)));
   $('introPrev').disabled = index === 0; $('introNext').disabled = index === slides.length - 1;
@@ -109,4 +115,4 @@ $('introTrack').addEventListener('pointerup', e => {
   if (Math.abs(dx) > 40) show(index + (dx < 0 ? 1 : -1));
 });
 
-if (!seen()) open();
+if (!seen()) open(); // a returning visitor downloads nothing until they click the info icon
