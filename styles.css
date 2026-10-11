@@ -362,6 +362,8 @@ body {
 .spread-handle::before { content: ''; position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; transform: translate(-50%, -50%); }
 .spread-handle:hover { background: #f2f2f2; }
 @media (max-width: 820px) { .spread-handle { width: 20px; height: 20px; margin: -10px 0 0 -10px; } }
+/* Phones: bigger invisible hit areas for fingers (the nodes and ring look the same). Node 24 → 36px square, hardness ring band 28 → 40px. */
+@media (max-width: 820px) { .handle::before { width: 36px; height: 36px; } .hard-ring .grab { stroke-width: 40px; } }
 .hard-ring { position: absolute; display: none; overflow: visible; pointer-events: none; }
 .hard-ring .grab { fill: none; stroke: transparent; stroke-width: 28px; pointer-events: stroke; cursor: none; }
 .hard-ring .dots { fill: none; stroke: var(--hc, #fff); stroke-width: 2px; stroke-dasharray: 3 3; stroke-linecap: butt; opacity: .5; pointer-events: none; transition: opacity .1s ease-out, stroke 100ms ease-out; }
