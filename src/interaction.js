@@ -412,3 +412,11 @@ stage.addEventListener('pointerdown', e => {
   stage.classList.add('panning');
   stage.setPointerCapture(e.pointerId);
 }, true);
+
+// In preview the overlay ignores the pointer (nothing to grab), so a one-finger drag anywhere on the stage pans the canvas.
+stage.addEventListener('pointerdown', e => {
+  if (!session.previewing || e.pointerType !== 'touch' || session.drag) return;
+  session.drag = { type: 'pan', startX: e.clientX, startY: e.clientY, startPanX: view.panX, startPanY: view.panY };
+  stage.classList.add('panning');
+  stage.setPointerCapture(e.pointerId);
+}, true);
