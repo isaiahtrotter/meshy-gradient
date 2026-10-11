@@ -96,6 +96,11 @@ const curNode = () => selectedNodes()[0];
 // Open/close a mobile side bar's selection-button window: its height animates (CSS) to the buttons' natural height or 0.
 // Falls back to auto if the bar is display:none right now (desktop, preview), where nothing can be measured.
 function growMobileExtra(el, open) {
+  if (!open && el.classList.contains('open')) { // closing: spring the Undo / Redo button below it
+    const base = el.previousElementSibling;
+    base.classList.remove('settle'); void base.offsetWidth; base.classList.add('settle');
+    base.addEventListener('animationend', () => base.classList.remove('settle'), { once: true });
+  }
   el.classList.toggle('open', open);
   const h = el.firstElementChild.offsetHeight;
   el.style.height = !open ? '0px' : h ? `${h}px` : 'auto';
