@@ -210,12 +210,6 @@ body {
 .mobile-extra.open { visibility: visible; transition: height 100ms ease-out; }
 .mobile-extra-in { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column-reverse; align-items: center; }
 .mobile-extra-in .icon-btn { flex: none; margin-bottom: 12px; }
-/* Closing: the icons fade out top to bottom (20ms apart) as the window shrinks over them; opening shows them at once, uncovered by the
-   rising edge. Delays follow the visual order: flip V is the top button, then flip H, then link; Delete is alone on the right. */
-.mobile-extra.open .icon-btn { transition: none; }
-.mobile-extra:not(.open) .icon-btn { opacity: 0; transition: opacity 60ms ease-out; }
-.mobile-extra:not(.open) .mobile-flipx { transition-delay: 20ms; }
-.mobile-extra:not(.open) .mobile-link { transition-delay: 40ms; }
 .stage.previewing .mobile-col { display: none; }
 .stage.sampling, .stage.sampling * { cursor: none !important; }
 .stage.hard-dragging, .stage.hard-dragging * { cursor: none !important; }

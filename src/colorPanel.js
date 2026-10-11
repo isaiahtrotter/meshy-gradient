@@ -106,9 +106,11 @@ export function refreshSelectionPanel() {
   const occSel = sel.filter(n => n.occ);
   $('selSection').hidden = !has;
   const linkable = sel.filter(n => n.type !== 'stroke'), unlinked = linkable.length > 0 && !linkable[0].linked;
-  $('mobileLinkBtn').hidden = !linkable.length;
-  $('mobileLinkBtn').classList.toggle('unlinked', unlinked);
-  $('mobileLinkBtn').title = $('mobileLinkBtn').ariaLabel = unlinked ? 'Link axes' : 'Unlink axes';
+  $('mobileLinkBtn').hidden = has && !linkable.length; // not on deselect: it stays put so the closing window can sweep over it, the open animation in reverse
+  if (has) { // on deselect leave the icon as it was, so it doesn't swap while the bar closes
+    $('mobileLinkBtn').classList.toggle('unlinked', unlinked);
+    $('mobileLinkBtn').title = $('mobileLinkBtn').ariaLabel = unlinked ? 'Link axes' : 'Unlink axes';
+  }
   for (const id of ['mobileExtraL', 'mobileExtraR']) growMobileExtra($(id), has); // after the link button's hidden state, so the height matches the buttons showing (circle → pencil drops one)
   $('selTitle').textContent = !has ? 'Selected (none)'
     : sel.every(n => n.occ) ? (sel.length === 1 ? 'Occluded node' : `${sel.length} occluded nodes selected`)
