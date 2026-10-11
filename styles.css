@@ -197,7 +197,7 @@ body {
 .mobile-col .icon-btn { width: 20px; height: 20px; padding: 0; border: 0; border-radius: 0; background: none; color: var(--ink); }
 .mobile-undo:disabled, .mobile-redo:disabled { opacity: .5; }
 .mobile-col .icon-btn { transition: opacity .12s ease-out; }
-.mobile-col .icon-btn:active:not(:disabled) { opacity: .45; } /* dims while pressed, restores on release */
+.mobile-col .icon-btn:active:not(:disabled), .mobile-col .icon-btn.pressed:not(:disabled) { opacity: .45; } /* dims while pressed, restores on release */
 .mobile-del { color: #ff6b6b !important; } /* the one destructive action: red icon rather than a red fill, so the bar stays uniform */
 .mobile-link .ic-unlinked, .mobile-link.unlinked .ic-linked { display: none; } /* the icon swaps to a broken chain while unlinked */
 .mobile-link.unlinked .ic-unlinked { display: block; }

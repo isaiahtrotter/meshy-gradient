@@ -87,6 +87,15 @@ $('redoTopBtn').addEventListener('click', redo);
 $('mobileUndoBtn').addEventListener('click', undo);
 $('mobileRedoBtn').addEventListener('click', redo);
 
+// The mobile side bars' buttons dim while pressed. Driven by pointer events (a .pressed class) rather than :active alone, which
+// touch browsers don't always apply, and held for at least 120ms so a quick tap still visibly dims.
+for (const btn of document.querySelectorAll('.mobile-col .icon-btn')) {
+  let downAt = 0, timer = 0;
+  btn.addEventListener('pointerdown', () => { clearTimeout(timer); downAt = performance.now(); if (!btn.disabled) btn.classList.add('pressed'); });
+  const release = () => { clearTimeout(timer); timer = setTimeout(() => btn.classList.remove('pressed'), Math.max(0, 120 - (performance.now() - downAt))); };
+  btn.addEventListener('pointerup', release); btn.addEventListener('pointercancel', release); btn.addEventListener('pointerleave', release);
+}
+
 // ---------- Sliders ----------
 // Softness and grain map the 0..1 range input onto data-min..data-max.
 // Set on the .slider wrapper (not the input) so a sibling overlay, like .adj-glow, inherits it too.
