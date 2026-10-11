@@ -92,7 +92,7 @@ body {
   .app > .panel { justify-self: stretch; width: auto; }
   .app { grid-template-columns: 1fr; grid-template-rows: minmax(0, var(--stage-h, calc(round(down, 52%, 1px) + 16px))) minmax(0, 1fr); /* whole pixels, so no hairline of page background shows between/below the rows */ height: auto; flex: 1; min-height: 0; }
   .app > .panel { min-height: 0; }
-  .panel-scroll { padding: 16px; } /* 16px all round the settings (20px on desktop) */
+  .panel-scroll { padding: 16px 14px; } /* 16px top and bottom, 14px at the sides: lines up with the Undo / Redo bars' outer edges (20px all round on desktop) */
   #cw, #ch { touch-action: none; }
   .topbar { padding: 12px; }
   .app > .stage { padding-bottom: 100px; } /* +16px for the byline under the frame, which would otherwise run into the toolbar; the stage row above is 16px taller to match */
@@ -193,7 +193,7 @@ body {
   position: absolute; bottom: 28px; z-index: 2; display: flex; flex-direction: column-reverse; align-items: center; padding: 12px;
   background: var(--ctrl-grad); border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), 0 7px 25px rgba(0,0,0,.25);
 }
-.mobile-col-left { left: 16px; } .mobile-col-right { right: 16px; } /* 16px in from the screen edge, the same as the settings panel's side padding, so the bars' outer edges line up with the controls below */
+.mobile-col-left { left: 14px; } .mobile-col-right { right: 14px; } /* the settings panel's side padding on mobile matches this */
 .mobile-col .icon-btn { width: 20px; height: 20px; padding: 0; border: 0; border-radius: 0; background: none; color: var(--ink); }
 .mobile-undo:disabled, .mobile-redo:disabled { opacity: .5; }
 .mobile-col .icon-btn { transition: opacity .12s ease-out; }
