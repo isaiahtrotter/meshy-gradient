@@ -332,7 +332,7 @@ for (const inp of document.querySelectorAll('input[type=number], input[type=text
   const grip = $('panelGrip'), app = document.querySelector('.app');
   if (grip && app) grip.addEventListener('pointerdown', e => {
     const stage = document.querySelector('.stage'), startY = e.clientY, startH = stage.getBoundingClientRect().height;
-    const appH = app.getBoundingClientRect().height, minH = Math.round(appH * 0.3), maxH = appH - 48; // keep the grip + a sliver of settings, so the panel can be pushed almost off the bottom
+    const appH = app.getBoundingClientRect().height, minH = Math.round(appH * 0.3), maxH = appH - 24; // keep the grip + a sliver of settings, so the panel can be pushed almost off the bottom
     try { grip.setPointerCapture(e.pointerId); } catch {}
     const move = ev => app.style.setProperty('--stage-h', `${Math.round(clamp(startH + ev.clientY - startY, minH, maxH))}px`);
     const end = () => { grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', end); grip.removeEventListener('pointercancel', end); };
