@@ -23,6 +23,8 @@ function restore(json) {
   applyConfig(JSON.parse(json));
   hooks.restore();
 }
+// Put the document back to a snapshot without touching the undo stacks (used to cancel a gesture that was in progress).
+export const revertTo = restore;
 export function undo() {
   if (!undoStack.length) return;
   redoStack.push(snapshot());

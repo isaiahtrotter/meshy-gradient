@@ -11,12 +11,13 @@
 import { MAXN, HARD_K_MIN, HARD_K_MAX, STROKE_K_MAX, clamp } from './constants.js';
 import { state, nodeById, cloneNode, addNode, selectOnly, selectedNodes, toggleSelected, removeNodes } from './state.js';
 import { session } from './session.js';
-import { snapshot, pushUndo } from './undo.js';
+import { snapshot, pushUndo, revertTo } from './undo.js';
 import { armAngle, SIDE_KEY, ANGLE_KEY, OPPOSITE_SIDE } from './nodes.js';
 import { cumLengths, pointAt, nearestT, smoothStroke, strokeFromPath, recenterStroke, strokeWorld, strokeK, stopFactor, STOP_M_MIN, STOP_M_MAX } from './stroke.js';
 import { wrapAngle } from './geometry.js';
 import { stage, overlay, work, normPos, maxDim, frameRect, setStatus } from './dom.js';
 import { view, applyPan, draw } from './view.js';
+import { initPinch } from './pinch.js';
 import { aimStopIndicator, handleEls, hardMax, hardToRadius, radiusToHard, stopHardToRadius, stopRadiusToHard, armScale, updateHardIndicator, refreshHandles } from './handles.js';
 import { refreshSelectionPanel } from './colorPanel.js';
 import { refreshAll, refreshSelection } from './refresh.js';
@@ -307,6 +308,20 @@ function moveStopHard(drag, p) {
   const k = Math.round(stopRadiusToHard(drag.r) * 10) / 10;
   drag.n.stops[drag.i].m = clamp(round4(k / drag.n.k), STOP_M_MIN, STOP_M_MAX);
 }
+
+// A second finger landing turns the gesture into a pinch (pinch.js): drop whatever the first finger started, as if it never
+// touched. Edits made so far are rolled back (nothing goes on the undo stack) and the selection is put back.
+function cancelDrag(selBefore) {
+  const drag = session.drag;
+  if (!drag) return;
+  stage.classList.remove('node-grab', 'hard-dragging', 'panning');
+  overlay.querySelectorAll('.hard-ring.active, .stop-ring.active, .dragging').forEach(el => el.classList.remove('active', 'dragging'));
+  marquee.style.display = 'none';
+  if (drag.snap && (drag.moved || drag.type === 'draw' || drag.duplicating || drag.dup)) revertTo(drag.snap);
+  if (selBefore) state.selected = new Set(selBefore);
+  session.drag = null; refreshAll();
+}
+initPinch(cancelDrag); // registered before the capture-phase listeners below, so its handlers run first
 
 stage.addEventListener('pointermove', e => {
   const drag = session.drag;
