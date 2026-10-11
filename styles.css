@@ -152,6 +152,7 @@ body {
   transition: opacity 150ms ease-out;
 }
 .stage.previewing .node-bar { opacity: .5; }
+@media (max-width: 820px) { .node-bar { gap: 12px; } } /* tighter on phones: 12px between everything (the divider included) */
 .node-bar .icon-btn { width: 20px; height: 20px; padding: 0; border: none; border-radius: 0; background: none; color: var(--ink); }
 .node-bar .icon-btn svg { width: 20px; height: 20px; }
 .node-bar .icon-btn:hover, .node-bar .icon-btn[aria-pressed="true"] { color: var(--accent); }
