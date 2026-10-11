@@ -73,7 +73,7 @@ overlay.addEventListener('pointerdown', e => {
   } else {
     const additive = e.shiftKey || e.metaKey || e.ctrlKey;
     const touch = touchPanStart(e);
-    if (!additive) state.selected.clear();
+    if (!additive && !touch) state.selected.clear(); // touch deselects on release instead (endDrag), so a drag that pans never flickers the selection
     session.drag = { type: 'marquee', start: p, base: new Set(state.selected), moved: false, additive, touch };
     refreshSelection();
   }
@@ -334,7 +334,7 @@ stage.addEventListener('pointermove', e => {
   if (!drag) return;
   if (drag.type === 'marquee' && drag.touch) {
     if (Math.hypot(e.clientX - drag.touch.x, e.clientY - drag.touch.y) < TOUCH_PAN_SLOP) return;
-    state.selected = drag.touch.sel; refreshSelection(); // a pan isn't a click: the selection stays
+    // a pan isn't a click: the selection was never touched
     drag = session.drag = { type: 'pan', startX: drag.touch.x, startY: drag.touch.y, startPanX: view.panX, startPanY: view.panY };
     stage.classList.add('panning');
   }
@@ -383,6 +383,7 @@ function endDrag(e) {
     else if (drag.duplicating && drag.cloneIds) { removeNodes(new Set(drag.cloneIds)); state.selected = new Set(drag.sourceIds); }
     overlay.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
   }
+  if (drag.type === 'marquee' && drag.touch && !drag.additive && e.type === 'pointerup') state.selected.clear(); // a touch tap on empty canvas deselects here, on release
   if (drag.type === 'marquee' && !drag.moved && !drag.additive && e.type === 'pointerup' && !drag.fromStage) {
     pushUndo();
     addNodeAt(drag.start.x, drag.start.y);
@@ -399,7 +400,7 @@ stage.addEventListener('pointerdown', e => {
   if (e.button !== 0 || session.previewing) return;
   const additive = e.shiftKey || e.metaKey || e.ctrlKey;
   const touch = touchPanStart(e);
-  if (!additive) state.selected.clear();
+  if (!additive && !touch) state.selected.clear();
   session.drag = { type: 'marquee', start: normPos(e), base: new Set(state.selected), moved: false, additive, fromStage: true, touch };
   refreshSelection();
   stage.setPointerCapture(e.pointerId);
