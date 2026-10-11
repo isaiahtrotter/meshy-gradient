@@ -193,7 +193,7 @@ body {
   position: absolute; bottom: 28px; z-index: 2; display: flex; flex-direction: column-reverse; align-items: center; padding: 12px;
   background: var(--ctrl-grad); border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), 0 7px 25px rgba(0,0,0,.25);
 }
-.mobile-col-left { left: 14px; } .mobile-col-right { right: 14px; }
+.mobile-col-left { left: 16px; } .mobile-col-right { right: 16px; } /* 16px in from the screen edge, the same as the settings panel's side padding, so the bars' outer edges line up with the controls below */
 .mobile-col .icon-btn { width: 20px; height: 20px; padding: 0; border: 0; border-radius: 0; background: none; color: var(--ink); }
 .mobile-undo:disabled, .mobile-redo:disabled { opacity: .5; }
 .mobile-col .icon-btn { transition: opacity .12s ease-out; }
