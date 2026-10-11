@@ -189,7 +189,7 @@ body {
    20px icons), bottom-aligned with it at 28px. Left: Undo at the bottom, then link / flips (only while a node is selected).
    Right: Redo at the bottom, then Delete. column-reverse keeps the bottom button anchored as the others come and go. */
 .mobile-col {
-  position: absolute; bottom: 28px; z-index: 2; display: flex; flex-direction: column-reverse; align-items: center; gap: 12px; padding: 16px;
+  position: absolute; bottom: 28px; z-index: 2; display: flex; flex-direction: column-reverse; align-items: center; padding: 16px;
   background: var(--ctrl-grad); border-radius: 12px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), 0 7px 25px rgba(0,0,0,.25);
 }
 .mobile-col-left { left: 14px; } .mobile-col-right { right: 14px; }
@@ -200,7 +200,14 @@ body {
 .mobile-del { color: #ff6b6b !important; } /* the one destructive action: red icon rather than a red fill, so the bar stays uniform */
 .mobile-link .ic-unlinked, .mobile-link.unlinked .ic-linked { display: none; } /* the icon swaps to a broken chain while unlinked */
 .mobile-link.unlinked .ic-unlinked { display: block; }
-.mobile-del[hidden], .mobile-sel[hidden] { display: none; }
+.mobile-link[hidden] { display: none; }
+/* The selection buttons sit in a wrapper above Undo / Redo. Selecting a node opens it: the bar grows upward from Undo / Redo
+   over 150ms ease-out (grid row 0fr → 1fr), revealing the buttons bottom to top (column-reverse, bottom-anchored, clipped).
+   Each button carries its own 12px of bottom margin, so the gaps are 12px and a collapsed wrapper adds nothing. */
+.mobile-extra { display: grid; grid-template-rows: 0fr; visibility: hidden; transition: grid-template-rows 150ms ease-out, visibility 0s 150ms; }
+.mobile-extra.open { grid-template-rows: 1fr; visibility: visible; transition: grid-template-rows 150ms ease-out; }
+.mobile-extra-in { min-height: 0; overflow: hidden; display: flex; flex-direction: column-reverse; align-items: center; }
+.mobile-extra-in .icon-btn { flex: none; margin-bottom: 12px; }
 .stage.previewing .mobile-col { display: none; }
 .stage.sampling, .stage.sampling * { cursor: none !important; }
 .stage.hard-dragging, .stage.hard-dragging * { cursor: none !important; }

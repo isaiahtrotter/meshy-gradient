@@ -97,8 +97,7 @@ export function refreshSelectionPanel() {
   const sel = selectedNodes(), has = sel.length > 0;
   const occSel = sel.filter(n => n.occ);
   $('selSection').hidden = !has;
-  $('mobileDelBtn').hidden = !has;
-  $('mobileFlipXBtn').hidden = $('mobileFlipYBtn').hidden = !has;
+  $('mobileExtraL').classList.toggle('open', has); $('mobileExtraR').classList.toggle('open', has); // the mobile side bars grow to show these
   const linkable = sel.filter(n => n.type !== 'stroke'), unlinked = linkable.length > 0 && !linkable[0].linked;
   $('mobileLinkBtn').hidden = !linkable.length;
   $('mobileLinkBtn').classList.toggle('unlinked', unlinked);
