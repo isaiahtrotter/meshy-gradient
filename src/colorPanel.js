@@ -93,11 +93,19 @@ $('occAngle').addEventListener('change', () => { if (occAngleSnap) { pushUndo(oc
 let activeStop = 0;
 const curNode = () => selectedNodes()[0];
 
+// Open/close a mobile side bar's selection-button window: its height animates (CSS) to the buttons' natural height or 0.
+// Falls back to auto if the bar is display:none right now (desktop, preview), where nothing can be measured.
+function growMobileExtra(el, open) {
+  el.classList.toggle('open', open);
+  const h = el.firstElementChild.offsetHeight;
+  el.style.height = !open ? '0px' : h ? `${h}px` : 'auto';
+}
+
 export function refreshSelectionPanel() {
   const sel = selectedNodes(), has = sel.length > 0;
   const occSel = sel.filter(n => n.occ);
   $('selSection').hidden = !has;
-  $('mobileExtraL').classList.toggle('open', has); $('mobileExtraR').classList.toggle('open', has); // the mobile side bars grow to show these
+  for (const id of ['mobileExtraL', 'mobileExtraR']) growMobileExtra($(id), has); // the mobile side bars grow to show these
   const linkable = sel.filter(n => n.type !== 'stroke'), unlinked = linkable.length > 0 && !linkable[0].linked;
   $('mobileLinkBtn').hidden = !linkable.length;
   $('mobileLinkBtn').classList.toggle('unlinked', unlinked);
