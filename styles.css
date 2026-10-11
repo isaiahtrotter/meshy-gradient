@@ -381,14 +381,12 @@ body {
 .stroke-path path { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .stroke-path .line { stroke: var(--hc, #fff); stroke-width: 2px; pointer-events: none; transition: stroke 100ms ease-out; }
 .stroke-path .hit { stroke: transparent; stroke-width: 14px; pointer-events: stroke; cursor: none; } /* none from the first frame, so the system cursor never flashes before the ghost stop appears */
-.stop-dot { position: absolute; z-index: 1; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--hc, #fff); display: none; cursor: grab; box-shadow: 0 2px 4px rgba(0,0,0,.3); transition: background-color 100ms ease-out, box-shadow 100ms ease-out; }
+.stop-dot { position: absolute; z-index: 1; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--hc, #fff); display: none; cursor: grab; box-shadow: 0 2px 4px rgba(0,0,0,.3); transition: background-color 100ms ease-out, box-shadow 100ms ease-out; }
 .stop-dot.ghost { display: block; pointer-events: none; cursor: none; opacity: 0; }
 .stop-dot.ghost.on { opacity: 1; transition: opacity 150ms ease-out; } /* fades in; hiding drops .on, so it goes away instantly */
 .overlay.ghost-blocked .stroke-path .hit { cursor: default; }
-.stop-dot::before { content: ''; position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; transform: translate(-50%, -50%); }
+.stop-dot::before { content: ''; position: absolute; top: 50%; left: 50%; width: 28px; height: 28px; transform: translate(-50%, -50%); }
 .stop-dot.selected { background: var(--accent); box-shadow: 0 0 0 2px var(--hc, #fff), 0 2px 4px rgba(0,0,0,.3); }
-.stop-dot.end { cursor: grab; width: 14px; height: 14px; margin: -7px 0 0 -7px; }
-.stop-dot.end::before { width: 28px; height: 28px; }
 .stop-ring { position: absolute; z-index: 1; display: none; overflow: visible; pointer-events: none; }
 .stop-ring .dots { fill: none; stroke: var(--hc, #fff); stroke-width: 1.5px; stroke-dasharray: 2 3; opacity: .45; pointer-events: none; transition: opacity .1s ease-out, stroke 100ms ease-out; }
 .stop-ring .grab { fill: none; stroke: transparent; stroke-width: 10px; pointer-events: stroke; cursor: none; }
