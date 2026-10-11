@@ -105,11 +105,11 @@ export function refreshSelectionPanel() {
   const sel = selectedNodes(), has = sel.length > 0;
   const occSel = sel.filter(n => n.occ);
   $('selSection').hidden = !has;
-  for (const id of ['mobileExtraL', 'mobileExtraR']) growMobileExtra($(id), has); // the mobile side bars grow to show these
   const linkable = sel.filter(n => n.type !== 'stroke'), unlinked = linkable.length > 0 && !linkable[0].linked;
   $('mobileLinkBtn').hidden = !linkable.length;
   $('mobileLinkBtn').classList.toggle('unlinked', unlinked);
   $('mobileLinkBtn').title = $('mobileLinkBtn').ariaLabel = unlinked ? 'Link axes' : 'Unlink axes';
+  for (const id of ['mobileExtraL', 'mobileExtraR']) growMobileExtra($(id), has); // after the link button's hidden state, so the height matches the buttons showing (circle → pencil drops one)
   $('selTitle').textContent = !has ? 'Selected (none)'
     : sel.every(n => n.occ) ? (sel.length === 1 ? 'Occluded node' : `${sel.length} occluded nodes selected`)
     : (sel.length === 1 ? 'Selected node' : `${sel.length} nodes selected`);
