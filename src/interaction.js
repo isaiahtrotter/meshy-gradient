@@ -72,8 +72,9 @@ overlay.addEventListener('pointerdown', e => {
     beginDraw(e, p); return;
   } else {
     const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+    const touch = touchPanStart(e);
     if (!additive) state.selected.clear();
-    session.drag = { type: 'marquee', start: p, base: new Set(state.selected), moved: false, additive };
+    session.drag = { type: 'marquee', start: p, base: new Set(state.selected), moved: false, additive, touch };
     refreshSelection();
   }
   overlay.setPointerCapture(e.pointerId);
@@ -323,9 +324,20 @@ function cancelDrag(selBefore) {
 }
 initPinch(cancelDrag); // registered before the capture-phase listeners below, so its handlers run first
 
+// One finger on empty canvas never draws a selection box: dragging pans the canvas instead (touchPanStart records where the finger
+// went down and what was selected, since pressing empty canvas deselects). A tap without movement still deselects / adds a node.
+const TOUCH_PAN_SLOP = 6;
+const touchPanStart = e => e.pointerType === 'touch' ? { x: e.clientX, y: e.clientY, sel: new Set(state.selected) } : null;
+
 stage.addEventListener('pointermove', e => {
-  const drag = session.drag;
+  let drag = session.drag;
   if (!drag) return;
+  if (drag.type === 'marquee' && drag.touch) {
+    if (Math.hypot(e.clientX - drag.touch.x, e.clientY - drag.touch.y) < TOUCH_PAN_SLOP) return;
+    state.selected = drag.touch.sel; refreshSelection(); // a pan isn't a click: the selection stays
+    drag = session.drag = { type: 'pan', startX: drag.touch.x, startY: drag.touch.y, startPanX: view.panX, startPanY: view.panY };
+    stage.classList.add('panning');
+  }
   if (drag.type === 'pan') {
     view.panX = drag.startPanX + (e.clientX - drag.startX);
     view.panY = drag.startPanY + (e.clientY - drag.startY);
@@ -386,8 +398,9 @@ stage.addEventListener('pointerdown', e => {
   if (e.target !== stage && e.target !== work) return;
   if (e.button !== 0 || session.previewing) return;
   const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+  const touch = touchPanStart(e);
   if (!additive) state.selected.clear();
-  session.drag = { type: 'marquee', start: normPos(e), base: new Set(state.selected), moved: false, additive, fromStage: true };
+  session.drag = { type: 'marquee', start: normPos(e), base: new Set(state.selected), moved: false, additive, fromStage: true, touch };
   refreshSelection();
   stage.setPointerCapture(e.pointerId);
 }, true);
