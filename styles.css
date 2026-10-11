@@ -185,21 +185,21 @@ body {
    pill's own line-height: 1 (set above, for its label) would otherwise squash the key's box short and cramped —
    line-height: 1.45 restores the same ratio body text uses, which is what the shortcuts modal's keys inherit. */
 .toolbar-tip kbd { line-height: 1.45; }
-/* Same chrome as the bottom toolbar (.node-bar): raised gradient, 1px light inset border, 12px radius, 32px square (20px icon + 6px padding). */
+/* Same chrome as the bottom toolbar (.node-bar): raised gradient, 1px light inset border, 12px radius, 32px square (20px icon + 6px padding); the mobile side buttons below are 44px (12px padding). */
 .mobile-undo, .mobile-redo, .mobile-del, .mobile-sel {
-  position: absolute; bottom: 34px; z-index: 2; width: 32px; height: 32px; border: 0; border-radius: 12px;
+  position: absolute; bottom: 34px; z-index: 2; width: 44px; height: 44px; border: 0; border-radius: 12px;
   background: var(--ctrl-grad); color: var(--ink); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2), 0 7px 25px rgba(0,0,0,.25);
 }
 .mobile-undo:disabled, .mobile-redo:disabled { opacity: .5; }
 .mobile-undo { left: 14px; }
 .mobile-redo, .mobile-del { right: 14px; }
-.mobile-del { bottom: 78px; background: #c53030; color: #fff; } /* stacked 12px above Redo; only shown while a node is selected */
+.mobile-del { bottom: 90px; background: #c53030; color: #fff; } /* stacked 12px above Redo; only shown while a node is selected */
 .mobile-sel { left: 14px; } /* left column, stacked 12px apart above Undo; only shown while a node is selected */
-.mobile-link { bottom: 78px; }
-.mobile-flipx { bottom: 122px; }
-.mobile-flipy { bottom: 166px; }
-.mobile-link[hidden] ~ .mobile-flipx { bottom: 78px; } /* no link button (strokes have no arms): the flips drop down to close the gap */
-.mobile-link[hidden] ~ .mobile-flipy { bottom: 122px; }
+.mobile-link { bottom: 90px; }
+.mobile-flipx { bottom: 146px; }
+.mobile-flipy { bottom: 202px; }
+.mobile-link[hidden] ~ .mobile-flipx { bottom: 90px; } /* no link button (strokes have no arms): the flips drop down to close the gap */
+.mobile-link[hidden] ~ .mobile-flipy { bottom: 146px; }
 .mobile-link .ic-unlinked, .mobile-link.unlinked .ic-linked { display: none; } /* the icon swaps to a broken chain while unlinked */
 .mobile-link.unlinked .ic-unlinked { display: block; }
 .mobile-del[hidden], .mobile-sel[hidden] { display: none; }
