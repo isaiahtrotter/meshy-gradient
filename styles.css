@@ -92,7 +92,7 @@ body {
   .app > .panel { justify-self: stretch; width: auto; }
   .app { grid-template-columns: 1fr; grid-template-rows: minmax(0, var(--stage-h, calc(round(down, 52%, 1px) + 16px))) minmax(0, 1fr); /* whole pixels, so no hairline of page background shows between/below the rows */ height: auto; flex: 1; min-height: 0; }
   .app > .panel { min-height: 0; }
-  .panel-scroll { padding: 16px 12px; } /* 16px top and bottom, 12px at the sides: lines up with the Undo / Redo bars' outer edges (20px all round on desktop) */
+  .app > .panel .panel-scroll { padding: 16px 12px; } /* 16px top and bottom, 12px at the sides: lines up with the Undo / Redo bars' outer edges (20px all round on desktop) */
   #cw, #ch { touch-action: none; }
   .topbar { padding: 12px; }
   .app > .stage { padding-bottom: 100px; } /* +16px for the byline under the frame, which would otherwise run into the toolbar; the stage row above is 16px taller to match */
