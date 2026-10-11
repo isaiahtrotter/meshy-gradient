@@ -106,8 +106,8 @@ export function refreshSelectionPanel() {
   const occSel = sel.filter(n => n.occ);
   $('selSection').hidden = !has;
   const linkable = sel.filter(n => n.type !== 'stroke'), unlinked = linkable.length > 0 && !linkable[0].linked;
-  $('mobileLinkBtn').hidden = has && !linkable.length; // not on deselect: it stays put so the closing window can sweep over it, the open animation in reverse
-  if (has) { // on deselect leave the icon as it was, so it doesn't swap while the bar closes
+  if (has) { // on deselect leave the link button exactly as it was, so nothing changes while the bar closes
+    $('mobileLinkBtn').hidden = !linkable.length;
     $('mobileLinkBtn').classList.toggle('unlinked', unlinked);
     $('mobileLinkBtn').title = $('mobileLinkBtn').ariaLabel = unlinked ? 'Link axes' : 'Unlink axes';
   }
