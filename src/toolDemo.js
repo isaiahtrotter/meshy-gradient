@@ -101,12 +101,16 @@ export function playToolDemo(type) {
   stopToolDemo();
   const tool = TOOLS[type];
   if (!tool || used.has(type) || session.previewing || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const sr = stage.getBoundingClientRect(), fr = frameRect(), dims = maxDim();
-  // the middle of what's on screen: the visible part of the canvas, in the frame's own pixel coordinates
-  const left = Math.max(sr.left, fr.left), right = Math.min(sr.right, fr.right), top = Math.max(sr.top, fr.top), bottom = Math.min(sr.bottom, fr.bottom);
-  const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
-  const c = { x: (left + right) / 2 - fr.left, y: (top + bottom) / 2 - fr.top, mobile };
-  const s = clamp(Math.min(right - left, bottom - top) / 420, 0.5, 1.3);
+  // Where everything goes, read afresh every frame: the canvas can be resized (the grip on a phone, the size fields, a
+  // rotation) while the demo plays, and the hand has to stay on the controls, which are laid out from the live frame.
+  const geom = () => {
+    const sr = stage.getBoundingClientRect(), fr = frameRect(), dims = maxDim();
+    // the middle of what's on screen: the visible part of the canvas, in the frame's own pixel coordinates
+    const left = Math.max(sr.left, fr.left), right = Math.min(sr.right, fr.right), top = Math.max(sr.top, fr.top), bottom = Math.min(sr.bottom, fr.bottom);
+    const mobile = window.innerWidth <= MOBILE_BREAKPOINT;
+    return { dims, mobile, c: { x: (left + right) / 2 - fr.left, y: (top + bottom) / 2 - fr.top, mobile }, s: clamp(Math.min(right - left, bottom - top) / 420, 0.5, 1.3) };
+  };
+  let { c, s, dims, mobile } = geom();
 
   const root = document.createElement('div');
   root.className = 'tool-demo';
@@ -114,14 +118,17 @@ export function playToolDemo(type) {
   root.innerHTML = `<div class="tool-demo-hand" style="transform-origin: ${TIP.x}px ${TIP.y}px">${TIP === CROSS_TIP ? CROSS : HAND}</div>`;
   frame.appendChild(root);
   const hand = root.firstElementChild, scope = makeScope(root);
-  const A = tool.start(c, s), color = sampler ? sampler(A.x / dims.w, A.y / dims.h) : null;
-  const n = tool.make(A, color, dims, mobile); n.id = DEMO_ID;
+  const A0 = tool.start(c, s), color = sampler ? sampler(A0.x / dims.w, A0.y / dims.h) : null;
+  const n = tool.make(A0, color, dims, mobile); n.id = DEMO_ID;
   scope.nodes = [n]; scope.selected = new Set([DEMO_ID]);
   const dragMs = tool.dragMs || T_DRAG, dragStart = T_IN, dragEnd = T_IN + dragMs, holdEnd = dragEnd + T_HOLD, total = holdEnd + T_OUT;
   const t0 = performance.now();
   current = { root, raf: 0 };
   const step = now => {
     const t = now - t0;
+    ({ c, s, dims } = geom());
+    const A = tool.start(c, s);
+    if (type === 'circle' || type === 'arc') { n.x = A.x / dims.w; n.y = A.y / dims.h; } // these two sit at the press point; the others place themselves from the hand each frame
     if (t >= total) { root.remove(); current = { timer: setTimeout(() => playToolDemo(type), REPEAT_MS) }; return; }
     const d = tool.raw ? clamp((t - dragStart) / dragMs, 0, 1) : ease(clamp((t - dragStart) / dragMs, 0, 1)), H = tool.at(d, c, s);
     // the hand slides up into place, presses (a touch smaller) while it drags, and lifts off at the end

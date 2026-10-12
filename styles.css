@@ -97,6 +97,7 @@ body {
   .topbar { padding: 12px; }
   .app > .stage { padding-bottom: 100px; } /* +16px for the byline under the frame, which would otherwise run into the toolbar; the stage row above is 16px taller to match */
   .snav[data-tab="shortcuts"], .ssec[data-tab="shortcuts"] { display: none; } /* keyboard shortcuts mean nothing on a phone */
+  body:not(.signed-in) #settingsBtn, body:not(.signed-in) #settingsBtn + .topbar-sep { display: none; } /* signed out, Settings has nothing for a phone: no icon and no divider after it */
   #undoTopBtn, #redoTopBtn, #redoTopBtn + .topbar-sep { display: none; } /* mobile has its own undo/redo over the canvas */
 }
 

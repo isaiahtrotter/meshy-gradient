@@ -25,6 +25,7 @@ function render(user, event) {
   currentUserNow = user;
   for (const cb of userListeners) cb(user);
   const signedIn = !!user;
+  document.body.classList.toggle('signed-in', signedIn); // styles.css hides Settings on a phone until then
   $('signInBtn').hidden = signedIn;
   $('signUpBtn').hidden = signedIn;
   $('signOutBtn').hidden = !signedIn;
