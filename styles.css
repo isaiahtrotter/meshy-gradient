@@ -170,6 +170,9 @@ button, a, label, select, input, summary, [role="button"], .swatch, .grain-field
 #selectToolBtn { margin-right: -5px; }
 #previewToolBtn { margin-left: -3px; } /* -3px on a phone, -5px on desktop */
 @media (min-width: 821px) { #previewToolBtn { margin-left: -5px; } }
+.node-bar #shuffle:hover { color: #FF5047; }
+.node-bar #scatter:hover { color: #D895FF; }
+.node-bar #previewToolBtn:hover { color: #61D5FF; }
 .node-bar-sep { width: 1px; height: 20px; background: color-mix(in srgb, var(--ink) 20%, transparent); }
 /* The bottom toolbar's shared tooltip (src/tooltip.js): one floating pill, positioned 8px above the toolbar and
    centred on whichever icon is hovered. `left` transitions so moving from one icon straight to another (without

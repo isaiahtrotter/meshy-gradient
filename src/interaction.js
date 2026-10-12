@@ -32,7 +32,11 @@ overlay.addEventListener('pointerdown', e => {
   if (e.button !== 0) return;
   if (!e.target.closest('.stop-dot')) session.stopSel = null; // a click anywhere but on a stop deselects it
   const p = normPos(e);
-  const sh = e.target.closest('.spread-handle');
+  // With a node tool active a finger always draws: the selected node's rings, arms and stops (huge next to a phone's
+  // canvas) would otherwise take the touch, so they're only grabbable with no tool (tap outside the canvas to put it down).
+  // Only the node's own centre stays grabbable. The mouse still grabs them.
+  const grab = sel => (e.pointerType === 'touch' && session.placing !== 'none' ? null : e.target.closest(sel));
+  const sh = grab('.spread-handle');
   if (sh) {
     const n = nodeById(+sh.dataset.id); if (!n) return;
     const side = sh.dataset.side;
@@ -40,7 +44,7 @@ overlay.addEventListener('pointerdown', e => {
     stage.classList.add('node-grab');
     overlay.setPointerCapture(e.pointerId); return;
   }
-  const ring = e.target.closest('.hard-ring');
+  const ring = grab('.hard-ring');
   if (ring) {
     const n = nodeById(+ring.dataset.id); if (!n) return;
     const d0 = maxDim(), dx0 = p.px - n.x * d0.w, dy0 = p.py - n.y * d0.h;
@@ -53,11 +57,11 @@ overlay.addEventListener('pointerdown', e => {
     ring.classList.add('active'); stage.classList.add('hard-dragging');
     overlay.setPointerCapture(e.pointerId); return;
   }
-  const stopDot = e.target.closest('.stop-dot');
+  const stopDot = grab('.stop-dot');
   if (stopDot) { beginStopMove(e, nodeById(+stopDot.dataset.id), +stopDot.dataset.stop); return; }
-  const stopRing = e.target.closest('.stop-ring');
+  const stopRing = grab('.stop-ring');
   if (stopRing) { beginStopHard(e, p, stopRing, nodeById(+stopRing.dataset.id), +stopRing.dataset.stop); return; }
-  const strokeHit = e.target.closest('.stroke-path .hit');
+  const strokeHit = grab('.stroke-path .hit');
   if (strokeHit) { addStopAt(e, p, nodeById(+strokeHit.dataset.id)); return; }
   const h = e.target.closest('.handle');
   if (h) {
