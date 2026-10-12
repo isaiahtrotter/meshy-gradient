@@ -14,7 +14,7 @@ import { makeRenderer } from './renderer.js';
 import { markCopy, markOwn, refreshProvenance } from './provenance.js';
 
 const GRAIN_TYPES = ['mono', 'duo', 'multi'];
-const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay', 'softlight', 'lighten', 'darken'];
+const BLEND_MODES = ['normal', 'linear', 'multiply', 'screen', 'overlay', 'softlight', 'lighten', 'darken', 'oklab'];
 // Mirrors applyConfig()'s defaults (state.js), but returns a plain renderable scene instead of touching state.
 function gradientScene(p) {
   return {

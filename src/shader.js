@@ -38,6 +38,17 @@ export const FS = `
   float hash(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
   vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
   vec3 toSrgb(vec3 c){ return pow(max(c, 0.0), vec3(1.0/2.2)); }
+  // OKLab (Ottosson): a perceptually even space, so averaging in it keeps hue and brightness steady between distant colours
+  vec3 toOklab(vec3 c){
+    vec3 l = toLin(c);
+    vec3 q = pow(max(vec3(dot(l, vec3(0.4122214708, 0.5363325363, 0.0514459929)), dot(l, vec3(0.2119034982, 0.6806995451, 0.1073969566)), dot(l, vec3(0.0883024619, 0.2817188376, 0.6299787005))), 0.0), vec3(1.0/3.0));
+    return vec3(dot(q, vec3(0.2104542553, 0.7936177850, -0.0040720468)), dot(q, vec3(1.9779984951, -2.4285922050, 0.4505937099)), dot(q, vec3(0.0259040371, 0.7827717662, -0.8086757660)));
+  }
+  vec3 fromOklab(vec3 o){
+    vec3 q = vec3(o.x + 0.3963377774 * o.y + 0.2158037573 * o.z, o.x - 0.1055613458 * o.y - 0.0638541728 * o.z, o.x - 0.0894841775 * o.y - 1.2914855480 * o.z);
+    q = q * q * q;
+    return toSrgb(vec3(dot(q, vec3(4.0767416621, -3.3077115913, 0.2309699292)), dot(q, vec3(-1.2684380046, 2.6097574011, -0.3413193965)), dot(q, vec3(-0.0041960863, -0.7034186147, 1.7076147010))));
+  }
   // Eases a 0..1 factor within one gradient stop-to-stop segment. Quadratic, not cubic — cheap and plenty
   // smooth at the size these ramps render.
   float gradEase(float f, float mode) {
@@ -67,7 +78,7 @@ export const FS = `
     vec2 uv = fc / uRes; uv.y = 1.0 - uv.y;
     vec2 sc = uRes / max(uRes.x, uRes.y);
     vec2 p = uv * sc;
-    vec3 acc = vec3(0.0); vec3 accLin = vec3(0.0); vec3 accLogM = vec3(0.0); vec3 accLogS = vec3(0.0); vec3 accMx = vec3(0.0); vec3 accMn = vec3(0.0); float wsum = 0.0;
+    vec3 acc = vec3(0.0); vec3 accLin = vec3(0.0); vec3 accLogM = vec3(0.0); vec3 accLogS = vec3(0.0); vec3 accMx = vec3(0.0); vec3 accMn = vec3(0.0); vec3 accLab = vec3(0.0); float wsum = 0.0;
     // occluding nodes composite with a running "over" op, back to front in array order, on top of the averaged
     // base below (non-occluding nodes always flatten into that base regardless of array position)
     vec3 stackPM = vec3(0.0); float stackA = 0.0;
@@ -247,9 +258,10 @@ export const FS = `
       } else {
         float wA = w * effA;
         acc += c * wA; accLin += toLin(c) * wA;
+        if (uBlendMode > 7.5) accLab += toOklab(c) * wA;
         accLogM += log(max(c, 1e-4)) * wA; accLogS += log(max(1.0 - c, 1e-4)) * wA;
         if (uBlendMode > 4.5) {
-          if (uBlendMode > 6.5) accMn += pow(max(1.0 - c, 1e-4), vec3(6.0)) * wA;
+          if (uBlendMode > 6.5 && uBlendMode < 7.5) accMn += pow(max(1.0 - c, 1e-4), vec3(6.0)) * wA;
           else if (uBlendMode > 5.5) accMx += pow(max(c, 1e-4), vec3(6.0)) * wA;
         }
         wsum += wA;
@@ -279,9 +291,12 @@ export const FS = `
     } else if (uBlendMode < 6.5) {
       // lighten: a weighted power mean (p = 6) leans hard toward the lightest colour in range, without a hard edge
       col = wsum > 0.0 ? pow(accMx / wsum, vec3(1.0 / 6.0)) : vec3(0.5);
-    } else {
+    } else if (uBlendMode < 7.5) {
       // darken: the same on the inverted colours, so the darkest wins
       col = wsum > 0.0 ? 1.0 - pow(accMn / wsum, vec3(1.0 / 6.0)) : vec3(0.5);
+    } else {
+      // oklab: average in OKLab, a perceptual space, so distant hues blend without going muddy
+      col = wsum > 0.0 ? clamp(fromOklab(accLab / wsum), 0.0, 1.0) : vec3(0.5);
     }
     // occluding nodes punch through the averaged base rather than blending into it
     col = stackPM + (1.0 - stackA) * col;
