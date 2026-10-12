@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/", "has": [{ "type": "query", "key": "g" }], "destination": "/api/share" },
+    { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/", "destination": "/meshygradient.html" }
   ],
   "functions": {

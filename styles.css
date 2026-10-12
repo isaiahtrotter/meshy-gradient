@@ -318,6 +318,9 @@ button, a, label, select, input, summary, [role="button"], .swatch, .grain-field
 .sfield-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 16px; align-items: stretch; } /* every account input the same width: two columns */
 .sfield-grid > .sfield { min-width: 0; justify-content: space-between; } /* inputs line up even if one description wraps and another doesn't */
 .srow--actions { justify-content: flex-start; }
+.slegal { margin: 20px 0 0; font-size: 13px; }
+.slegal a { color: var(--ink-2); text-decoration: underline; text-underline-offset: 2px; }
+.slegal a:hover { color: var(--ink); }
 .sinput {
   width: 200px; height: 30px; border: none; border-radius: var(--radius); background: var(--ctrl-bg); padding: 0 10px;
   font: 400 12.5px/1 var(--font-ui); color: var(--ink); outline: none; box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
