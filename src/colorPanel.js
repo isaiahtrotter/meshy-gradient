@@ -184,6 +184,20 @@ function applyHex(commit) {
   const first = curNode();
   if (commit && first && !first.grad) syncPickerFromColor(parsed.hex, first.a);
 }
+// The hex fields hold six digits with no #, so a "#" typed or pasted is ignored and everything after it is used. A paste
+// has to be handled here: the field's six-character limit would otherwise cut "#aabbcc" to "#aabbc" before anything reads it.
+export function ignoreHash(input) {
+  input.addEventListener('paste', e => {
+    const text = e.clipboardData?.getData('text');
+    if (text == null) return;
+    e.preventDefault();
+    input.setRangeText(text.replace(/#/g, '').trim(), input.selectionStart, input.selectionEnd, 'end');
+    if (input.value.length > input.maxLength) input.value = input.value.slice(0, input.maxLength);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  input.addEventListener('input', () => { if (input.value.includes('#')) input.value = input.value.replace(/#/g, ''); });
+}
+ignoreHash($('selHex')); // before its input handler below, so that one only ever sees digits
 $('selHex').addEventListener('input', () => applyHex(false));
 $('selHex').addEventListener('change', () => applyHex(true));
 $('selHex').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
@@ -592,6 +606,7 @@ for (const field of document.querySelectorAll('.grain-field')) {
     state.grainColors[key] = parsed.hex.toLowerCase(); syncGrainColors(); draw();
     if (commit) { if (colorSnap) { pushUndo(colorSnap); colorSnap = null; } if (pickerOpen && grainKey === key) syncPickerFromColor(parsed.hex, 1); }
   };
+  ignoreHash(input);
   input.addEventListener('input', () => applyTyped(false));
   input.addEventListener('change', () => applyTyped(true));
   input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); input.blur(); } });

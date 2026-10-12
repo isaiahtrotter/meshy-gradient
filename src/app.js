@@ -56,6 +56,6 @@ async function boot() {
     restoreReference(); syncControlsFromState(); layout(); refreshAll(); revealApp();
     if (def) markCopy({ instant: true }); // the starting gradient isn't the visitor's own, so Publish waits for the first edit
   }
-  await openSharedFromUrl(); // a /?g=<slug> share link replaces whatever was on the canvas
+  await openSharedFromUrl(); // a /<slug> share link replaces whatever was on the canvas
 }
 boot();

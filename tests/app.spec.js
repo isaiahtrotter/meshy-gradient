@@ -127,16 +127,22 @@ test.describe('nodes', () => {
     await page.keyboard.press('Escape');
     await expect(page.locator('#addStrokeBtn')).toHaveAttribute('aria-pressed', 'false');
 
-    // clicking the path adds a stop there without changing anything yet
+    // clicking the path adds a stop there without changing anything yet. The selected stroke's rings and handle have
+    // generous touch hit areas that cover parts of the path, so click near 30% at a spot where the path itself is on top.
     const at = await page.evaluate(() => {
       const p = [...document.querySelectorAll('.stroke-path .line')].find(e => e.ownerSVGElement.style.display === 'block');
-      const q = p.getPointAtLength(p.getTotalLength() * .3), r = p.ownerSVGElement.getBoundingClientRect();
-      return { x: r.left + q.x, y: r.top + q.y };
+      const len = p.getTotalLength(), r = p.ownerSVGElement.getBoundingClientRect();
+      for (const f of [.3, .25, .35, .2, .4]) {
+        const q = p.getPointAtLength(len * f), x = r.left + q.x, y = r.top + q.y;
+        if (document.elementFromPoint(x, y)?.closest('.stroke-path .hit')) return { x, y, f };
+      }
+      return null;
     });
+    expect(at, 'a point near 30% where the path is clickable').not.toBeNull();
     await page.mouse.click(at.x, at.y);
     n = await selectedNode(page);
     expect(n.stops).toHaveLength(3);
-    expect(n.stops[1].t).toBeCloseTo(.3, 1);
+    expect(n.stops[1].t).toBeCloseTo(at.f, 1);
 
     // pulling that stop's ring inward hardens the stroke there
     const ring = page.locator('.stop-ring[data-stop="1"]').filter({ visible: true });
@@ -144,11 +150,11 @@ test.describe('nodes', () => {
     await dragFrom(page, rb.x + rb.width / 2, rb.y + rb.height / 2 - R, 0, R - 2);
     expect((await selectedNode(page)).stops[1].m).toBeGreaterThan(2);
 
-    // ⌥-click removes an interior stop; the ends can't be removed
-    await page.keyboard.down('Alt');
+    // clicking an interior stop selects it and Delete removes just that stop (⌥ would duplicate it instead); the ends can't be removed
     await page.locator('.stop-dot[data-stop="1"]').filter({ visible: true }).click();
+    await page.keyboard.press('Delete');
+    expect((await selectedNode(page)).stops).toHaveLength(2);
     await page.locator('.stop-dot[data-stop="0"]').filter({ visible: true }).click();
-    await page.keyboard.up('Alt');
     expect((await selectedNode(page)).stops).toHaveLength(2);
 
     // orbiting the main ring rotates the whole path
@@ -229,9 +235,19 @@ test.describe('colour', () => {
   test.beforeEach(async ({ page }) => { await openApp(page); await clickCanvas(page, 0.15, 0.5); });
 
   test('hex input applies, picker opens and edits, Escape closes', async ({ page }) => {
-    await page.fill('#selHex', '#123456');
+    await page.fill('#selHex', '123456'); // the field takes six digits, no #
     await page.press('#selHex', 'Enter');
     expect((await selectedNode(page)).color).toBe('#123456');
+
+    // a pasted "#" is ignored and the digits after it are used
+    await page.focus('#selHex'); await page.locator('#selHex').selectText();
+    await page.evaluate(() => {
+      const dt = new DataTransfer(); dt.setData('text', '#abcdef');
+      document.getElementById('selHex').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+    });
+    await page.press('#selHex', 'Enter');
+    expect((await selectedNode(page)).color).toBe('#abcdef');
+    await page.fill('#selHex', '123456'); await page.press('#selHex', 'Enter');
 
     await page.click('#selSwatch');
     await expect(page.locator('#colorPicker')).toBeVisible();

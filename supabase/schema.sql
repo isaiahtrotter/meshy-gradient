@@ -78,7 +78,7 @@ alter table public.gradients add constraint gradients_public_ratio
   check (not is_public or ((config->>'w')::numeric <= 2 * (config->>'h')::numeric and (config->>'h')::numeric <= 2 * (config->>'w')::numeric)) not valid;
 
 -- ---------- Sharing ----------
--- A share link is /?g=<slug>, and only gradients published to the community can be shared. The slug is an unguessable
+-- A share link is /<slug>, and only gradients published to the community can be shared. The slug is an unguessable
 -- id, so the link opens that one published gradient for anyone (signed in or not) without listing anything else.
 -- (An earlier version could also share private gradients; this drops it.)
 drop function if exists public.share_gradient(jsonb, text, text, text);

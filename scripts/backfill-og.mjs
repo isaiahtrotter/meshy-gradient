@@ -42,9 +42,14 @@ await page.evaluate(() => localStorage.setItem('meshyIntroSeen', '1'));
 let ok = 0, failed = 0;
 for (const { slug, config } of todo) {
   try {
-    const dataUrl = await page.evaluate(async c => (await import('/src/loadGradient.js')).renderThumb(c, 600, 'image/jpeg', 0.7), config);
-    if (!dataUrl) throw new Error('render failed');
-    const body = Buffer.from(dataUrl.split(',')[1], 'base64');
+    // same renderer the app uses when publishing: a JPEG under 20 KB
+    const b64 = await page.evaluate(async c => {
+      const og = await (await import('/src/loadGradient.js')).renderOgImage(c);
+      if (!og) return null;
+      return await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.readAsDataURL(og.blob); });
+    }, config);
+    if (!b64) throw new Error('render failed');
+    const body = Buffer.from(b64, 'base64');
     const r = await fetch(`${SUPABASE_URL}/storage/v1/object/og/${slug}.jpg`, {
       method: 'POST', headers: { ...auth, 'Content-Type': 'image/jpeg', 'cache-control': 'max-age=31536000' }, body,
     });

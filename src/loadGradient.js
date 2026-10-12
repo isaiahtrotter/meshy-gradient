@@ -31,8 +31,9 @@ function gradientScene(p) {
     seed: isNum(p.seed) ? p.seed : 0,
   };
 }
-// A real rendered thumbnail (not a CSS approximation), sized to the gradient's own aspect ratio and capped at `size`.
-export function renderThumb(p, size = 160, type = 'image/png', quality = 0.85) {
+// Renders the gradient into a canvas sized to its own aspect ratio and capped at `size` on the long side. The caller
+// owns the canvas; `release()` frees its GL context.
+function renderCanvas(p, size) {
   const scene = gradientScene(p);
   const scale = size / Math.max(scene.w, scene.h);
   const tw = Math.max(1, Math.round(scene.w * scale)), th = Math.max(1, Math.round(scene.h * scale));
@@ -40,9 +41,37 @@ export function renderThumb(p, size = 160, type = 'image/png', quality = 0.85) {
   const r = makeRenderer(canvas, { preserveDrawingBuffer: true });
   if (!r) return null;
   r.render(tw, th, scene);
-  const url = canvas.toDataURL(type, quality);
-  r.gl.getExtension('WEBGL_lose_context')?.loseContext();
+  return { canvas, release: () => r.gl.getExtension('WEBGL_lose_context')?.loseContext() };
+}
+
+// A real rendered thumbnail (not a CSS approximation), sized to the gradient's own aspect ratio and capped at `size`.
+export function renderThumb(p, size = 160, type = 'image/png', quality = 0.85) {
+  const r = renderCanvas(p, size);
+  if (!r) return null;
+  const url = r.canvas.toDataURL(type, quality);
+  r.release();
   return url;
+}
+
+// The link-preview picture: a JPEG that fits in `maxBytes`, however grainy the gradient. Previews show as small cards,
+// so it starts at 600px / quality 0.7 and steps down (quality first, then pixels) until the file fits. Resolves to
+// { blob, size, quality }, or null if it can't render. If nothing fits it returns the smallest attempt.
+export const OG_SIZES = [600, 480, 400, 320], OG_QUALITIES = [0.7, 0.6, 0.5];
+export async function renderOgImage(p, maxBytes = 20 * 1024) {
+  let best = null;
+  for (const size of OG_SIZES) {
+    const r = renderCanvas(p, size);
+    if (!r) return null;
+    try {
+      for (const quality of OG_QUALITIES) {
+        const blob = await new Promise(res => r.canvas.toBlob(res, 'image/jpeg', quality));
+        if (!blob) continue;
+        if (!best || blob.size < best.blob.size) best = { blob, size, quality };
+        if (blob.size <= maxBytes) return { blob, size, quality };
+      }
+    } finally { r.release(); }
+  }
+  return best;
 }
 
 // "By [name]" under the canvas while it holds a gradient someone else published; any other load clears it. Kept in

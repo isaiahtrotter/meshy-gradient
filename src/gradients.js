@@ -8,7 +8,7 @@ import { serializeConfig, state } from './state.js';
 import { cleanHandle } from './constants.js';
 import { $, showToast } from './dom.js';
 import { whenClient, onUser, startSignIn, configured } from './auth.js';
-import { applyGradient, renderThumb, setCredit, getCredit } from './loadGradient.js';
+import { applyGradient, renderThumb, renderOgImage, setCredit, getCredit } from './loadGradient.js';
 import { markSaved, clearSaved, markCopy, onProvenance } from './provenance.js';
 import { toggleSideTab, onSideTabOpen, sideTabKind } from './sideTab.js';
 import { masonry, relayout, thumbRatio } from './masonry.js';
@@ -440,16 +440,14 @@ async function guarded(anchor, task) {
   busy = true;
   try { await task(); } catch (err) { fail(anchor, err); } finally { busy = false; }
 }
-// The picture link previews show for a share link: the gradient itself, 600px on its long side, in the public `og`
-// Storage bucket as <slug>.jpg (api/share.js points og:image at it). Best-effort: a failure never blocks publishing,
-// the link just shows the default card.
-const OG_SIZE = 600, OG_QUALITY = 0.7; // lower than thumbnails: the grain is noise, and noise is what makes these files big
+// The picture link previews show for a share link: the gradient itself, under 20 KB (loadGradient.js's renderOgImage
+// steps quality and size down until it fits), in the public `og` Storage bucket as <slug>.jpg (api/share.js points
+// og:image at it). Best-effort: a failure never blocks publishing, the link just shows the default card.
 async function uploadOgImage(slug, config) {
   try {
-    const url = renderThumb(config, OG_SIZE, 'image/jpeg', OG_QUALITY);
-    if (!url) return;
-    const blob = await (await fetch(url)).blob();
-    const { error } = await client.storage.from('og').upload(`${slug}.jpg`, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
+    const og = await renderOgImage(config);
+    if (!og) return;
+    const { error } = await client.storage.from('og').upload(`${slug}.jpg`, og.blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
     if (error) console.error(error);
   } catch (err) { console.error(err); }
 }
@@ -524,7 +522,7 @@ $('publishedDone').addEventListener('click', () => setPublishedModal(false));
 $('publishedModal').addEventListener('pointerdown', e => { if (e.target === $('publishedModal')) setPublishedModal(false); });
 document.addEventListener('keydown', e => { if (!$('publishedModal').hidden && e.key === 'Escape') { e.stopPropagation(); setPublishedModal(false); } }, true);
 $('publishedShare').addEventListener('click', async () => {
-  const url = `${location.origin}/?g=${shareSlug}`;
+  const url = `${location.origin}/${shareSlug}`;
   try { await navigator.clipboard.writeText(url); $('publishedShare').textContent = 'Link copied'; }
   catch { askConfirm({ title: 'Copy this link', text: 'Your browser blocked copying automatically. Select the link below and copy it.', field: url, confirmLabel: 'Done', cancelLabel: null }); }
 });
@@ -617,7 +615,7 @@ for (const id of ['prefName', 'prefTwitter']) $(id).addEventListener('input', ()
 });
 
 // ---------- Share links ----------
-// Only gradients in the community can be shared: the link is /?g=<slug> of the published row, and sharing never saves
+// Only gradients in the community can be shared: the link is /<slug> of the published row, and sharing never saves
 // anything. So the Share button (signed-in users only) shows while the canvas is an exact copy of a community gradient
 // that has a slug (opened from the Community tab, opened from a share link, or just published), and hides on the first
 // edit. gradient_by_slug (supabase/schema.sql) serves the link to anyone, but only for published rows.
@@ -631,7 +629,7 @@ function setShareSlug(slug) {
   syncShare();
 }
 onProvenance(pristine => { pristineCopy = pristine; syncShare(); });
-const shareUrl = () => `${location.origin}/?g=${shareSlug}`;
+const shareUrl = () => `${location.origin}/${shareSlug}`;
 const setShareNote = msg => { $('shareModalNote').hidden = !msg; $('shareModalNote').textContent = msg || ''; };
 const setShareModal = open => {
   $('shareModal').hidden = !open;
@@ -688,7 +686,9 @@ $('shareFrameBtn').addEventListener('click', () => setShareModal(true));
 // Opens the gradient a share link points at (called once the app has booted). It lands as a copy, credited to its
 // author, like one from the Community tab.
 export async function openSharedFromUrl() {
-  const slug = new URLSearchParams(location.search).get('g');
+  // a share link is /<slug> (vercel.json serves the editor for it); older links, still working, are /?g=<slug>
+  const pathSlug = location.pathname.match(/^\/([a-f0-9]{10})\/?$/)?.[1] ?? null;
+  const slug = pathSlug ?? new URLSearchParams(location.search).get('g');
   if (slug === null) return; // not a share link
   const home = () => location.replace(`${location.origin}/`); // a broken link just lands on the app's home page
   if (!/^[A-Za-z0-9]{6,32}$/.test(slug)) return home();
@@ -703,5 +703,5 @@ export async function openSharedFromUrl() {
     console.error(err);
     return home();
   }
-  history.replaceState(null, '', location.pathname); // a reload keeps the gradient (it's saved locally) without re-fetching it
+  history.replaceState(null, '', pathSlug ? '/' : location.pathname); // a reload keeps the gradient (it's saved locally) without re-fetching it
 }

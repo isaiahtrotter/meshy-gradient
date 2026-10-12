@@ -1,6 +1,7 @@
-// Serves the editor for a share link (/?g=<slug>) with that gradient's Open Graph tags filled in. Link-preview crawlers
-// don't run JS, so the title and image have to be in the HTML they get. vercel.json routes only `/?g=…` here; the page
-// itself is meshygradient.html, unchanged (the app opens the gradient from the slug as usual).
+// Serves the editor for a share link (/<slug>) with that gradient's Open Graph tags filled in. Link-preview crawlers
+// don't run JS, so the title and image have to be in the HTML they get. vercel.json routes only `/<slug>` (and the
+// older `/?g=<slug>`) here, passing the slug as `g`; the page itself is meshygradient.html, unchanged (the app opens
+// the gradient from the slug as usual).
 
 import { readFile } from 'node:fs/promises';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../src/config.js';
@@ -29,7 +30,7 @@ export default async function handler(req, res) {
         const hasImage = (await fetch(image, { method: 'HEAD' })).ok; // not rendered yet: keep the default card
         const title = row.author_name ? `A gradient by ${row.author_name}` : 'A gradient';
         for (const k of ['og:title', 'twitter:title']) html = setMeta(html, k, title);
-        html = setMeta(html, 'og:url', `${ORIGIN}/?g=${slug}`);
+        html = setMeta(html, 'og:url', `${ORIGIN}/${slug}`);
         if (hasImage) {
           for (const k of ['og:image', 'twitter:image']) html = setMeta(html, k, image);
           // the shared image is the gradient itself, at its own proportions
