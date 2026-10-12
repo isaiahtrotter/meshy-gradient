@@ -2,7 +2,9 @@
 //   spread  – dragging an arm end: sets that arm's length and angle
 //   hard    – dragging the dotted ring: radial motion sets hardness, orbiting rotates the axis cross
 //   move    – dragging selected nodes (alt/ctrl duplicates them)
-//   marquee – rubber-band selection; a plain click adds a node instead
+//   marquee – rubber-band selection (shift/cmd-drag, touch, or from the margin around the canvas); a plain click adds a node instead
+//   place   – mouse drag on empty canvas with a node tool: creates the node and sizes it as you drag (line: its two ends,
+//             arc: its right end, as the spread handle drags it, circle: its hardness ring)
 //   pan     – middle button or space + drag
 //   draw    – the brush: dragging on the canvas draws a new stroke node
 //   stopMove – sliding one of a stroke's hardness stops along its path (clicking the path adds one and starts this)
@@ -72,9 +74,16 @@ overlay.addEventListener('pointerdown', e => {
     beginDraw(e, p); return;
   } else {
     const additive = e.shiftKey || e.metaKey || e.ctrlKey;
-    const touch = touchPanStart(e);
-    if (!additive && !touch) state.selected.clear(); // touch deselects on release instead (endDrag), so a drag that pans never flickers the selection
-    session.drag = { type: 'marquee', start: p, base: new Set(state.selected), moved: false, additive, touch };
+    if (session.placing !== 'none' && !additive) {
+      // a node tool is active: dragging creates the node and sizes it (mouse and touch alike)
+      state.selected.clear();
+      session.drag = { type: 'place', start: p, snap: snapshot(), moved: false, n: null, placeType: pendingNodeType() };
+    } else {
+      // no tool (or shift held): a mouse drag selects; a finger pans the canvas
+      const touch = touchPanStart(e);
+      if (!additive && !touch) state.selected.clear(); // touch deselects on release instead (endDrag), so a drag that pans never flickers the selection
+      session.drag = { type: 'marquee', start: p, base: new Set(state.selected), moved: false, additive, touch };
+    }
     refreshSelection();
   }
   overlay.setPointerCapture(e.pointerId);
@@ -169,6 +178,31 @@ function moveMarquee(drag, p) {
   refreshHandles();
 }
 
+// ---------- Drag-to-place: a node tool dragged on the canvas creates the node and sizes it with the pointer ----------
+const PLACE_MIN_PX = 4; // shorter than this and it's still a click
+function movePlace(drag, p, e) {
+  const dx = p.px - drag.start.px, dy = p.py - drag.start.py, dist = Math.hypot(dx, dy);
+  if (!drag.n) {
+    if (dist < PLACE_MIN_PX) return;
+    if (state.nodes.length >= MAXN) { if (!drag.full) setStatus(`Limit of ${MAXN} nodes reached.`, true); drag.full = true; return; }
+    const { x, y } = drag.start;
+    drag.n = addNode(drag.placeType, x, y, state.nodes.length ? colorAtCanvasPoint(x, y) : null);
+    selectOnly(drag.n.id);
+    drag.moved = true;
+  }
+  const n = drag.n, d = maxDim();
+  if (n.type === 'line') { // both ends follow the drag: the start is one end, the pointer the other
+    n.x = (drag.start.x + p.x) / 2; n.y = (drag.start.y + p.y) / 2;
+    n.th = Math.atan2(dy, dx);
+    n.sl = n.sr = Math.max(0.01, dist / 2 / d.m);
+  } else if (n.type === 'arc') { // the pointer carries the arc's right end, exactly like dragging that handle afterwards (shift locks the angle, alt mirrors)
+    drag.spread ??= { n, side: 'r', lockAngle: armAngle(n, 'r') };
+    moveSpread(drag.spread, p, e);
+  } else {
+    n.k = Math.round(radiusToHard(dist, hardMax(n)) * 10) / 10;
+  }
+}
+
 // ---------- Brush strokes ----------
 const DRAW_MIN_PX = 6;      // shorter than this and it was a click, not a stroke
 const STROKE_SPACING_PX = 4;  // target distance between the stored path points, on screen at the time of drawing
@@ -180,12 +214,13 @@ function strokeScreen(n) {
   return { P, cum: cumLengths(P) };
 }
 
-// Every new stroke starts the same, whatever is selected or was drawn before: this colour and this hardness (the
-// dotted ring), the pencil's own values, separate from the defaults a circle or arc gets.
-const STROKE_START_COLOR = '#c3cbcd';
+// Every new stroke starts the same, whatever is selected or was drawn before: the pencil's colour and opacity (session.pen,
+// set in the Selected panel while the tool is active) and this hardness (the dotted ring), separate from the defaults a
+// circle or arc gets.
 const STROKE_START_K = 2.5;
 function beginDraw(e, p) {
   if (state.nodes.length >= MAXN) { setStatus(`Limit of ${MAXN} nodes reached.`, true); return; }
+  if (state.selected.size) { state.selected.clear(); refreshSelection(); } // nothing selected, so the panel is the pencil's again
   session.drag = { type: 'draw', snap: snapshot(), raw: [[p.px, p.py]], len: 0, n: null };
   overlay.setPointerCapture(e.pointerId);
 }
@@ -198,7 +233,8 @@ function moveDraw(drag, e) {
   }
   if (!drag.n) {
     if (drag.len < DRAW_MIN_PX) return;
-    drag.n = addNode('stroke', 0.5, 0.5, STROKE_START_COLOR);
+    drag.n = addNode('stroke', 0.5, 0.5, session.pen.color);
+    drag.n.a = session.pen.a;
     drag.n.k = STROKE_START_K;
     selectOnly(drag.n.id);
   }
@@ -318,7 +354,7 @@ function cancelDrag(selBefore) {
   stage.classList.remove('node-grab', 'hard-dragging', 'panning');
   overlay.querySelectorAll('.hard-ring.active, .stop-ring.active, .dragging').forEach(el => el.classList.remove('active', 'dragging'));
   marquee.style.display = 'none';
-  if (drag.snap && (drag.moved || drag.type === 'draw' || drag.duplicating || drag.dup)) revertTo(drag.snap);
+  if (drag.snap && (drag.moved || drag.type === 'draw' || drag.type === 'place' || drag.duplicating || drag.dup)) revertTo(drag.snap);
   if (selBefore) state.selected = new Set(selBefore);
   session.drag = null; refreshAll();
 }
@@ -347,6 +383,7 @@ stage.addEventListener('pointermove', e => {
   if (drag.type === 'spread') { moveSpread(drag, p, e); refreshHandles(); draw(); }
   else if (drag.type === 'hard') { moveHard(drag, p, e); refreshHandles(); draw(); }
   else if (drag.type === 'draw') { moveDraw(drag, e); refreshSelection(); draw(); }
+  else if (drag.type === 'place') { movePlace(drag, p, e); refreshHandles(); refreshSelectionPanel(); draw(); }
   else if (drag.type === 'stopMove') { updateStopDuplicate(e.altKey || e.ctrlKey); moveStop(drag, p); refreshHandles(); draw(); }
   else if (drag.type === 'stopHard') { moveStopHard(drag, p); refreshHandles(); draw(); }
   else if (drag.type === 'move') {
@@ -365,7 +402,6 @@ function addNodeAt(x, y) {
   const color = state.nodes.length ? colorAtCanvasPoint(x, y) : null;
   const n = addNode(type, x, y, color);
   if (n) selectOnly(n.id); else setStatus(`Limit of ${MAXN} nodes reached.`, true);
-  if (type !== 'circle') setPlacement(null);
 }
 function endDrag(e) {
   const drag = session.drag;
@@ -378,13 +414,17 @@ function endDrag(e) {
     overlay.querySelectorAll('.hard-ring.active, .stop-ring.active').forEach(el => el.classList.remove('active')); stage.classList.remove('hard-dragging');
   }
   if (drag.type === 'draw' && drag.n) pushUndo(drag.snap);
+  if (drag.type === 'place') {
+    if (drag.n) pushUndo(drag.snap);
+    else if (!drag.full && e.type === 'pointerup') { pushUndo(); addNodeAt(drag.start.x, drag.start.y); } // never dragged: a click adds the node as it always did
+  }
   if (drag.type === 'move') {
     if (drag.moved) pushUndo(drag.snap);
     else if (drag.duplicating && drag.cloneIds) { removeNodes(new Set(drag.cloneIds)); state.selected = new Set(drag.sourceIds); }
     overlay.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
   }
   if (drag.type === 'marquee' && drag.touch && !drag.additive && e.type === 'pointerup') state.selected.clear(); // a touch tap on empty canvas deselects here, on release
-  if (drag.type === 'marquee' && !drag.moved && !drag.additive && e.type === 'pointerup' && !drag.fromStage) {
+  if (drag.type === 'marquee' && !drag.moved && !drag.additive && e.type === 'pointerup' && !drag.fromStage && session.placing !== 'none') {
     pushUndo();
     addNodeAt(drag.start.x, drag.start.y);
   }
@@ -401,6 +441,7 @@ stage.addEventListener('pointerdown', e => {
   const additive = e.shiftKey || e.metaKey || e.ctrlKey;
   const touch = touchPanStart(e);
   if (!additive && !touch) state.selected.clear();
+  if (!additive) setPlacement('none'); // clicking outside the canvas also puts the tool down: a drag selects (mouse) or pans (finger)
   session.drag = { type: 'marquee', start: normPos(e), base: new Set(state.selected), moved: false, additive, fromStage: true, touch };
   refreshSelection();
   stage.setPointerCapture(e.pointerId);

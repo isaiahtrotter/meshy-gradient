@@ -3,7 +3,7 @@
 import { session } from './session.js';
 import { $, stage, overlay } from './dom.js';
 
-export const DEFAULT_HINT = 'Click to add a node. Drag to select. Arm handles set spread, the dotted ring sets hardness.';
+export const DEFAULT_HINT = 'Click to add a node, or drag to size it as you place it. Shift-drag to select. Arm handles set spread, the dotted ring sets hardness.';
 export const setHint = text => { $('hint').textContent = text; };
 setHint(DEFAULT_HINT);
 
@@ -19,16 +19,24 @@ $('previewToolBtn').addEventListener('click', () => setPreview(!session.previewi
 
 // Placement modes are mutually exclusive; the pending type is what the next canvas click creates. Arc and line
 // drop back to circles after one placement; the brush stays on until Esc or another tool, like a brush should.
-const PLACEMENT_BUTTONS = { addCircleBtn: null, addLineBtn: 'line', addArcBtn: 'arc', addStrokeBtn: 'stroke' };
+const PLACEMENT_BUTTONS = { selectToolBtn: 'none', addCircleBtn: null, addLineBtn: 'line', addArcBtn: 'arc', addStrokeBtn: 'stroke' };
 const PLACEMENT_HINTS = {
-  arc: 'Click on the canvas to place an arc.',
-  line: 'Click on the canvas to place a line.',
+  arc: 'Click on the canvas to place an arc, or drag to shape it.',
+  line: 'Click on the canvas to place a line, or drag to draw it.',
+  none: 'Drag to select, or drag the canvas to pan on a touch screen. Pick a tool to add nodes.',
   stroke: 'Drag on the canvas to draw a stroke. Click its path to add a hardness stop. Esc to finish.',
 };
-export const pendingNodeType = () => session.placing || 'circle';
+export const pendingNodeType = () => (session.placing === 'none' ? null : session.placing) || 'circle';
+const placementListeners = [];
+export const onPlacementChange = cb => placementListeners.push(cb); // colorPanel.js opens the pencil's colour picker from here
 export function setPlacement(type) {
   session.placing = type || null;
   for (const [id, t] of Object.entries(PLACEMENT_BUTTONS)) $(id).setAttribute('aria-pressed', String(session.placing === t));
+  overlay.classList.toggle('no-tool', session.placing === 'none'); // the crosshair is for placing; with no tool the normal cursor shows
   setHint(PLACEMENT_HINTS[session.placing] || DEFAULT_HINT);
+  for (const cb of placementListeners) cb(session.placing);
 }
 for (const [id, t] of Object.entries(PLACEMENT_BUTTONS)) $(id).addEventListener('click', () => setPlacement(t));
+// Every viewport opens with no tool: desktop shows it as the select tool, a phone has no select button so nothing is
+// highlighted and a one-finger drag pans the canvas.
+setPlacement('none');

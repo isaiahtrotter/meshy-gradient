@@ -1,5 +1,5 @@
-// The Settings dialog, opened from the top bar's gear icon: a sidebar (Account / Appearance / Shortcuts)
-// next to the active section's body, with a highlight that slides between nav buttons instead of popping.
+// The Settings dialog, opened from the top bar's gear icon: a sidebar (Account / Appearance / Shortcuts / Privacy)
+// next to the active section's body (tabs along the top on a phone), with a highlight that slides between nav buttons instead of popping.
 // Escape closes it via its own capture-phase listener (same pattern as the node menu and colour picker), so
 // the global handler in keyboard.js never sees it.
 
@@ -27,6 +27,16 @@ twitterInput.addEventListener('input', () => {
 twitterInput.addEventListener('blur', () => { twitterInput.value = cleanHandle(twitterInput.value) ? '@' + cleanHandle(twitterInput.value) : ''; }); // tidy what was typed
 twitterInput.addEventListener('keydown', e => { if (e.key === 'Enter') twitterInput.blur(); });
 
+// ---------- Scroll fades: shown over an edge only when there's more content that way ----------
+const scroller = $('settingsScroll');
+const fadeTop = document.querySelector('.settings-fade-top'), fadeBottom = document.querySelector('.settings-fade-bottom');
+function updateFades() {
+  fadeTop.classList.toggle('visible', scroller.scrollTop > 1);
+  fadeBottom.classList.toggle('visible', scroller.scrollTop + scroller.clientHeight < scroller.scrollHeight - 1);
+}
+scroller.addEventListener('scroll', updateFades, { passive: true });
+window.addEventListener('resize', updateFades);
+
 // ---------- Sidebar nav: the sliding highlight is sized/positioned off the active button's own box ----------
 const navInd = $('navInd');
 function updateNavIndicator() {
@@ -44,24 +54,25 @@ function showSection(name) {
   // whichever section is visible now measures correctly; the other settles into place next time it's shown
   updateNavIndicator();
   updateThemeIndicator();
+  scroller.scrollTop = 0; updateFades();
 }
 $('settingsModal').querySelector('.settings-nav').addEventListener('click', e => {
   const tab = e.target.closest('.snav'); if (!tab) return;
   showSection(tab.dataset.tab);
 });
 
-// ---------- The Account section only exists while signed in ----------
-let fellBack = false; // true while Settings is showing another section only because Account was unavailable
-// On mobile Settings only holds the account, so the gear is greyed out and unclickable until you're signed in.
+// ---------- Account and Privacy only exist while signed in ----------
+const SIGNED_IN_TABS = ['account', 'privacy'];
+let fellBack = false; // true while Settings is showing another section only because a signed-in one was unavailable
+// On mobile, signed out, Settings would have nothing worth showing, so the gear is greyed out and unclickable.
 let signedIn = false;
 const syncSettingsBtn = () => { $('settingsBtn').disabled = !signedIn && window.innerWidth <= MOBILE_BREAKPOINT; };
 window.addEventListener('resize', syncSettingsBtn);
 onUser(user => {
   signedIn = !!user; syncSettingsBtn();
-  const nav = document.querySelector('.snav[data-tab="account"]');
-  nav.hidden = !user;
+  for (const t of SIGNED_IN_TABS) document.querySelector(`.snav[data-tab="${t}"]`).hidden = !user;
   // signed out: land on the first section that's still there (the dialog opens on Account by default)
-  if (!user && document.querySelector('.ssec.active')?.dataset.tab === 'account') { showSection(document.querySelector('.snav:not([hidden])').dataset.tab); fellBack = true; }
+  if (!user && SIGNED_IN_TABS.includes(document.querySelector('.ssec.active')?.dataset.tab)) { showSection(document.querySelector('.snav:not([hidden])').dataset.tab); fellBack = true; }
   if (user && fellBack) { showSection('account'); fellBack = false; } // signed in: back to the section Settings opens on
   updateNavIndicator();
 });
@@ -72,7 +83,7 @@ function setOpen(on) {
   open = on;
   $('settingsModal').hidden = !on;
   $('settingsBtn').setAttribute('aria-expanded', String(on));
-  if (on) { updateNavIndicator(); updateThemeIndicator(); }
+  if (on) { updateNavIndicator(); updateThemeIndicator(); updateFades(); }
 }
 $('settingsBtn').addEventListener('click', () => setOpen(!open));
 $('settingsClose').addEventListener('click', () => setOpen(false));

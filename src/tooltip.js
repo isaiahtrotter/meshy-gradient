@@ -2,7 +2,7 @@
 // undo / redo / settings / share (below the bar). The first hover in a bar waits out TIP_DELAY (.5s) before the pill
 // appears, fading in right at that button; while it's visible, moving straight to another icon (without leaving the bar)
 // slides it sideways instead of hiding and re-arming the delay. Buttons opt in with `data-tip` (the label) and, when they have one, `data-key`
-// (rendered as a <kbd>).
+// (rendered as a <kbd>; several keys separated by `|` get one <kbd> each, with a "/" between).
 
 const TIP_DELAY = 500;
 const isMac = /Mac|iPhone|iPad/.test(navigator.platform || '');
@@ -31,7 +31,7 @@ function place(btn, bar) {
   tip.style.top = (bar.below ? r.bottom + 8 : barRect.top) + 'px';
 }
 function render(btn) {
-  tip.innerHTML = `<span>${btn.dataset.tip}</span>` + (btn.dataset.key ? `<kbd>${btn.dataset.key}</kbd>` : '');
+  tip.innerHTML = `<span>${btn.dataset.tip}</span>` + (btn.dataset.key ? btn.dataset.key.split('|').map(k => `<kbd>${k}</kbd>`).join('<span>/</span>') : '');
 }
 function reset() {
   clearTimeout(delayTimer); delayTimer = null; pendingBtn = null; shownBtn = null;

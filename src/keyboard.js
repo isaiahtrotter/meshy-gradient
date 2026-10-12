@@ -14,7 +14,7 @@ import { deleteSelected, deleteSelectedStop, selectAllNodes, clearSelection, nud
 // Placement-mode shortcuts, one per bottom-toolbar tool; 'circle' is the default (null) placement, so its key
 // just selects it rather than toggling — there's nothing "below" it to toggle back to. 'p' (pencil) used to
 // also toggle preview; that's 'h'-only now so the two don't collide.
-const PLACEMENT_KEYS = { l: 'line', a: 'arc', c: null, p: 'stroke' };
+const PLACEMENT_KEYS = { v: 'none', l: 'line', a: 'arc', c: null, p: 'stroke' };
 
 const setSpaceHeld = on => { session.spaceHeld = on; stage.classList.toggle('space-pan', on); };
 const releaseSpace = () => { if (session.spaceHeld) { setSpaceHeld(false); setPreview(false); } };
@@ -38,7 +38,7 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); if (deleteActiveGradStop()) return; if (!deleteSelectedStop()) deleteSelected(); }
   else if (mod && key === 'a') { e.preventDefault(); selectAllNodes(); }
   else if (e.key === 'Escape') {
-    if (session.placing) setPlacement(null);
+    if (session.placing && session.placing !== 'none') setPlacement(null);
     else if (session.sampling) setSampling(false);
     else if (session.previewing) setPreview(false);
     else if (session.stopSel) { session.stopSel = null; refreshAll(); }

@@ -29,7 +29,6 @@ function render(user, event) {
   $('signUpBtn').hidden = signedIn;
   $('signOutBtn').hidden = !signedIn;
   $('accountEmail').value = user?.email || 'Not signed in';
-  $('accountEmailNote').textContent = signedIn ? 'Signed in with Google.' : configured ? 'Sign in to save your account.' : "Sign-in isn't set up yet.";
   $('settingsSignOutBtn').hidden = !signedIn;
   $('deleteAccountBtn').hidden = !signedIn;
   $('settingsSignInBtn').hidden = signedIn;

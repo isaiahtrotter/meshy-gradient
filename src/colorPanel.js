@@ -2,6 +2,8 @@
 // and commit one undo entry on release.
 
 import { state, selectedNodes } from './state.js';
+import { session } from './session.js';
+import { onPlacementChange } from './modes.js';
 import { snapshot, pushUndo } from './undo.js';
 import { hexToHsv, hsvToHex, hexToRgb, rgbToHex, rgbaCss, parseHexInput } from './color.js';
 import { MAX_GRAD_STOPS, clamp } from './constants.js';
@@ -91,7 +93,11 @@ $('occAngle').addEventListener('change', () => { if (occAngleSnap) { pushUndo(oc
 // Index into the selected node's `stops` that the SV/hue controls currently edit (gradient mode only; ignored
 // in solid mode, where they always edit `color`).
 let activeStop = 0;
-const curNode = () => selectedNodes()[0];
+// While the pencil tool is active and nothing is selected the panel edits the pencil's own colour/opacity (session.pen, shaped like a node so
+// every control works unchanged) instead of the selection; nothing in the document changes, so no undo entries.
+const penOn = () => session.placing === 'stroke' && state.selected.size === 0;
+const editNodes = () => (penOn() ? [session.pen] : selectedNodes());
+const curNode = () => editNodes()[0];
 
 // Open/close a mobile side bar's selection-button window: its height animates (CSS) to the buttons' natural height or 0.
 // Falls back to auto if the bar is display:none right now (desktop, preview), where nothing can be measured.
@@ -107,22 +113,23 @@ function growMobileExtra(el, open) {
 }
 
 export function refreshSelectionPanel() {
-  const sel = selectedNodes(), has = sel.length > 0;
+  const pen = penOn(), sel = pen ? [] : selectedNodes(), hasSel = sel.length > 0, has = hasSel || pen;
   const occSel = sel.filter(n => n.occ);
   $('selSection').hidden = !has;
   const linkable = sel.filter(n => n.type !== 'stroke'), unlinked = linkable.length > 0 && !linkable[0].linked;
-  if (has) { // on deselect leave the link button exactly as it was, so nothing changes while the bar closes
+  if (hasSel) { // on deselect leave the link button exactly as it was, so nothing changes while the bar closes
     $('mobileLinkBtn').hidden = !linkable.length;
     $('mobileLinkBtn').classList.toggle('unlinked', unlinked);
     $('mobileLinkBtn').title = $('mobileLinkBtn').ariaLabel = unlinked ? 'Link axes' : 'Unlink axes';
   }
-  for (const id of ['mobileExtraL', 'mobileExtraR']) growMobileExtra($(id), has); // after the link button's hidden state, so the height matches the buttons showing (circle → pencil drops one)
-  $('selTitle').textContent = !has ? 'Selected (none)'
+  for (const id of ['mobileExtraL', 'mobileExtraR']) growMobileExtra($(id), hasSel); // after the link button's hidden state, so the height matches the buttons showing (circle → pencil drops one)
+  $('pickerTabs').hidden = pen; // solid/gradient applies to the selection; the pencil draws solid
+  $('selTitle').textContent = pen ? 'Pencil' : !has ? 'Selected (none)'
     : sel.every(n => n.occ) ? (sel.length === 1 ? 'Occluded node' : `${sel.length} occluded nodes selected`)
     : (sel.length === 1 ? 'Selected node' : `${sel.length} nodes selected`);
   $('selSwatch').disabled = !has; $('selHex').disabled = !has; $('selOpacity').disabled = !has;
   if (has) {
-    const first = sel[0];
+    const first = pen ? session.pen : sel[0];
     activeStop = first.grad ? Math.min(Math.max(activeStop, 0), first.gradStops.length - 1) : 0;
     setSwatch(first);
     const curHex = first.grad ? first.gradStops[activeStop].color : first.color;
@@ -162,7 +169,7 @@ export function setSelectedColor(hex, commit, alpha, stopIdx) {
     if (commit && colorSnap) { pushUndo(colorSnap); colorSnap = null; }
     return;
   }
-  for (const n of selectedNodes()) {
+  for (const n of editNodes()) {
     if (stopIdx != null) { const st = n.gradStops[Math.min(stopIdx, n.gradStops.length - 1)]; if (st) st.color = hex; }
     else n.color = hex;
     if (alpha != null) n.a = alpha;
@@ -175,7 +182,7 @@ export function setSelectedColor(hex, commit, alpha, stopIdx) {
   if (stopIdx == null && document.activeElement !== $('selHex')) $('selHex').value = hex.slice(1).toUpperCase();
   if (document.activeElement !== $('selOpacity')) $('selOpacity').value = Math.round(a * 100);
   refreshHandles(); draw();
-  if (commit && colorSnap) { pushUndo(colorSnap); colorSnap = null; }
+  if (commit && colorSnap) { if (!penOn()) pushUndo(colorSnap); colorSnap = null; }
 }
 function applyHex(commit) {
   const parsed = parseHexInput($('selHex').value);
@@ -721,3 +728,4 @@ window.addEventListener('pointermove', e => {
   renderSVSquare();
 });
 window.addEventListener('pointerup', () => { svDragMode = null; });
+onPlacementChange(() => refreshSelectionPanel()); // the panel switches to / from the pencil's colour with the tool
