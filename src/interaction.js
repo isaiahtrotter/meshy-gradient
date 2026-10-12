@@ -69,6 +69,7 @@ overlay.addEventListener('pointerdown', e => {
   if (h) {
     const id = +h.dataset.id;
     const additive = e.metaKey || e.shiftKey; // ctrl is reserved for duplicate-drag on Windows
+    if (session.placing !== 'none') setPlacement('none'); // grabbing a node hands the toolbar back to the cursor (on a phone, that clears the highlighted tool)
     if (!state.selected.has(id)) { if (additive) state.selected.add(id); else selectOnly(id); }
     else if (additive) { state.selected.delete(id); refreshAll(); return; }
     const sourceIds = [...state.selected];
