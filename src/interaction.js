@@ -182,7 +182,7 @@ function strokeScreen(n) {
 
 // Every new stroke starts the same, whatever is selected or was drawn before: this colour and this hardness (the
 // dotted ring), the pencil's own values, separate from the defaults a circle or arc gets.
-const STROKE_START_COLOR = '#d5d5d5';
+const STROKE_START_COLOR = '#c3cbcd';
 const STROKE_START_K = 2.5;
 function beginDraw(e, p) {
   if (state.nodes.length >= MAXN) { setStatus(`Limit of ${MAXN} nodes reached.`, true); return; }
