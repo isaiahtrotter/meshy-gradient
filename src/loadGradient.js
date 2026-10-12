@@ -104,17 +104,18 @@ try { renderCredit(JSON.parse(localStorage.getItem(CREDIT_KEY) || 'null')); } ca
 refreshProvenance(true);
 
 // own: the gradient is the user's own saved one, so Publish stays available; otherwise it's a copy of someone else's
-// (a community gradient) and Publish waits for the first edit.
-export function applyGradient(p, { credit = null, twitter = null, own = false } = {}) {
-  pushUndo();
+// (a community gradient) and Publish waits for the first edit. silent: the first-visit starter swapping in from the
+// database, which isn't an action of the visitor's (no undo step, no ripple, no status message).
+export function applyGradient(p, { credit = null, twitter = null, own = false, silent = false } = {}) {
+  if (!silent) pushUndo();
   setCredit(credit, twitter);
   if (!isNum(p.seed)) state.seed = Math.random() * 1000;
   applyConfig(p, { reassignIds: true });
   state.selected.clear();
-  syncControlsFromState({ animate: 'ripple' });
+  syncControlsFromState(silent ? {} : { animate: 'ripple' });
   layout(); refreshAll(); scheduleSave();
-  own ? markOwn() : markCopy();
-  setStatus('Applied gradient.');
+  own ? markOwn() : markCopy({ instant: silent });
+  if (!silent) setStatus('Applied gradient.');
 }
 
 // The gradient a first-time visit starts from (no saved state yet). If it can't be fetched, boot falls back to a few

@@ -8,6 +8,8 @@ export const LINE_K_MAX = 5000;             // lines, arcs and strokes can go fa
 export const MOBILE_BREAKPOINT = 820; // must match the @media (max-width) in styles.css
 export const CANVAS_MIN = 150, CANVAS_MAX = 8192, EXPORT_MAX = 16384;
 // a brush stroke's stop hardness reaches far past the rings' range so a tip can narrow to a point
+// The published gradient a first-time visit opens on (its slug in the gradients table): fetched so the byline and Share link are real.
+export const STARTER_SLUG = '46269fe7ea';
 export const STROKE_START_K = 2.5; // every new pencil stroke's hardness (the dotted ring)
 export const STROKE_K_MAX = 10000;
 export const ZOOM_MIN = 0.25, ZOOM_MAX = 8;

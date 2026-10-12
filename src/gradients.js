@@ -5,7 +5,8 @@
 // Row-level security in the database is what enforces who can do what; this file only drives the UI.
 
 import { serializeConfig, state } from './state.js';
-import { cleanHandle } from './constants.js';
+import { canUndo } from './undo.js';
+import { cleanHandle, STARTER_SLUG } from './constants.js';
 import { $, showToast } from './dom.js';
 import { whenClient, onUser, startSignIn, configured } from './auth.js';
 import { applyGradient, renderThumb, renderOgImage, setCredit, getCredit } from './loadGradient.js';
@@ -682,6 +683,20 @@ $('shareModalImgBtn').addEventListener('click', async () => {
   finally { copyingImg = false; }
 });
 $('shareFrameBtn').addEventListener('click', () => setShareModal(true));
+
+// First visit: default-gradient.json (a copy of the starter) is already on screen; this swaps in the real published row so
+// the canvas carries its byline and Share link. Quietly gives up if the database can't be reached, the visitor has
+// already started editing, or a share link took over the canvas.
+export async function openStarterGradient() {
+  try {
+    const c = client || await Promise.race([whenClient, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000))]);
+    const { data, error } = await c.rpc('gradient_by_slug', { p_slug: STARTER_SLUG });
+    const row = Array.isArray(data) ? data[0] : data;
+    if (error || !row || canUndo()) return;
+    setShareSlug(STARTER_SLUG);
+    applyGradient(row.config, { credit: row.author_name, twitter: row.author_twitter, silent: true });
+  } catch (err) { console.warn('starter gradient not loaded from the database', err); }
+}
 
 // Opens the gradient a share link points at (called once the app has booted). It lands as a copy, credited to its
 // author, like one from the Community tab.

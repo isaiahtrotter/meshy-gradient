@@ -15,7 +15,7 @@ import './keyboard.js';
 import './exporter.js';
 import './exportExtras.js';
 import './sideTab.js';
-import { openSharedFromUrl } from './gradients.js';
+import { openSharedFromUrl, openStarterGradient } from './gradients.js';
 import './collapse.js';
 import './settingsPanel.js';
 import './theme.js';
@@ -55,6 +55,7 @@ async function boot() {
     if (def) applyConfig(def, { reassignIds: true }); else seedNodes(FALLBACK_COLOURS);
     restoreReference(); syncControlsFromState(); layout(); refreshAll(); revealApp();
     if (def) markCopy({ instant: true }); // the starting gradient isn't the visitor's own, so Publish waits for the first edit
+    openStarterGradient(); // and the real published copy (byline, Share link) replaces it as soon as the database answers
   }
   await openSharedFromUrl(); // a /<slug> share link replaces whatever was on the canvas
 }
