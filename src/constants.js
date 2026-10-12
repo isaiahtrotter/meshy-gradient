@@ -8,6 +8,7 @@ export const LINE_K_MAX = 5000;             // lines, arcs and strokes can go fa
 export const MOBILE_BREAKPOINT = 820; // must match the @media (max-width) in styles.css
 export const CANVAS_MIN = 150, CANVAS_MAX = 8192, EXPORT_MAX = 16384;
 // a brush stroke's stop hardness reaches far past the rings' range so a tip can narrow to a point
+export const STROKE_START_K = 2.5; // every new pencil stroke's hardness (the dotted ring)
 export const STROKE_K_MAX = 10000;
 export const ZOOM_MIN = 0.25, ZOOM_MAX = 8;
 export const ARM_FRAC = 0.12, ARM_MIN = 12; // a circle spread of 1 draws an arm 12% of the frame's long side (~100px on a typical desktop frame)

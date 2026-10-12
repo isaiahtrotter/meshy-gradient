@@ -23,6 +23,10 @@ export const stopHardToRadius = k => (8 + 96 / (k + 2)) * session.zoom;
 export const stopRadiusToHard = R => clamp(96 / Math.max(0.01, R / session.zoom - 8) - 2, HARD_K_MIN, STROKE_K_MAX);
 
 export const handleEls = new Map(), ctlEls = new Map();
+// What refreshHandles lays out: the document's nodes into the real overlay, or (toolDemo.js) a pretend node into its own
+// host element, so the demo is drawn by exactly the same code and styles as the real controls.
+const REAL = { host: overlay, handleEls, ctlEls, get nodes() { return state.nodes; }, get selected() { return state.selected; }, drag: undefined };
+export const makeScope = host => ({ host, handleEls: new Map(), ctlEls: new Map(), nodes: [], selected: new Set(), drag: null });
 // Arms are a fraction of the frame's long side, so they keep the same length relative to the canvas at any window
 // size (desktop → mobile) or zoom, since the frame itself resizes. Arc/line arms are drawn at true length; circle
 // arms use ARM_FRAC of it, which is display only — the gradient itself comes from the spread values.
@@ -38,14 +42,14 @@ export function updateHardIndicator(n, p, angleOverride) {
   c.ind.style.setProperty('--deg', deg); // rotation centres the arc on the pointer; see CSS for the half-arc offset
 }
 
-function createControls(n) {
+function createControls(n, host) {
   const c = { arms: {}, hs: {}, lbl: document.createElement('div'), ring: document.createElementNS(SVG_NS, 'svg'), arc: document.createElementNS(SVG_NS, 'svg'), unlink: document.createElementNS(SVG_NS, 'svg') };
   for (const dir of ['l', 'r', 't', 'b']) {
     const axis = (dir === 'l' || dir === 'r') ? 'x' : 'y';
     const arm = document.createElement('div'); arm.className = 'arm';
     const h = document.createElement('div'); h.className = 'spread-handle';
     h.dataset.id = n.id; h.dataset.axis = axis; h.dataset.side = dir;
-    c.arms[dir] = arm; c.hs[dir] = h; overlay.appendChild(arm); overlay.appendChild(h);
+    c.arms[dir] = arm; c.hs[dir] = h; host.appendChild(arm); host.appendChild(h);
   }
   c.lbl.className = 'spread-label';
   c.ring.setAttribute('class', 'hard-ring'); c.ring.dataset.id = n.id;
@@ -60,26 +64,26 @@ function createControls(n) {
   grabEl.addEventListener('pointermove', withCurrentNode);
   c.arc.setAttribute('class', 'arc-path'); c.arc.innerHTML = '<path/>';
   c.unlink.setAttribute('class', 'unlink-badge'); c.unlink.setAttribute('viewBox', '0 0 11 11'); c.unlink.innerHTML = UNLINK_ICON;
-  overlay.appendChild(c.arc); overlay.appendChild(c.ring); overlay.appendChild(c.lbl); overlay.appendChild(c.unlink);
+  host.appendChild(c.arc); host.appendChild(c.ring); host.appendChild(c.lbl); host.appendChild(c.unlink);
   return c;
 }
 
 // Stroke-only parts, created the first time a stroke is laid out: its path (a visible line plus a wide invisible
 // hit line that adds a stop on click) and one dot + ring per stop, kept in step with n.stops.
-function ensureStrokeControls(c, n) {
+function ensureStrokeControls(c, n, host) {
   if (c.path) return;
   c.path = document.createElementNS(SVG_NS, 'svg'); c.path.setAttribute('class', 'stroke-path');
   c.path.innerHTML = '<path class="hit"></path><path class="line"/>';
   c.path.querySelector('.hit').dataset.id = n.id;
   c.stops = [];
   // under the main ring, so where the two cross the ring still rotates instead of adding a stop
-  overlay.insertBefore(c.path, c.ring);
+  host.insertBefore(c.path, c.ring);
 }
 export function aimStopIndicator(ring, p) {
   const ind = ring.querySelector('.indicator'); if (!ind || ring._cx == null) return;
   ind.style.setProperty('--deg', Math.atan2(p.py - ring._cy, p.px - ring._cx) * 180 / Math.PI);
 }
-function syncStopEls(c, n) {
+function syncStopEls(c, n, host) {
   while (c.stops.length < n.stops.length) {
     const dot = document.createElement('div'); dot.className = 'stop-dot'; dot.dataset.id = n.id;
     const ring = document.createElementNS(SVG_NS, 'svg'); ring.setAttribute('class', 'stop-ring'); ring.dataset.id = n.id;
@@ -87,7 +91,7 @@ function syncStopEls(c, n) {
     // same hover as the node's main ring: the arc handle tracks the pointer around the circle
     ring.querySelector('.grab').addEventListener('pointerenter', ev => aimStopIndicator(ring, normPos(ev)));
     ring.querySelector('.grab').addEventListener('pointermove', ev => aimStopIndicator(ring, normPos(ev)));
-    overlay.appendChild(ring); overlay.appendChild(dot);
+    host.appendChild(ring); host.appendChild(dot);
     c.stops.push({ dot, ring });
   }
   while (c.stops.length > n.stops.length) { const s = c.stops.pop(); s.dot.remove(); s.ring.remove(); }
@@ -100,7 +104,7 @@ function syncStopEls(c, n) {
     if (end) s.dot.removeAttribute('title'); else s.dot.title = 'Drag along the stroke to move (hold ⌥ or Ctrl to duplicate). Click to select, then Delete to remove';
   });
 }
-function layoutStroke(c, n, cx, cy, dims) {
+function layoutStroke(c, n, cx, cy, dims, host) {
   const P = strokeWorld(n, { x: cx, y: cy }, dims.m), cum = cumLengths(P);
   setStyle(c.path, { width: dims.w + 'px', height: dims.h + 'px' }); c.path.setAttribute('viewBox', `0 0 ${dims.w} ${dims.h}`);
   // quadratic curves through the segment midpoints, so the drawn line has no corners
@@ -110,7 +114,7 @@ function layoutStroke(c, n, cx, cy, dims) {
   d += ` L ${f(P[P.length - 1][0])} ${f(P[P.length - 1][1])}`;
   for (const p of c.path.children) p.setAttribute('d', d);
   c.path.style.setProperty('--hc', isLightColor(n.color) ? '#000' : '#fff');
-  syncStopEls(c, n);
+  syncStopEls(c, n, host);
   n.stops.forEach((st, i) => {
     const [sx, sy] = pointAt(P, cum, st.t), { dot, ring } = c.stops[i];
     for (const e of [dot, ring]) e.style.setProperty('--hc', isLightColor(n.color) ? '#000' : '#fff');
@@ -143,24 +147,25 @@ function arcPathD(g) {
 // device pixels, which made them step and jitter while dragging, but transforms position at sub-pixel precision.
 const moveTo = (el, x, y) => { el.style.transform = `translate(${x}px, ${y}px)`; };
 
-export function refreshHandles() {
-  const live = new Set(), dims = maxDim(), drag = session.drag;
-  for (const n of state.nodes) {
+export function refreshHandles(scope = REAL) {
+  const { host, handleEls, ctlEls } = scope;
+  const live = new Set(), dims = maxDim(), drag = scope.drag === undefined ? session.drag : scope.drag;
+  for (const n of scope.nodes) {
     live.add(n.id);
     const isArc = n.type === 'arc', isLine = n.type === 'line', isCircle = n.type === 'circle', isStroke = n.type === 'stroke';
     let el = handleEls.get(n.id);
     if (!el) {
       el = document.createElement('div'); el.className = 'handle'; el.dataset.id = n.id; el.tabIndex = 0;
       el.setAttribute('role', 'button');
-      overlay.appendChild(el); handleEls.set(n.id, el);
+      host.appendChild(el); handleEls.set(n.id, el);
     }
     const cx = n.x * dims.w, cy = n.y * dims.h;
     el.style.translate = `${cx}px ${cy}px`; // the `translate` property (not transform): the hover `scale` is applied after it, so scaling about the node's centre never shifts it
     el.style.background = rgbaCss(n.color, n.a); el.setAttribute('aria-label', `Node ${n.color}`);
-    el.classList.toggle('selected', state.selected.has(n.id));
+    el.classList.toggle('selected', scope.selected.has(n.id));
     let c = ctlEls.get(n.id);
-    if (!c) { c = createControls(n); ctlEls.set(n.id, c); }
-    const on = state.selected.has(n.id);
+    if (!c) { c = createControls(n, host); ctlEls.set(n.id, c); }
+    const on = scope.selected.has(n.id);
     // outlines, arms and rings turn black over a light colour (--hc); the spread handles' centres stay white
     const hc = isLightColor(n.color) ? '#000' : '#fff';
     for (const e of [el, c.ring, c.arc, ...Object.values(c.arms), ...Object.values(c.hs), ...(c.path ? [c.path, ...c.stops.flatMap(s => [s.dot, s.ring])] : [])]) e.style.setProperty('--hc', hc);
@@ -179,7 +184,7 @@ export function refreshHandles() {
     c.ring.style.display = on && !drawing ? 'block' : 'none';
     c.arc.style.display = on && isArc ? 'block' : 'none';
     c.lbl.style.display = 'none';
-    if (isStroke) ensureStrokeControls(c, n);
+    if (isStroke) ensureStrokeControls(c, n, host);
     setStrokeShown(c, on && isStroke, on && isStroke && !drawing);
     if (!on) continue;
 
@@ -188,7 +193,7 @@ export function refreshHandles() {
     const armLen = (v, dir) => (drag && drag.type === 'spread' && drag.n === n && drag.side === dir) ? Math.max(0, v * scale) : Math.max(ARM_MIN, v * scale);
     const gap = 9; // flush against the 20px main node
     if (isStroke) {
-      layoutStroke(c, n, cx, cy, dims);
+      layoutStroke(c, n, cx, cy, dims, host);
       setStrokeShown(c, true, !drawing); // stop dots are created by the layout, after the first show/hide above
       if (drawing) continue;
     } else if (isArc) {

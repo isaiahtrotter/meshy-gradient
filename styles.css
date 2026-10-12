@@ -375,6 +375,11 @@ button, a, label, select, input, summary, [role="button"], .swatch, .grain-field
 .stage.panning, .stage.panning * { cursor: grabbing !important; }
 .frame { position: relative; box-shadow: 0 30px 60px -20px rgba(0,0,0,.45), 0 0 0 1px rgba(0,0,0,.08); }
 .frame canvas { position: absolute; display: block; left: 0; top: 0; width: 100%; height: 100%; } /* view.js places it over just the visible part of the frame */
+/* The demo that plays when a node tool is picked (src/toolDemo.js): a hand drawing a pretend node with the real controls' own markup, above the canvas, never clickable. */
+.tool-demo { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+.tool-demo * { pointer-events: none !important; }
+.tool-demo * { --hc: #fff !important; } /* always the light controls, whatever colour is under them */
+.tool-demo-hand { position: absolute; left: 0; top: 0; z-index: 10; will-change: transform, opacity; opacity: 0; }
 .overlay { position: absolute; inset: 0; cursor: url(crosshair.svg) 9 9, crosshair; } /* the custom plus (18px, hotspot at its centre); the system crosshair is the fallback */
 .overlay.no-tool { cursor: url(pointer.svg) 1 1, default; } /* no tool selected: the regular custom arrow, not the placement crosshair */
 .overlay.hide-handles .handle { opacity: 0; pointer-events: none; }

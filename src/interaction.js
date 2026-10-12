@@ -10,7 +10,7 @@
 //   stopMove – sliding one of a stroke's hardness stops along its path (clicking the path adds one and starts this)
 //   stopHard – dragging a stop's dotted ring: radial motion sets the hardness at that point of the stroke
 
-import { MAXN, HARD_K_MIN, HARD_K_MAX, STROKE_K_MAX, clamp } from './constants.js';
+import { MAXN, STROKE_START_K, HARD_K_MIN, HARD_K_MAX, STROKE_K_MAX, clamp } from './constants.js';
 import { state, nodeById, cloneNode, addNode, selectOnly, selectedNodes, toggleSelected, removeNodes } from './state.js';
 import { session } from './session.js';
 import { snapshot, pushUndo, revertTo } from './undo.js';
@@ -25,8 +25,10 @@ import { refreshSelectionPanel } from './colorPanel.js';
 import { refreshAll, refreshSelection } from './refresh.js';
 import { colorAtCanvasPoint } from './sampling.js';
 import { pendingNodeType, setPlacement } from './modes.js';
+import { setDemoColorSampler, markToolUsed } from './toolDemo.js';
 
 const marquee = document.getElementById('marquee');
+setDemoColorSampler(colorAtCanvasPoint); // the tool demo's pretend node takes the canvas colour under it, like a real one
 
 overlay.addEventListener('pointerdown', e => {
   if (e.button !== 0) return;
@@ -221,7 +223,6 @@ function strokeScreen(n) {
 // Every new stroke starts the same, whatever is selected or was drawn before: the pencil's colour and opacity (session.pen,
 // set in the Selected panel while the tool is active) and this hardness (the dotted ring), separate from the defaults a
 // circle or arc gets.
-const STROKE_START_K = 2.5;
 function beginDraw(e, p) {
   if (state.nodes.length >= MAXN) { setStatus(`Limit of ${MAXN} nodes reached.`, true); return; }
   if (state.selected.size) { state.selected.clear(); refreshSelection(); } // nothing selected, so the panel is the pencil's again
@@ -405,7 +406,7 @@ function addNodeAt(x, y) {
   const type = pendingNodeType();
   const color = state.nodes.length ? colorAtCanvasPoint(x, y) : null;
   const n = addNode(type, x, y, color);
-  if (n) selectOnly(n.id); else setStatus(`Limit of ${MAXN} nodes reached.`, true);
+  if (n) { selectOnly(n.id); markToolUsed(type); } else setStatus(`Limit of ${MAXN} nodes reached.`, true);
 }
 function endDrag(e) {
   const drag = session.drag;
@@ -417,9 +418,9 @@ function endDrag(e) {
     else if (drag.moved) pushUndo(drag.snap);
     overlay.querySelectorAll('.hard-ring.active, .stop-ring.active').forEach(el => el.classList.remove('active')); stage.classList.remove('hard-dragging');
   }
-  if (drag.type === 'draw' && drag.n) pushUndo(drag.snap);
+  if (drag.type === 'draw' && drag.n) { pushUndo(drag.snap); markToolUsed('stroke'); }
   if (drag.type === 'place') {
-    if (drag.n) pushUndo(drag.snap);
+    if (drag.n) { pushUndo(drag.snap); markToolUsed(drag.placeType); }
     else if (!drag.full && e.type === 'pointerup') { pushUndo(); addNodeAt(drag.start.x, drag.start.y); } // never dragged: a click adds the node as it always did
   }
   if (drag.type === 'move') {

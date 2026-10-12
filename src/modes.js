@@ -2,6 +2,7 @@
 
 import { session } from './session.js';
 import { $, stage, overlay } from './dom.js';
+import { playToolDemo, stopToolDemo } from './toolDemo.js';
 
 export const DEFAULT_HINT = 'Click to add a node, or drag to size it as you place it. Shift-drag to select. Arm handles set spread, the dotted ring sets hardness.';
 export const setHint = text => { $('hint').textContent = text; };
@@ -30,13 +31,14 @@ export const pendingNodeType = () => (session.placing === 'none' ? null : sessio
 const placementListeners = [];
 export const onPlacementChange = cb => placementListeners.push(cb); // colorPanel.js opens the pencil's colour picker from here
 export function setPlacement(type) {
+  stopToolDemo(); // any demo (looping or not) belongs to the tool that's being left; the caller starts the new tool's
   session.placing = type || null;
   for (const [id, t] of Object.entries(PLACEMENT_BUTTONS)) $(id).setAttribute('aria-pressed', String(session.placing === t));
   overlay.classList.toggle('no-tool', session.placing === 'none'); // the crosshair is for placing; with no tool the normal cursor shows
   setHint(PLACEMENT_HINTS[session.placing] || DEFAULT_HINT);
   for (const cb of placementListeners) cb(session.placing);
 }
-for (const [id, t] of Object.entries(PLACEMENT_BUTTONS)) $(id).addEventListener('click', () => setPlacement(t));
+for (const [id, t] of Object.entries(PLACEMENT_BUTTONS)) $(id).addEventListener('click', () => { setPlacement(t); if (t !== 'none') playToolDemo(t || 'circle'); });
 // Every viewport opens with no tool: desktop shows it as the select tool, a phone has no select button so nothing is
 // highlighted and a one-finger drag pans the canvas.
 setPlacement('none');

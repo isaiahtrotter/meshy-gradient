@@ -7,6 +7,7 @@ import { undo, redo } from './undo.js';
 import { refreshAll } from './refresh.js';
 import { view, setZoom, resetZoom } from './view.js';
 import { setPreview, setPlacement } from './modes.js';
+import { playToolDemo } from './toolDemo.js';
 import { setSampling } from './sampling.js';
 import { deleteActiveGradStop } from './colorPanel.js';
 import { deleteSelected, deleteSelectedStop, selectAllNodes, clearSelection, nudgeSelected, flipSelected, moveOccludeLayer } from './actions.js';
@@ -47,7 +48,7 @@ document.addEventListener('keydown', e => {
   else if (e.shiftKey && !mod && (key === 'h' || key === 'v')) { e.preventDefault(); flipSelected(key === 'h' ? 'x' : 'y'); } // before plain H (preview)
   else if (key === 'h' && !mod) { setPreview(!session.previewing); }
   else if (key === 'i' && !mod) { e.preventDefault(); setSampling(!session.sampling); }
-  else if (!mod && key in PLACEMENT_KEYS) { const t = PLACEMENT_KEYS[key]; setPlacement(session.placing === t ? null : t); }
+  else if (!mod && key in PLACEMENT_KEYS) { const t = PLACEMENT_KEYS[key]; setPlacement(session.placing === t ? null : t); if (session.placing !== 'none') playToolDemo(session.placing || 'circle'); }
   else if (e.key.startsWith('Arrow') && state.selected.size) {
     e.preventDefault();
     const step = e.shiftKey ? 0.01 : 0.001;
