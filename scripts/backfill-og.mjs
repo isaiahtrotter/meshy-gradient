@@ -42,7 +42,7 @@ await page.evaluate(() => localStorage.setItem('meshyIntroSeen', '1'));
 let ok = 0, failed = 0;
 for (const { slug, config } of todo) {
   try {
-    const dataUrl = await page.evaluate(async c => (await import('/src/loadGradient.js')).renderThumb(c, 1200, 'image/jpeg'), config);
+    const dataUrl = await page.evaluate(async c => (await import('/src/loadGradient.js')).renderThumb(c, 600, 'image/jpeg', 0.7), config);
     if (!dataUrl) throw new Error('render failed');
     const body = Buffer.from(dataUrl.split(',')[1], 'base64');
     const r = await fetch(`${SUPABASE_URL}/storage/v1/object/og/${slug}.jpg`, {

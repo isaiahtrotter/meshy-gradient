@@ -35,7 +35,7 @@ export default async function handler(req, res) {
           // the shared image is the gradient itself, at its own proportions
           const w = +row.config?.w, h = +row.config?.h;
           if (w > 0 && h > 0) {
-            const long = 1200, k = long / Math.max(w, h);
+            const long = 600, k = long / Math.max(w, h);
             html = setMeta(html, 'og:image:width', Math.max(1, Math.round(w * k)));
             html = setMeta(html, 'og:image:height', Math.max(1, Math.round(h * k)));
           }

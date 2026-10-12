@@ -440,12 +440,13 @@ async function guarded(anchor, task) {
   busy = true;
   try { await task(); } catch (err) { fail(anchor, err); } finally { busy = false; }
 }
-// The picture link previews show for a share link: the gradient itself, 1200px on its long side, in the public `og`
+// The picture link previews show for a share link: the gradient itself, 600px on its long side, in the public `og`
 // Storage bucket as <slug>.jpg (api/share.js points og:image at it). Best-effort: a failure never blocks publishing,
 // the link just shows the default card.
+const OG_SIZE = 600, OG_QUALITY = 0.7; // lower than thumbnails: the grain is noise, and noise is what makes these files big
 async function uploadOgImage(slug, config) {
   try {
-    const url = renderThumb(config, 1200, 'image/jpeg');
+    const url = renderThumb(config, OG_SIZE, 'image/jpeg', OG_QUALITY);
     if (!url) return;
     const blob = await (await fetch(url)).blob();
     const { error } = await client.storage.from('og').upload(`${slug}.jpg`, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });

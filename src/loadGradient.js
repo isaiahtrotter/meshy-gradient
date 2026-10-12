@@ -32,7 +32,7 @@ function gradientScene(p) {
   };
 }
 // A real rendered thumbnail (not a CSS approximation), sized to the gradient's own aspect ratio and capped at `size`.
-export function renderThumb(p, size = 160, type = 'image/png') {
+export function renderThumb(p, size = 160, type = 'image/png', quality = 0.85) {
   const scene = gradientScene(p);
   const scale = size / Math.max(scene.w, scene.h);
   const tw = Math.max(1, Math.round(scene.w * scale)), th = Math.max(1, Math.round(scene.h * scale));
@@ -40,7 +40,7 @@ export function renderThumb(p, size = 160, type = 'image/png') {
   const r = makeRenderer(canvas, { preserveDrawingBuffer: true });
   if (!r) return null;
   r.render(tw, th, scene);
-  const url = canvas.toDataURL(type, 0.85);
+  const url = canvas.toDataURL(type, quality);
   r.gl.getExtension('WEBGL_lose_context')?.loseContext();
   return url;
 }

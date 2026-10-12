@@ -14,7 +14,14 @@ let currentUserNow = null;
 const userListeners = new Set();
 export function onUser(cb) { userListeners.add(cb); cb(currentUserNow); }
 
-function render(user) {
+// The display name and Twitter handle in Settings are remembered per browser, so they have to be tied to the account
+// that set them: a different account signing in (or any sign-out) starts from blank fields, not the last person's.
+const OWNER_KEY = 'meshyPrefsOwner';
+function resetProfileFields() {
+  for (const id of ['prefName', 'prefTwitter']) { $(id).value = ''; $(id).dispatchEvent(new Event('input')); }
+}
+
+function render(user, event) {
   currentUserNow = user;
   for (const cb of userListeners) cb(user);
   const signedIn = !!user;
@@ -26,7 +33,13 @@ function render(user) {
   $('settingsSignOutBtn').hidden = !signedIn;
   $('deleteAccountBtn').hidden = !signedIn;
   $('settingsSignInBtn').hidden = signedIn;
-  // first sign-in: seed the display name from the Google profile if the user hasn't typed one
+  if (user) {
+    let owner = null; try { owner = localStorage.getItem(OWNER_KEY); } catch {}
+    if (owner !== user.id) { resetProfileFields(); try { localStorage.setItem(OWNER_KEY, user.id); } catch {} }
+  } else if (event === 'SIGNED_OUT') { // a real sign-out, not the signed-out state before a saved session loads
+    resetProfileFields(); try { localStorage.removeItem(OWNER_KEY); } catch {}
+  }
+  // new account: the display name starts as the Google profile name, the Twitter handle stays blank
   const name = user?.user_metadata?.display_name || user?.user_metadata?.full_name || user?.user_metadata?.name;
   const tw = user?.user_metadata?.twitter;
   if (tw && !$('prefTwitter').value) { $('prefTwitter').value = '@' + tw; $('prefTwitter').dispatchEvent(new Event('input')); }
@@ -74,7 +87,7 @@ if (configured) {
   import('https://esm.sh/@supabase/supabase-js@2').then(({ createClient }) => {
     client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     resolveClient(client);
-    client.auth.onAuthStateChange((_event, session) => render(session?.user ?? null));
+    client.auth.onAuthStateChange((event, session) => render(session?.user ?? null, event));
   }).catch(() => setStatus('Could not load sign-in.', true));
 }
 
