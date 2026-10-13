@@ -420,8 +420,10 @@ function endDrag(e) {
     overlay.querySelectorAll('.hard-ring.active, .stop-ring.active').forEach(el => el.classList.remove('active')); stage.classList.remove('hard-dragging');
   }
   if (drag.type === 'draw' && drag.n) { pushUndo(drag.snap); markToolUsed('stroke'); }
+  if (drag.type === 'draw' && !drag.n && drag.fromStage && e.type === 'pointerup') setPlacement('none');
   if (drag.type === 'place') {
     if (drag.n) { pushUndo(drag.snap); markToolUsed(drag.placeType); }
+    else if (drag.fromStage) { if (e.type === 'pointerup') setPlacement('none'); } // a plain click off the canvas puts the tool down instead of adding a node
     else if (!drag.full && e.type === 'pointerup') { pushUndo(); addNodeAt(drag.start.x, drag.start.y); } // never dragged: a click adds the node as it always did
   }
   if (drag.type === 'move') {
@@ -445,6 +447,21 @@ stage.addEventListener('pointerdown', e => {
   if (e.target !== stage && e.target !== work) return;
   if (e.button !== 0 || session.previewing) return;
   const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+  if (session.placing !== 'none' && !additive) {
+    // a node tool is active: the stage outside the canvas draws too (nodes may sit past the edge), so the tool stays up
+    const p = normPos(e);
+    if (session.placing === 'stroke') {
+      if (state.nodes.length >= MAXN) { setStatus(`Limit of ${MAXN} nodes reached.`, true); return; }
+      if (state.selected.size) state.selected.clear();
+      session.drag = { type: 'draw', snap: snapshot(), raw: [[p.px, p.py]], len: 0, n: null, fromStage: true };
+    } else {
+      state.selected.clear();
+      session.drag = { type: 'place', start: p, snap: snapshot(), moved: false, n: null, placeType: pendingNodeType(), fromStage: true };
+    }
+    refreshSelection();
+    stage.setPointerCapture(e.pointerId);
+    return;
+  }
   const touch = touchPanStart(e);
   if (!additive && !touch) state.selected.clear();
   if (!additive) setPlacement('none'); // clicking outside the canvas also puts the tool down: a drag selects (mouse) or pans (finger)

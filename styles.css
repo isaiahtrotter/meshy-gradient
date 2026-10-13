@@ -382,6 +382,7 @@ button, a, label, select, input, summary, [role="button"], .swatch, .grain-field
 .tool-demo * { --hc: #fff !important; } /* always the light controls, whatever colour is under them */
 .tool-demo-hand { position: absolute; left: 0; top: 0; z-index: 10; will-change: transform, opacity; opacity: 0; }
 .overlay { position: absolute; inset: 0; cursor: url(crosshair.svg) 9 9, crosshair; } /* the custom plus (18px, hotspot at its centre); the system crosshair is the fallback */
+.stage.has-tool { cursor: url(crosshair.svg) 9 9, crosshair; } /* children with their own cursor (buttons, handles) keep it */
 .overlay.no-tool { cursor: url(pointer.svg) 1 1, default; } /* no tool selected: the regular custom arrow, not the placement crosshair */
 .overlay.hide-handles .handle { opacity: 0; pointer-events: none; }
 .handle {
@@ -1021,7 +1022,7 @@ section[data-collapse] > h2[hidden] { display: none; }
 
 /* Settings on a phone: the sidebar becomes a row of tabs across the top. */
 @media (max-width: 820px) {
-  .settings-dialog { flex-direction: column; width: calc(100vw - 32px); height: min(560px, calc(100dvh - 32px)); }
+  .settings-dialog { flex-direction: column; width: calc(100vw - 32px); height: auto; max-height: calc(100dvh - 32px); } /* fits its section (no empty space under Account); a long one (Privacy) stops at the cap and scrolls inside */
   .settings-nav { flex-direction: row; align-items: center; gap: 2px; width: auto; padding: 8px; overflow-x: auto; scrollbar-width: none; }
   .settings-nav::-webkit-scrollbar { display: none; }
   .settings-title, .navind { display: none; } /* the tabs speak for themselves; the pill highlight is desktop-only */

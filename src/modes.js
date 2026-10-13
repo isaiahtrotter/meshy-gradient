@@ -34,6 +34,7 @@ export function setPlacement(type) {
   stopToolDemo(); // any demo (looping or not) belongs to the tool that's being left; the caller starts the new tool's
   session.placing = type || null;
   for (const [id, t] of Object.entries(PLACEMENT_BUTTONS)) $(id).setAttribute('aria-pressed', String(session.placing === t));
+  stage.classList.toggle('has-tool', session.placing !== 'none'); // the crosshair covers the whole stage while a node tool is up
   overlay.classList.toggle('no-tool', session.placing === 'none'); // the crosshair is for placing; with no tool the normal cursor shows
   setHint(PLACEMENT_HINTS[session.placing] || DEFAULT_HINT);
   for (const cb of placementListeners) cb(session.placing);
