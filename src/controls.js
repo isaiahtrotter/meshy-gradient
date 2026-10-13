@@ -188,6 +188,23 @@ for (const s of SLIDERS) {
   });
 }
 
+// Filter heading's reset: the icon spins a full turn (100ms ease-out) while every Filter slider glides back to its default.
+$('adjReset').addEventListener('click', () => {
+  $('adjReset').querySelector('svg').animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(-360deg)' }], { duration: 100, easing: 'ease-out' });
+  const moving = SLIDERS.filter(s => s.id.startsWith('adj') && $(s.id) && Math.abs(+$(s.id).value - +$(s.id).defaultValue) >= 1e-6);
+  if (!moving.length) return;
+  const snap = snapshot();
+  let left = moving.length;
+  for (const s of moving) {
+    const el = $(s.id);
+    animateSliderTo(el, +el.defaultValue, {
+      duration: 100,
+      onFrame: v => { s.set(el); setOut(s.out, s.fmt(v)); draw(); },
+      onDone: () => { if (!--left) pushUndo(snap); },
+    });
+  }
+});
+
 $('grainType').addEventListener('click', e => {
   const b = e.target.closest('button[data-grain-type]'); if (!b) return;
   pushUndo();

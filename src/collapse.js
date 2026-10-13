@@ -17,6 +17,6 @@ for (const sec of document.querySelectorAll('section[data-collapse]')) {
   };
   set(collapsed.has(key));
   const toggle = () => { set(!sec.classList.contains('collapsed')); save(); };
-  head.addEventListener('click', toggle);
-  head.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggle(); } });
+  head.addEventListener('click', e => { if (!e.target.closest('.sec-reset')) toggle(); }); // a heading's own buttons (the Filter reset) don't fold it
+  head.addEventListener('keydown', e => { if (e.target.closest('.sec-reset')) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggle(); } });
 }
