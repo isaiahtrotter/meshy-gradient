@@ -1022,7 +1022,7 @@ section[data-collapse] > h2[hidden] { display: none; }
 
 /* Settings on a phone: the sidebar becomes a row of tabs across the top. */
 @media (max-width: 820px) {
-  .settings-dialog { flex-direction: column; width: calc(100vw - 32px); height: auto; max-height: calc(100dvh - 32px); } /* fits its section (no empty space under Account); a long one (Privacy) stops at the cap and scrolls inside */
+  .settings-dialog { flex-direction: column; width: calc(100vw - 32px); height: auto; max-height: 50dvh; } /* fits its section (no empty space under Account); a long one (Privacy) stops at the cap and scrolls inside */
   .settings-nav { flex-direction: row; align-items: center; gap: 2px; width: auto; padding: 8px; overflow-x: auto; scrollbar-width: none; }
   .settings-nav::-webkit-scrollbar { display: none; }
   .settings-title, .navind { display: none; } /* the tabs speak for themselves; the pill highlight is desktop-only */
