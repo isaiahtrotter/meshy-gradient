@@ -200,7 +200,7 @@ const shownRows = () => arrange(baseRows());
 // functions in schema.sql (like_counts, my_likes, set_like) are the only way in. If they aren't installed, likes stay hidden.
 const SORT_KEY = 'meshGradientSort.v1';
 let likeCounts = new Map(), myLikes = new Set(), likesOk = true;
-let sortMode = (() => { try { return localStorage.getItem(SORT_KEY) === 'liked' ? 'liked' : 'newest'; } catch { return 'newest'; } })();
+let sortMode = (() => { try { return localStorage.getItem(SORT_KEY) === 'newest' ? 'newest' : 'liked'; } catch { return 'liked'; } })(); // most liked unless the visitor picked Newest
 const likeCount = row => likeCounts.get(row.id) || 0;
 const HEART = '<svg width="12" height="12" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 17.2 3.1 10.6C1.2 8.7 1.3 5.7 3.3 4.1c1.8-1.4 4.2-1 5.6.7L10 6.1l1.1-1.3c1.4-1.7 3.8-2.1 5.6-.7 2 1.6 2.1 4.6.2 6.5L10 17.2Z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>';
 function paintLike(btn, row) {
